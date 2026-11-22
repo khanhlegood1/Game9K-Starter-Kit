@@ -23,6 +23,7 @@ import avatarProxy from "./services/AvatarProxyService.js";
 import ProjectDecisionsService, {
   GAME9K_DECISION_PRESETS,
 } from "./services/ProjectDecisionsService.js";
+import XsollaCommerceService from "./services/XsollaCommerceService.js";
 import { IpRateLimiter } from "./lib/rateLimiter.js";
 import { validateGamePackage } from "./lib/manifestValidator.js";
 
@@ -39,6 +40,7 @@ export function createGame9KServer(options = {}) {
     maxRequestsPerMinute: options.maxRequestsPerMinute ?? 240,
   });
   const decisionsService = new ProjectDecisionsService({ liveRoomHub });
+  const xsollaService = new XsollaCommerceService(options.xsolla || {});
 
   const io = new Server(httpServer, {
     cors: {
@@ -52,7 +54,14 @@ export function createGame9KServer(options = {}) {
   // Middleware: allow cross-origin & iframe preview embedding without host/frame blocks
   app.use(cors({ origin: true }));
   app.use("/api/decisions", express.json({ limit: "28mb" }));
-  app.use(express.json({ limit: "256kb" }));
+  app.use(
+    express.json({
+      limit: "256kb",
+      verify: (req, _res, buf) => {
+        req.rawBody = buf.toString("utf8");
+      },
+    })
+  );
   app.use((req, res, next) => {
     res.removeHeader("X-Frame-Options");
     next();
@@ -74,6 +83,21 @@ export function createGame9KServer(options = {}) {
       decisionsEngine: process.env.GEMINI_API_KEY
         ? "gemini-decision-1"
         : "game9k-calibrated-decisions",
+      sdkCapabilities: {
+        version: "2.0.0",
+        pokiPortalSdk: true,
+        xsollaSdk3: {
+          enabled: true,
+          projectId: xsollaService.projectId,
+          livePayStation: Boolean(xsollaService.merchantId && xsollaService.apiKey),
+          steps: [
+            "01_authenticate",
+            "02_load_catalog",
+            "03_purchase_product",
+            "04_finalize_purchase",
+          ],
+        },
+      },
       models: [
         {
           id: "gemini-decision-1",
@@ -324,6 +348,98 @@ export function createGame9KServer(options = {}) {
   });
 
   // ==========================================================================
+  // REST API: XSOLLA SDK 3 COMMERCE & PAY STATION FLOW (4-STEP MONETIZATION)
+  // ==========================================================================
+
+  // Step 01: Authenticate (Device ID / Portal SSO / Server Login)
+  app.post("/api/xsolla/auth", (req, res) => {
+    const result = xsollaService.authenticate(req.body || {});
+    return res.json(result);
+  });
+
+  // Step 02: Load Catalog (Localized pricing, VAT/Sales Tax, 5% Xsolla fee)
+  app.get("/api/xsolla/catalog", async (req, res) => {
+    const result = await xsollaService.getCatalog({
+      country: req.query.country,
+      gameId: req.query.gameId,
+      skus: req.query.skus,
+    });
+    return res.json(result);
+  });
+
+  // Step 03a: Initiate Purchase / Create Pay Station Order
+  app.post("/api/xsolla/orders", async (req, res) => {
+    const result = await xsollaService.createOrder(req.body || {});
+    if (!result.ok) {
+      return res.status(result.status || 400).json(result);
+    }
+    liveRoomHub.recordTelemetry({
+      type: "xsolla_order_created",
+      gameId: req.body?.gameId || "dino-race",
+      playerId: result.order.userId,
+      payload: {
+        orderId: result.order.orderId,
+        sku: result.order.sku,
+        totalFormatted: result.order.totalFormatted,
+      },
+    });
+    return res.json(result);
+  });
+
+  // Step 03b: Complete Sandbox Pay Station Checkout (Card 4242 / VietQR / MoMo / Apple Pay)
+  app.post("/api/xsolla/orders/:orderId/pay", (req, res) => {
+    const result = xsollaService.completePayment(req.params.orderId, req.body || {});
+    if (!result.ok) {
+      return res.status(result.status || 400).json(result);
+    }
+    return res.json(result);
+  });
+
+  // Step 04: Finalize Purchase (Validate cryptographic receipt + idempotent item grant)
+  app.post("/api/xsolla/finalize", (req, res) => {
+    const result = xsollaService.finalizePurchase(req.body || {});
+    if (!result.ok) {
+      return res.status(result.status || 400).json(result);
+    }
+    liveRoomHub.recordTelemetry({
+      type: "xsolla_purchase_finalized",
+      gameId: req.body?.gameId || "dino-race",
+      playerId: result.order.userId,
+      payload: {
+        orderId: result.order.orderId,
+        sku: result.order.sku,
+        alreadyFinalized: result.alreadyFinalized,
+      },
+    });
+    return res.json(result);
+  });
+
+  app.get("/api/xsolla/inventory/:userId", (req, res) => {
+    return res.json(xsollaService.getInventory(req.params.userId));
+  });
+
+  app.post("/api/xsolla/restore", (req, res) => {
+    return res.json(
+      xsollaService.restorePurchases(req.body?.userId || "xsolla_guest")
+    );
+  });
+
+  // Official Xsolla Webhook Receiver (`Authorization: Signature <sha1>`)
+  app.post("/api/xsolla/webhook", (req, res) => {
+    const raw =
+      typeof req.rawBody === "string" ? req.rawBody : JSON.stringify(req.body || {});
+    const outcome = xsollaService.handleWebhook(
+      raw,
+      req.headers.authorization,
+      req.body || {}
+    );
+    if (outcome.status === 204) {
+      return res.status(204).end();
+    }
+    return res.status(outcome.status).json(outcome.body);
+  });
+
+  // ==========================================================================
   // SOCKET.IO REAL-TIME MULTI-TENANT BRIDGE
   // ==========================================================================
 
@@ -426,7 +542,7 @@ export function createGame9KServer(options = {}) {
     });
   });
 
-  return { app, httpServer, io, liveRoomHub, decisionsService };
+  return { app, httpServer, io, liveRoomHub, decisionsService, xsollaService };
 }
 
 // Start server automatically when executed directly (`node src/server.js`)
@@ -445,6 +561,7 @@ if (isDirectRun) {
   Listening on: http://${HOST}:${PORT}
   • KOL Launcher Hub:    /index.html
   • Dino Race Flagship:  /games/dino-race/index.html
+  • Poki × Xsolla SDK:   /sdk-demo.html
   • Dev Decisions Board: /decisions.html
   • Portal Sandbox Host: /portal.html
   • Stream Debugger:     /debug.html

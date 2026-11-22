@@ -84,8 +84,11 @@
       </div>
     </div>
 
-    <!-- Quick Stream & Viewport Controls -->
+    <!-- Quick Stream, Xsolla Store & Viewport Controls -->
     <div class="flex items-center gap-1.5">
+      <button id="btn-xsolla-store" class="px-2.5 py-1.5 rounded bg-gradient-to-r from-amber-500 to-emerald-400 hover:brightness-110 text-[11px] font-black text-stone-950 transition flex items-center gap-1" title="Mở Cửa Hàng Xsolla SDK 3">
+        <span>🛒</span><span class="hidden sm:inline">Store</span>
+      </button>
       <button id="btn-toggle-live-drawer" class="px-2.5 py-1.5 rounded bg-gradient-to-r from-rose-600 to-amber-600 hover:brightness-110 border border-rose-400/60 text-[11px] font-black text-white transition flex items-center gap-1 live-badge">
         <span>📡</span><span class="hidden sm:inline">KOL Live</span>
       </button>
@@ -232,9 +235,9 @@
       </div>
 
       <div class="pt-2 border-t border-emerald-800/60 text-[10px] text-slate-400 flex justify-between items-center">
-        <span>SDK: <code class="text-emerald-300">Game9K v1.0</code></span>
+        <span>SDK: <code class="text-emerald-300">Poki × Xsolla v2.0</code></span>
         <button id="btn-ad-reward" class="px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/50 text-amber-300 font-bold">
-          🎬 Rewarded Ad (+Nitro)
+          🎬 Rewarded Break (+Nitro)
         </button>
       </div>
     </aside>
@@ -350,9 +353,14 @@
           </button>
         </div>
 
-        <button id="btn-start-race" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-emerald-400 hover:brightness-110 text-stone-950 font-black text-sm sm:text-base uppercase tracking-wider shadow-lg shadow-amber-500/20 transition cursor-pointer">
-          XUẤT PHÁT VÀO KHU BẢO TỒN
-        </button>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <button id="btn-start-race" class="sm:col-span-2 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-emerald-400 hover:brightness-110 text-stone-950 font-black text-sm sm:text-base uppercase tracking-wider shadow-lg shadow-amber-500/20 transition cursor-pointer">
+            XUẤT PHÁT VÀO KHU BẢO TỒN
+          </button>
+          <button id="btn-start-store" type="button" class="py-3.5 px-3 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-amber-400/50 text-amber-300 font-black text-xs uppercase tracking-wider transition cursor-pointer">
+            🛒 Cửa Hàng Xsolla
+          </button>
+        </div>
       </div>
     </div>
 

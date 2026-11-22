@@ -2,8 +2,8 @@
   "schema_version": 1,
   "id": "dino-race",
   "title": "Jurassic Sanctuary Sprint — Đua Khủng Long KOL Live",
-  "version": "1.0.0",
-  "description": "Flagship Game9K HTML5 Dinosaur Racing game built for instant browser play (G4/G2) and 24/7 interactive KOL livestreams on TikTok Live & YouTube Live.",
+  "version": "2.0.0",
+  "description": "Flagship Game9K HTML5 Dinosaur Racing game with Poki Portal SDK lifecycle, Xsolla SDK 3 4-Step Commerce, and 24/7 KOL livestreams on TikTok Live & YouTube Live.",
   "author": "Game9K Studio",
   "entry": "index.html",
   "standalone_entry": "standalone.html",
@@ -16,22 +16,46 @@
   "bridge": {
     "sandbox_compatible": true,
     "requires_same_origin": false,
+    "poki_sdk_compatible": true,
     "max_telemetry_hz": 15,
     "events_emitted": [
       "game_ready",
+      "poki_loading_finished",
+      "poki_gameplay_start",
+      "poki_gameplay_stop",
+      "poki_happy_time",
       "race_started",
       "realtime_broadcast_tick",
       "race_finished",
       "leaderboard_submit",
       "cloud_save",
       "ad_break_requested",
-      "ad_break_done"
+      "ad_break_done",
+      "xsolla_purchase_finalized"
     ]
   },
   "ads": {
-    "provider": "google-h5-ad-placement",
-    "placements": ["preroll", "next", "reward"],
+    "provider": "poki-portal-and-google-h5",
+    "placements": ["preroll", "commercialBreak", "rewardedBreak"],
     "preroll_timeout_ms": 2000
+  },
+  "monetization": {
+    "provider": "xsolla-sdk-3",
+    "project_id": 249001,
+    "sandbox_supported": true,
+    "steps": [
+      "01_authenticate",
+      "02_load_catalog",
+      "03_purchase_product",
+      "04_finalize_purchase"
+    ],
+    "products": [
+      "amber_gems_100",
+      "revive_turbo_surge",
+      "kol_meteor_pack_5",
+      "golden_croc_skin",
+      "sanctuary_vip_pass"
+    ]
   },
   "stream": {
     "platforms": ["tiktok-live", "youtube-live"],

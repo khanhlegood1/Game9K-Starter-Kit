@@ -30,10 +30,10 @@
         <div>
           <div class="flex items-center gap-2">
             <span class="font-black text-base sm:text-lg tracking-tight text-white">GAME9K STARTER KIT</span>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40">v1.0.0</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40">v2.0.0</span>
           </div>
           <p class="text-[11px] text-emerald-300/80">
-            HTML5 Instant-Play SDK · KOL TikTok Live & YouTube Live Gateway · Cloudflare R2 + Supabase + Solana
+            Poki Portal SDK × Xsolla SDK 3 · KOL TikTok Live &amp; YouTube Live Gateway · R2 + Supabase + Solana
           </p>
         </div>
       </div>
@@ -41,6 +41,9 @@
       <nav class="flex flex-wrap items-center gap-2 text-xs font-bold">
         <a href="/games/dino-race/index.html" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-emerald-400 text-stone-950 hover:brightness-110 transition">
           🎮 Chơi Ngay Dino Race
+        </a>
+        <a href="/sdk-demo.html" class="px-3 py-1.5 rounded-lg bg-emerald-700/85 hover:bg-emerald-600 border border-emerald-400/60 text-white transition">
+          💳 Poki × Xsolla SDK Explorer
         </a>
         <a href="/decisions.html" class="px-3 py-1.5 rounded-lg bg-sky-900/80 hover:bg-sky-800 border border-sky-400/50 text-sky-200 transition">
           🧠 Quản Trị Dự Án (Decisions API)
@@ -228,6 +231,54 @@
           <p class="text-[11px] text-slate-400">
             Cũng xuất sẵn bản 1 tệp độc lập <a href="/games/dino-race/standalone.html" class="text-amber-300 underline hover:text-amber-200">standalone.html (~35 KB gzip)</a> chạy không cần máy chủ!
           </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- POKI PORTAL SDK × XSOLLA SDK 3 SHOWCASE PANEL -->
+    <section class="glass-card rounded-2xl p-6 border border-emerald-400/40 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div class="flex items-center flex-wrap gap-2">
+            <h2 class="text-lg font-black text-white">💳 Game9K Unified SDK v2.0 — Chuẩn Poki Portal SDK × Xsolla SDK 3</h2>
+            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40">
+              200+ Quốc Gia · 1,000+ Kênh Thanh Toán · 5% Fee
+            </span>
+          </div>
+          <p class="text-xs text-slate-300 mt-1">
+            Tương thích thả-chạy 100% với <code class="text-amber-300">window.PokiSDK</code> (<code class="text-emerald-300">gameplayStart / commercialBreak / rewardedBreak / movePill</code>) kết hợp luồng 4 lệnh thương mại hóa <code class="text-sky-300">window.XsollaSDK</code> chạy an toàn xuyên qua <code class="text-emerald-300">&lt;iframe sandbox="allow-scripts"&gt;</code>.
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2 text-xs font-bold">
+          <a href="/sdk-demo.html" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-400 text-stone-950 font-black hover:brightness-110 transition">
+            🔭 Mở SDK Explorer Trực Tiếp
+          </a>
+          <a href="/portal.html" class="px-4 py-2.5 rounded-xl bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-500/50 text-emerald-200 font-bold transition">
+            🛡️ Test Pay Station Trong Iframe Sandbox
+          </a>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+        <div class="p-3.5 rounded-xl bg-black/50 border border-emerald-800/60 space-y-1">
+          <div class="font-mono text-[10px] font-black text-emerald-400">STEP 01 · AUTHENTICATE</div>
+          <div class="font-bold text-white">Định Danh Ngầm Device ID</div>
+          <p class="text-slate-300 text-[11px]">Không chặn màn hình đăng nhập; đồng bộ tài khoản cổng Game9K SSO &amp; Poki <code class="text-amber-300">getUser()</code>.</p>
+        </div>
+        <div class="p-3.5 rounded-xl bg-black/50 border border-emerald-800/60 space-y-1">
+          <div class="font-mono text-[10px] font-black text-sky-400">STEP 02 · LOAD CATALOG</div>
+          <div class="font-bold text-white">130+ Tiền Tệ &amp; Thuế Tự Động</div>
+          <p class="text-slate-300 text-[11px]">Hiển thị giá VND / USD / EUR / JPY kèm thuế VAT địa phương &amp; chi tiết phí 5% cho Studio.</p>
+        </div>
+        <div class="p-3.5 rounded-xl bg-black/50 border border-emerald-800/60 space-y-1">
+          <div class="font-mono text-[10px] font-black text-amber-400">STEP 03 · PURCHASE</div>
+          <div class="font-bold text-white">Xsolla Pay Station 4</div>
+          <p class="text-slate-300 text-[11px]">Tự động <code class="text-amber-300">gameplayStop()</code> + tắt tiếng, ủy quyền Pay Station ra lớp vỏ Cổng ngoài Sandbox.</p>
+        </div>
+        <div class="p-3.5 rounded-xl bg-black/50 border border-emerald-800/60 space-y-1">
+          <div class="font-mono text-[10px] font-black text-purple-400">STEP 04 · FINALIZE</div>
+          <div class="font-bold text-white">Xác Thực HMAC &amp; Miễn Quảng Cáo</div>
+          <p class="text-slate-300 text-[11px]">Chống gian lận &amp; cộng trùng; mở Vé VIP tự động bỏ qua <code class="text-emerald-300">PokiSDK.commercialBreak()</code>!</p>
         </div>
       </div>
     </section>
