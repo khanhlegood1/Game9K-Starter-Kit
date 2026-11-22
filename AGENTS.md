@@ -29,4 +29,5 @@ Always run all three checks after modifying game code, SDK, or gateway logic:
 npm test
 npm run build
 npm run verify
+npm run decide
 ```

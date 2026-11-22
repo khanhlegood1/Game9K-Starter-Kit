@@ -18,6 +18,7 @@
     "build": "node cli/g9k.js build",
     "verify": "node cli/g9k.js verify",
     "doctor": "node cli/g9k.js doctor",
+    "decide": "node cli/g9k.js decide",
     "test": "node --test test/*.test.js"
   },
   "keywords": [
