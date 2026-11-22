@@ -1,0 +1,42 @@
+{
+  "name": "game9k-starter-kit",
+  "version": "1.0.0",
+  "description": "Game9K HTML5 Instant-Play Starter Kit & Multi-Platform Live Stream Gateway (TikTok Live + YouTube Live) featuring Jurassic Sanctuary Sprint (Dino Race)",
+  "type": "module",
+  "main": "src/server.js",
+  "bin": {
+    "g9k": "./cli/g9k.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "g9k": "node cli/g9k.js",
+    "validate": "node cli/g9k.js validate",
+    "build": "node cli/g9k.js build",
+    "verify": "node cli/g9k.js verify",
+    "doctor": "node cli/g9k.js doctor",
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": [
+    "game9k",
+    "html5-game",
+    "tiktok-live",
+    "youtube-live",
+    "dinosaur-race",
+    "obs-overlay",
+    "cloudflare-r2",
+    "supabase-realtime",
+    "solana"
+  ],
+  "author": "Game9K Studio",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1",
+    "tiktok-live-connector": "^2.0.3"
+  }
+}

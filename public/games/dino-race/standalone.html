@@ -1,0 +1,3788 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Jurassic Sanctuary Sprint — Đua Khủng Long KOL TikTok Live & YouTube Live | Game9K</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #070d0b;
+      color: #ecfdf5;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    canvas {
+      touch-action: none;
+      display: block;
+    }
+    .glass-panel {
+      background: rgba(8, 20, 16, 0.9);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(52, 211, 153, 0.28);
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 12px rgba(251, 191, 36, 0.25); }
+      50% { box-shadow: 0 0 22px rgba(244, 63, 94, 0.55); }
+    }
+    .live-badge {
+      animation: pulseGlow 2s infinite;
+    }
+    .feed-scroll::-webkit-scrollbar { width: 4px; }
+    .feed-scroll::-webkit-scrollbar-thumb {
+      background: rgba(52, 211, 153, 0.35);
+      border-radius: 4px;
+    }
+    /* Optional 9:16 vertical preview frame on desktop for TikTok Live Studio / Shorts */
+    .portrait-frame {
+      max-width: 440px;
+      margin-left: auto;
+      margin-right: auto;
+      border-left: 1px solid rgba(52, 211, 153, 0.3);
+      border-right: 1px solid rgba(52, 211, 153, 0.3);
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col text-emerald-50">
+
+  <!-- TOP TELEMETRY & SANCTUARY HUD -->
+  <header id="top-hud" class="h-13 py-2 px-3 sm:px-5 bg-emerald-950/95 border-b border-emerald-800/60 flex items-center justify-between z-20 shrink-0">
+    <div class="flex items-center gap-2.5">
+      <a href="/index.html" class="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-400/50 flex items-center justify-center text-base hover:scale-105 transition" title="Về Game9K Starter Kit Hub">
+        🦖
+      </a>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-black text-xs sm:text-sm text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-emerald-300 to-teal-200 uppercase tracking-wide">
+            Jurassic Sanctuary Sprint
+          </h1>
+          <span id="mode-pill" class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+            SOLO G4
+          </span>
+        </div>
+        <p class="text-[10px] text-emerald-400/80 font-semibold tracking-wider uppercase hidden md:block">
+          TikTok Live + YouTube Live · Game9K Starter Kit
+        </p>
+      </div>
+    </div>
+
+    <!-- Live Race Metrics -->
+    <div class="flex items-center gap-1.5 sm:gap-2.5 text-xs font-bold">
+      <div class="bg-black/45 px-2 py-1 rounded border border-emerald-800/60 flex items-center gap-1">
+        <span class="text-emerald-400/70 hidden lg:inline">TOP 1:</span>
+        <span id="hud-rank" class="text-amber-400 font-mono text-xs">1/4</span>
+      </div>
+      <div class="bg-black/45 px-2 py-1 rounded border border-emerald-800/60 flex items-center gap-1">
+        <span class="text-emerald-400/70 hidden lg:inline">VÒNG:</span>
+        <span id="hud-lap" class="text-emerald-300 font-mono text-xs">1/3</span>
+      </div>
+      <div class="bg-black/45 px-2 py-1 rounded border border-emerald-800/60 flex items-center gap-1">
+        <span id="hud-time" class="text-teal-200 font-mono text-xs">00:00.0</span>
+      </div>
+    </div>
+
+    <!-- Quick Stream & Viewport Controls -->
+    <div class="flex items-center gap-1.5">
+      <button id="btn-toggle-live-drawer" class="px-2.5 py-1.5 rounded bg-gradient-to-r from-rose-600 to-amber-600 hover:brightness-110 border border-rose-400/60 text-[11px] font-black text-white transition flex items-center gap-1 live-badge">
+        <span>📡</span><span class="hidden sm:inline">KOL Live</span>
+      </button>
+      <button id="btn-layout-aspect" class="px-2 py-1.5 rounded bg-emerald-900/60 hover:bg-emerald-800 border border-emerald-700/60 text-[11px] font-semibold text-teal-200 transition hidden sm:inline-block" title="Chuyển khung 16:9 YouTube / 9:16 TikTok">
+        🖥️ 16:9
+      </button>
+      <button id="btn-weather" class="px-2 py-1.5 rounded bg-emerald-900/60 hover:bg-emerald-800 border border-emerald-700/60 text-[11px] font-semibold text-amber-300 transition" title="Đổi ánh sáng khu bảo tồn">
+        🌅
+      </button>
+      <button id="btn-audio" class="px-2 py-1.5 rounded bg-emerald-900/60 hover:bg-emerald-800 border border-emerald-700/60 text-[11px] font-semibold text-emerald-300 transition" title="Bật/tắt âm thanh">
+        🔊
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN VIEWPORT SHELL (Supports 16:9 Full & 9:16 Vertical Frame) -->
+  <div id="viewport-shell" class="relative flex-1 w-full h-full overflow-hidden">
+    <canvas id="raceCanvas" class="w-full h-full"></canvas>
+
+    <!-- KOL LIVE LANE PROGRESS & VIEWER TICKER -->
+    <div id="live-hud-lanes" class="hidden absolute top-3 left-3 w-60 sm:w-72 glass-panel rounded-xl p-2.5 z-10 space-y-1.5">
+      <div class="flex items-center justify-between border-b border-emerald-800/60 pb-1">
+        <span class="text-[10px] font-black uppercase tracking-wider text-rose-400 flex items-center gap-1">
+          <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span> TIKTOK & YOUTUBE LIVE
+        </span>
+        <span id="live-phase-badge" class="text-[10px] font-mono font-bold text-amber-300">RACING</span>
+      </div>
+      <div id="live-lane-bars" class="space-y-1.5 text-[11px]"></div>
+      <div class="pt-1 border-t border-emerald-800/60 flex items-center justify-between text-[10px] text-emerald-300/90">
+        <span>Chat <b>1, 2, 3, 4</b> / Quà & SuperChat!</span>
+        <span id="live-viewer-count" class="font-mono text-amber-300">👥 0</span>
+      </div>
+    </div>
+
+    <!-- MULTI-PLATFORM KOL CONTROL & SIMULATOR DRAWER -->
+    <aside id="live-control-drawer" class="hidden absolute top-3 right-3 bottom-3 w-80 max-w-[94vw] glass-panel rounded-2xl p-3.5 z-20 flex flex-col justify-between shadow-2xl border border-rose-500/40">
+      <div class="space-y-2.5 overflow-y-auto feed-scroll pr-1">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+              <span>📡</span> Trung Tâm KOL Live (TT + YT)
+            </h3>
+            <p id="stream-conn-status" class="text-[9px] font-mono text-emerald-400">Chế độ Giả lập / Sẵn sàng kết nối</p>
+          </div>
+          <button id="btn-close-drawer" class="text-slate-400 hover:text-white text-xs px-2 py-0.5 rounded bg-black/50">✕</button>
+        </div>
+
+        <!-- Direct TikTok + YouTube Live Room Binding -->
+        <div class="bg-black/45 p-2 rounded-xl border border-emerald-900/80 space-y-1.5 text-[11px]">
+          <div class="grid grid-cols-2 gap-1.5">
+            <input id="inp-tiktok-user" type="text" placeholder="🎵 @tiktok_id" class="px-2 py-1 rounded bg-stone-900 border border-emerald-800/70 text-emerald-100 placeholder-slate-500 text-[11px]">
+            <input id="inp-youtube-vid" type="text" placeholder="▶️ YT Video ID/URL" class="px-2 py-1 rounded bg-stone-900 border border-emerald-800/70 text-emerald-100 placeholder-slate-500 text-[11px]">
+          </div>
+          <button id="btn-connect-streams" class="w-full py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-[11px] transition">
+            🔗 Kết Nối Phòng Live Thật
+          </button>
+        </div>
+
+        <!-- Mode & Demo Bot Switcher -->
+        <div class="grid grid-cols-3 gap-1 text-[10px] font-bold">
+          <button id="btn-switch-derby" class="py-1.5 px-1.5 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white">
+            🏇 4 Đội KOL
+          </button>
+          <button id="btn-switch-stampede" class="py-1.5 px-1.5 rounded-lg bg-purple-700/80 hover:bg-purple-600 text-white">
+            👥 24 Avatar
+          </button>
+          <button id="btn-toggle-bot-stream" class="py-1.5 px-1.5 rounded-lg bg-emerald-900/80 border border-emerald-600/50 text-emerald-200 hover:bg-emerald-800">
+            🤖 Demo Live: TẮT
+          </button>
+        </div>
+
+        <!-- OBS Clean & Transparent Chroma Controls -->
+        <div class="grid grid-cols-2 gap-1.5 text-[10px] font-bold">
+          <button id="btn-obs-clean" class="py-1.5 px-2 rounded bg-stone-900 hover:bg-stone-800 border border-stone-700 text-amber-300">
+            Ẩn HUD
+          </button>
+          <button id="btn-obs-chroma" class="py-1.5 px-2 rounded bg-stone-900 hover:bg-stone-800 border border-stone-700 text-teal-300">
+            Nền: Rừng
+          </button>
+        </div>
+
+        <!-- Simulator Platform Source Toggle -->
+        <div class="flex items-center justify-between text-[10px] bg-black/40 p-1 rounded-lg border border-emerald-900/60">
+          <span class="text-slate-400 pl-1.5 font-semibold">Nguồn test:</span>
+          <div class="flex gap-1">
+            <button data-sim-platform="tiktok" class="px-2 py-0.5 rounded bg-white/15 text-white font-bold">🎵 TikTok</button>
+            <button data-sim-platform="youtube" class="px-2 py-0.5 rounded text-slate-300 font-bold">▶️ YouTube</button>
+          </div>
+        </div>
+
+        <!-- 1. Chat Vote Simulation -->
+        <div class="space-y-1">
+          <div class="text-[10px] font-bold uppercase text-emerald-400/80">1. Khán giả Chat Cổ Vũ (1–4):</div>
+          <div class="grid grid-cols-4 gap-1 text-center text-[11px] font-bold">
+            <button data-sim-chat="1" class="sim-chat-btn py-1.5 rounded bg-amber-500/20 hover:bg-amber-500/40 border border-amber-400/50 text-amber-300">1 🐊</button>
+            <button data-sim-chat="2" class="sim-chat-btn py-1.5 rounded bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-400/50 text-emerald-300">2 🦖</button>
+            <button data-sim-chat="3" class="sim-chat-btn py-1.5 rounded bg-teal-500/20 hover:bg-teal-500/40 border border-teal-400/50 text-teal-300">3 🦕</button>
+            <button data-sim-chat="4" class="sim-chat-btn py-1.5 rounded bg-rose-500/20 hover:bg-rose-500/40 border border-rose-400/50 text-rose-300">4 🦎</button>
+          </div>
+        </div>
+
+        <!-- 2. 5-Tier Gifts & YouTube SuperChats -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between items-center text-[10px] font-bold uppercase text-amber-300">
+            <span>2. Quà TikTok / SuperChat YT:</span>
+            <select id="sim-gift-target" class="bg-stone-900 border border-emerald-700 rounded px-1.5 py-0.5 text-[10px] text-amber-300">
+              <option value="0">#1 Crocodilia 🐊</option>
+              <option value="1">#2 Carnotaurus 🦖</option>
+              <option value="2">#3 Triceratops 🦕</option>
+              <option value="3">#4 Baryonyx 🦎</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-1.5 text-[10px] font-bold">
+            <button data-gift="rose" data-coins="1" class="sim-gift-btn p-1.5 rounded-lg bg-pink-950/50 hover:bg-pink-900/60 border border-pink-500/40 text-left">
+              <div class="text-pink-300">🌹 Hoa Hồng (1xu)</div>
+              <div class="text-[9px] text-slate-300 font-normal">+45 Nộ Khí bứt tốc</div>
+            </button>
+            <button data-gift="meat" data-coins="5" class="sim-gift-btn p-1.5 rounded-lg bg-amber-950/50 hover:bg-amber-900/60 border border-amber-500/40 text-left">
+              <div class="text-amber-300">🥩 Đùi Thịt (5xu)</div>
+              <div class="text-[9px] text-slate-300 font-normal">Full Nitro + Kháng bùn</div>
+            </button>
+            <button data-gift="banana" data-coins="10" class="sim-gift-btn p-1.5 rounded-lg bg-yellow-950/50 hover:bg-yellow-900/60 border border-yellow-500/40 text-left">
+              <div class="text-yellow-300">🍌 Bẫy Chuối (10xu)</div>
+              <div class="text-[9px] text-slate-300 font-normal">Rải bẫy trượt Top 1!</div>
+            </button>
+            <button data-gift="meteor" data-coins="20" class="sim-gift-btn p-1.5 rounded-lg bg-purple-950/50 hover:bg-purple-900/60 border border-purple-500/40 text-left">
+              <div class="text-purple-300">☄️ Thiên Thạch (20xu)</div>
+              <div class="text-[9px] text-slate-300 font-normal">Choáng đối thủ dẫn đầu</div>
+            </button>
+            <button data-gift="crown" data-coins="99" class="sim-gift-btn col-span-2 p-2 rounded-lg bg-gradient-to-r from-yellow-950/70 to-amber-900/50 hover:brightness-110 border border-yellow-400/60 text-center">
+              <div class="text-yellow-300">👑 Vương Miện / $20 SuperChat (99xu)</div>
+              <div class="text-[9px] text-amber-100 font-normal">Hào Quang Chúa Tể 4.5s + Động Đất + Mưa Dê Vàng!</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Live Event Feed -->
+        <div class="space-y-1">
+          <div class="text-[10px] font-bold uppercase text-emerald-400/80">3. Nhật ký Tương tác Trực tiếp:</div>
+          <div id="live-event-feed" class="h-24 bg-black/55 rounded-lg p-2 border border-emerald-900/70 overflow-y-auto feed-scroll space-y-1 text-[10px] font-mono">
+            <div class="text-emerald-400/70">Sẵn sàng nhận luồng TikTok Live & YouTube Live...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-emerald-800/60 text-[10px] text-slate-400 flex justify-between items-center">
+        <span>SDK: <code class="text-emerald-300">Game9K v1.0</code></span>
+        <button id="btn-ad-reward" class="px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/50 text-amber-300 font-bold">
+          🎬 Rewarded Ad (+Nitro)
+        </button>
+      </div>
+    </aside>
+
+    <!-- SOLO MODE STAMINA / ROAR BOOST GAUGE -->
+    <div id="hud-bottom" class="hidden absolute bottom-4 left-4 right-4 sm:right-auto sm:w-80 glass-panel rounded-xl p-3 z-10 pointer-events-none">
+      <div class="flex justify-between items-center text-xs font-bold mb-1">
+        <span class="text-amber-300 flex items-center gap-1">🔥 NỘ KHÍ GẦM THÉT (NITRO)</span>
+        <span id="hud-speed" class="font-mono text-emerald-300">0 km/h</span>
+      </div>
+      <div class="w-full h-2.5 bg-black/70 rounded-full overflow-hidden border border-emerald-800/80">
+        <div id="hud-boost-bar" class="h-full bg-gradient-to-r from-amber-500 to-emerald-400 transition-all duration-75" style="width: 100%;"></div>
+      </div>
+      <div class="flex justify-between text-[10px] text-emerald-400/80 mt-1.5">
+        <span>Đớp 🐐 Dê mồi hồi Nộ Khí</span>
+        <span>[SPACE / Nút Gầm] Bứt tốc</span>
+      </div>
+    </div>
+
+    <!-- MOBILE TOUCH CONTROLS -->
+    <div id="touch-controls" class="hidden sm:hidden absolute bottom-20 left-3 right-3 flex justify-between items-end z-20 pointer-events-none">
+      <div class="flex gap-2 pointer-events-auto">
+        <button id="touch-left" class="w-14 h-14 rounded-full glass-panel flex items-center justify-center text-xl active:bg-emerald-700/60">◀</button>
+        <button id="touch-right" class="w-14 h-14 rounded-full glass-panel flex items-center justify-center text-xl active:bg-emerald-700/60">▶</button>
+      </div>
+      <div class="flex gap-2 pointer-events-auto">
+        <button id="touch-boost" class="w-14 h-14 rounded-full bg-amber-600/80 border border-amber-300 flex items-center justify-center text-xs font-black shadow-lg active:scale-95">🔥 GẦM</button>
+        <button id="touch-gas" class="w-16 h-16 rounded-full bg-emerald-600/85 border border-emerald-300 flex items-center justify-center text-xs font-black shadow-lg active:scale-95">CHẠY</button>
+      </div>
+    </div>
+
+    <!-- START / MODE & MAP SELECTION MODAL -->
+    <div id="overlay-start" class="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-30 overflow-y-auto">
+      <div class="glass-panel max-w-2xl w-full rounded-2xl p-4 sm:p-6 shadow-2xl border border-emerald-500/40 space-y-4 my-auto">
+        <div class="text-center space-y-1">
+          <div class="flex items-center justify-center gap-2 flex-wrap">
+            <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase tracking-wider">
+              Game9K Starter Kit · Mẫu #1
+            </span>
+            <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 uppercase tracking-wider">
+              TikTok Live + YouTube Live 24/7
+            </span>
+          </div>
+          <h2 class="text-xl sm:text-3xl font-black text-white tracking-tight">
+            ĐUA KHỦNG LONG KHU BẢO TỒN
+          </h2>
+          <p class="text-xs text-emerald-200/80 max-w-xl mx-auto">
+            Tự lái chinh phục đầm lầy, mở <strong>Đấu Trường 4 Đội KOL</strong> (khán giả chat <code class="text-amber-300">1–4</code>), hoặc bật <strong>Đại Chiến Avatar Khán Giả</strong> lên tới 24 khủng long!
+          </p>
+        </div>
+
+        <!-- 3 Play Mode Tabs -->
+        <div class="grid grid-cols-3 gap-1.5 bg-black/55 p-1.5 rounded-xl border border-emerald-900/80">
+          <button type="button" data-mode-select="SOLO" class="py-2 px-2 rounded-lg font-black text-[11px] sm:text-xs bg-gradient-to-r from-amber-500 to-emerald-400 text-stone-950 shadow transition">
+            🎮 Tự Lái Solo
+          </button>
+          <button type="button" data-mode-select="KOL_DERBY" class="py-2 px-2 rounded-lg font-bold text-[11px] sm:text-xs text-emerald-200 hover:bg-white/5 transition">
+            🔴 4 Đội KOL Live
+          </button>
+          <button type="button" data-mode-select="VIEWER_STAMPEDE" class="py-2 px-2 rounded-lg font-bold text-[11px] sm:text-xs text-emerald-200 hover:bg-white/5 transition">
+            👥 24 Avatar Đua
+          </button>
+        </div>
+
+        <!-- Stampede Elimination Option -->
+        <div id="stampede-options-row" class="hidden bg-purple-950/35 border border-purple-500/40 rounded-xl px-3 py-2 flex items-center justify-between text-xs">
+          <span class="text-purple-200 font-semibold">🏆 Chế độ Đấu Loại Trực Tiếp (Loại 25% cuối bảng mỗi chặng)</span>
+          <input id="chk-elimination" type="checkbox" class="w-4 h-4 accent-amber-400">
+        </div>
+
+        <!-- Sanctuary Map Selector -->
+        <div class="flex items-center justify-between gap-3 bg-black/45 px-3 py-2 rounded-xl border border-emerald-900/80 text-xs">
+          <span class="font-bold text-emerald-300">🗺️ Bản đồ Khu Bảo Tồn:</span>
+          <select id="select-map" class="bg-stone-900 border border-emerald-700 rounded-lg px-2.5 py-1 text-amber-300 font-bold text-xs"></select>
+        </div>
+
+        <!-- Dinosaur Species Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5" id="dino-selector">
+          <button type="button" data-dino="0" class="dino-card text-left p-3 rounded-xl border-2 border-amber-400 bg-amber-950/30 transition">
+            <div class="flex justify-between items-center">
+              <span class="text-xl">🐊</span>
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">ĐỘI 1</span>
+            </div>
+            <div class="font-bold text-amber-300 text-xs mt-1.5">CROCODILIA</div>
+            <p class="text-[10px] text-slate-300 mt-0.5">Miễn giảm tốc đầm lầy.</p>
+          </button>
+
+          <button type="button" data-dino="1" class="dino-card text-left p-3 rounded-xl border-2 border-emerald-800/60 bg-black/40 hover:border-emerald-500 transition">
+            <div class="flex justify-between items-center">
+              <span class="text-xl">🦖</span>
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">ĐỘI 2</span>
+            </div>
+            <div class="font-bold text-emerald-300 text-xs mt-1.5">CARNOTAURUS</div>
+            <p class="text-[10px] text-slate-300 mt-0.5">Tốc độ tối đa & cua gắt.</p>
+          </button>
+
+          <button type="button" data-dino="2" class="dino-card text-left p-3 rounded-xl border-2 border-emerald-800/60 bg-black/40 hover:border-emerald-500 transition">
+            <div class="flex justify-between items-center">
+              <span class="text-xl">🦕</span>
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300">ĐỘI 3</span>
+            </div>
+            <div class="font-bold text-teal-300 text-xs mt-1.5">TRICERATOPS</div>
+            <p class="text-[10px] text-slate-300 mt-0.5">Bình Nộ Khí khổng lồ.</p>
+          </button>
+
+          <button type="button" data-dino="3" class="dino-card text-left p-3 rounded-xl border-2 border-emerald-800/60 bg-black/40 hover:border-emerald-500 transition">
+            <div class="flex justify-between items-center">
+              <span class="text-xl">🦎</span>
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300">ĐỘI 4</span>
+            </div>
+            <div class="font-bold text-rose-300 text-xs mt-1.5">BARYONYX</div>
+            <p class="text-[10px] text-slate-300 mt-0.5">Bứt tốc vòng cuối cực mạnh.</p>
+          </button>
+        </div>
+
+        <button id="btn-start-race" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-emerald-400 hover:brightness-110 text-stone-950 font-black text-sm sm:text-base uppercase tracking-wider shadow-lg shadow-amber-500/20 transition cursor-pointer">
+          XUẤT PHÁT VÀO KHU BẢO TỒN
+        </button>
+      </div>
+    </div>
+
+    <!-- FINISH / PODIUM & TOP SUPPORTERS OVERLAY -->
+    <div id="overlay-finish" class="hidden absolute inset-0 bg-black/82 backdrop-blur-sm flex items-center justify-center p-4 z-30">
+      <div class="glass-panel max-w-md w-full rounded-2xl p-5 sm:p-6 text-center space-y-4 border border-amber-400/50 shadow-2xl">
+        <div class="text-4xl" id="finish-trophy">🏆</div>
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-widest text-amber-400">KẾT QUẢ CHẶNG ĐUA KHU BẢO TỒN</div>
+          <h2 id="finish-title" class="text-xl sm:text-2xl font-black text-white mt-1">HẠNG 1 — CHÚA TỂ BỜ BIỂN!</h2>
+          <p id="finish-subtitle" class="text-xs text-emerald-300 mt-1">Thành tích: 00:48.2</p>
+        </div>
+
+        <div id="finish-standings" class="bg-black/50 rounded-xl p-3 border border-emerald-800/60 text-left space-y-1.5 text-xs"></div>
+
+        <div id="finish-supporters-box" class="hidden bg-rose-950/35 rounded-xl p-3 border border-rose-500/40 text-left space-y-1.5 text-xs">
+          <div class="text-[10px] font-black uppercase tracking-wider text-rose-300">👑 TOP MẠNH THƯỜNG QUÂN (TIKTOK & YOUTUBE)</div>
+          <div id="finish-supporters-list" class="space-y-1"></div>
+        </div>
+
+        <div id="finish-auto-countdown" class="hidden text-[11px] font-mono text-amber-300">
+          Tự động mở chặng đua mới sau 6s...
+        </div>
+
+        <button id="btn-restart" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-400 text-stone-950 font-black text-sm uppercase tracking-wider hover:brightness-110 transition">
+          Đua Chặng Tiếp Theo
+        </button>
+      </div>
+    </div>
+
+    <!-- NĐ 147/2024/NĐ-CP UNDER-18 SESSION TIME LIMIT OVERLAY -->
+    <div id="nd147-lock-overlay" class="hidden absolute inset-0 bg-stone-950/95 backdrop-blur-md flex items-center justify-center p-6 z-50">
+      <div class="max-w-md text-center space-y-3 bg-red-950/40 border border-red-500/50 rounded-2xl p-6">
+        <div class="text-4xl">⏳</div>
+        <h3 class="text-lg font-black text-red-200 uppercase">Tạm Khóa Phiên Chơi Theo Quy Định</h3>
+        <p class="text-xs text-red-100/85 leading-relaxed">
+          Tài khoản người chơi dưới 18 tuổi đã chạm giới hạn thời gian chơi trong ngày (<strong>60 phút/trò chơi</strong> hoặc <strong>180 phút/tổng cổng Game9K</strong>) theo Nghị định 147/2024/NĐ-CP. Hẹn gặp lại bạn vào ngày mai!
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Optional Socket.io (when served from Game9K Gateway) + Official Game9K SDK + Dino Race Module -->
+  <script>
+/**
+ * game9k-sdk.js
+ * Official Browser SDK for Game9K Starter Kit (v1.0.0)
+ *
+ * Implements the 5 Pillars of Game9K Instant-Play Architecture:
+ * 1. Opaque-Origin `<iframe sandbox="allow-scripts">` Safe Storage & PostMessage Bridge
+ *    - Validates `event.source === window.parent` (never trusts `event.origin === "null"` blindly)
+ *    - Wraps `localStorage` in opaque-origin try/catch so sandboxed iframes never throw SecurityError
+ * 2. Dual Mode Operation: Standalone (`G4`) vs Portal Connected (`G2` / `G1`)
+ * 3. Throttled Realtime Broadcast Telemetry (`<= 15-20 Hz`, zero Presence spam)
+ * 4. Google H5 Games Ad Placement API (`adConfig` / `adBreak` with 2,000ms preroll timeout)
+ * 5. Unified Multi-Platform Stream Bridge (`TikTok Live` + `YouTube Live` + `PostMessage` + `SSE`)
+ */
+(function initGame9KGlobal(global) {
+  "use strict";
+
+  // Safe in-memory storage fallback when running inside `<iframe sandbox="allow-scripts">`
+  // where `window.localStorage` throws DOMException SecurityError (opaque origin "null").
+  const memoryStore = new Map();
+  const SafeStorage = {
+    get(key) {
+      try {
+        return global.localStorage.getItem(key);
+      } catch {
+        return memoryStore.has(key) ? memoryStore.get(key) : null;
+      }
+    },
+    set(key, value) {
+      const str = String(value);
+      memoryStore.set(key, str);
+      try {
+        global.localStorage.setItem(key, str);
+      } catch {
+        // Expected inside sandboxed iframe without allow-same-origin
+      }
+    },
+  };
+
+  // ==========================================================================
+  // 1. MULTI-PLATFORM LIVE STREAM BRIDGE (TikTok Live + YouTube Live + OBS)
+  // ==========================================================================
+  class LiveStreamBridge {
+    constructor() {
+      this.socket = null;
+      this.sse = null;
+      this.roomId = null;
+      this.config = {};
+      this.handlers = {
+        event: [],
+        chat: [],
+        gift: [],
+        like: [],
+        share: [],
+        follow: [],
+        join: [],
+        status: [],
+        connected: [],
+        disconnected: [],
+        reconnecting: [],
+        error: [],
+      };
+
+      // Auto-connect from URL query params when page loads
+      if (typeof global.addEventListener === "function") {
+        global.addEventListener("DOMContentLoaded", () => this.autoConnectFromQuery());
+      }
+    }
+
+    autoConnectFromQuery() {
+      try {
+        const params = new URLSearchParams(global.location.search || "");
+        const tiktok = params.get("tiktok") || params.get("id") || params.get("username") || "";
+        const youtube = params.get("youtube") || params.get("yt") || "";
+        const room = params.get("room") || "";
+        const autobot = params.get("autobot") === "1" || params.get("demo") === "1";
+
+        if (tiktok || youtube || room) {
+          this.connect({
+            roomId: room || tiktok || youtube || "sanctuary-main",
+            tiktok: tiktok || undefined,
+            youtube: youtube || undefined,
+            demoBot: autobot ? true : undefined,
+          });
+        }
+      } catch {
+        // Ignore URL parse errors in opaque contexts
+      }
+    }
+
+    /**
+     * Connect to Game9K Multi-Tenant Gateway.
+     * Accepts either a legacy TikTok username string (`connect("username")`)
+     * or a multi-platform config object (`connect({ roomId, tiktok, youtube, youtubeApiKey, demoBot })`).
+     */
+    connect(targetOrOptions, serverUrl) {
+      let opts = {};
+      if (typeof targetOrOptions === "string") {
+        opts = { roomId: targetOrOptions, tiktok: targetOrOptions };
+      } else if (targetOrOptions && typeof targetOrOptions === "object") {
+        opts = { ...targetOrOptions };
+      } else {
+        return;
+      }
+
+      const roomId = String(
+        opts.roomId || opts.tiktok || opts.youtube || "sanctuary-main"
+      )
+        .trim()
+        .toLowerCase()
+        .replace(/^@+/, "")
+        .replace(/[^a-z0-9_.-]/g, "-");
+
+      this.roomId = roomId;
+      this.config = opts;
+
+      // Prefer Socket.io when available on same origin or explicit serverUrl
+      if (typeof global.io === "function") {
+        if (!this.socket) {
+          const base =
+            serverUrl ||
+            (global.location.origin && global.location.origin !== "null"
+              ? global.location.origin
+              : undefined);
+          this.socket = base ? global.io(base) : global.io();
+          this._bindSocketListeners();
+        } else if (this.socket.connected) {
+          this.socket.emit("join-room", { ...opts, roomId });
+        }
+        return;
+      }
+
+      // Fallback to Server-Sent Events (`/api/sse/:roomId`) if Socket.io client isn't loaded
+      if (
+        typeof global.EventSource === "function" &&
+        global.location.origin &&
+        global.location.origin !== "null"
+      ) {
+        this._connectSseFallback(roomId, opts);
+      }
+    }
+
+    _bindSocketListeners() {
+      this.socket.on("connect", () => {
+        this.socket.emit("join-room", { ...this.config, roomId: this.roomId });
+      });
+
+      this.socket.on("room-joined", (data) => {
+        this._emit("connected", data);
+      });
+
+      // Unified event channel (handles both TikTok Live & YouTube Live)
+      this.socket.on("stream_event", (evt) => {
+        this._routeNormalizedEvent(evt);
+      });
+
+      this.socket.on("stream_status", (st) => {
+        this._emit("status", st);
+        if (st.status === "connected") this._emit("connected", st);
+        if (st.status === "disconnected") this._emit("disconnected", st);
+        if (st.status === "reconnecting") this._emit("reconnecting", st);
+      });
+
+      this.socket.on("connection-error", (err) => {
+        this._emit("error", err);
+      });
+    }
+
+    async _connectSseFallback(roomId, opts) {
+      try {
+        if (opts.tiktok || opts.youtube || typeof opts.demoBot === "boolean") {
+          await fetch(`/api/rooms/${encodeURIComponent(roomId)}/connect`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(opts),
+          });
+        }
+        if (this.sse) this.sse.close();
+        this.sse = new global.EventSource(`/api/sse/${encodeURIComponent(roomId)}`);
+        this.sse.onmessage = (msg) => {
+          try {
+            const parsed = JSON.parse(msg.data);
+            if (parsed.kind === "event" && parsed.event) {
+              this._routeNormalizedEvent(parsed.event);
+            } else if (parsed.kind === "status" && parsed.status) {
+              this._emit("status", parsed.status);
+            } else if (parsed.kind === "connected") {
+              this._emit("connected", parsed);
+            }
+          } catch {
+            // Ignore malformed frame
+          }
+        };
+      } catch (err) {
+        this._emit("error", { message: err?.message || "SSE connection failed" });
+      }
+    }
+
+    /**
+     * Manually ingest an event from local simulator, OBS Browser Source script, or `postMessage`.
+     * Normalizes shorthand `{ type: 'gift', user: 'MinhAnh', lane: 0, giftTier: 'meteor', coins: 20 }`
+     * into the canonical shape expected by all Game9K listeners.
+     */
+    ingest(raw) {
+      if (!raw || typeof raw !== "object") return;
+      const platform = raw.platform || "tiktok";
+      const userObj =
+        raw.user && typeof raw.user === "object"
+          ? raw.user
+          : {
+              uniqueId: String(raw.user || "viewer")
+                .toLowerCase()
+                .replace(/\s+/g, "_"),
+              nickname: String(raw.user || "Khán Giả"),
+              profilePictureUrl: raw.avatar || "",
+              platform,
+            };
+
+      const type = String(raw.type || "chat").toLowerCase();
+
+      if (type === "gift" || type === "superchat") {
+        const coins = Math.max(
+          1,
+          Number(raw.giftValue ?? raw.coins ?? raw.diamonds ?? 1)
+        );
+        const tier =
+          raw.giftTier ||
+          (coins >= 99
+            ? "crown"
+            : coins >= 20
+            ? "meteor"
+            : coins >= 10
+            ? "banana"
+            : coins >= 5
+            ? "meat"
+            : "rose");
+        // Accept both 0-based (0..3) and 1-based (1..4) lane numbers smoothly when `laneOneBased` is set
+        let lane = typeof raw.lane === "number" ? raw.lane : null;
+        if (lane !== null && raw.laneOneBased) lane = Math.max(0, lane - 1);
+
+        const normalized = {
+          type: "gift",
+          platform,
+          user: userObj,
+          giftId: Number(raw.giftId || 1),
+          giftName:
+            raw.giftName ||
+            (platform === "youtube" ? `Super Chat (${coins} xu)` : tier.toUpperCase()),
+          giftValue: coins,
+          repeatCount: Number(raw.repeatCount || 1),
+          giftType: coins >= 99 ? "large" : coins >= 10 ? "medium" : "small",
+          giftTier: tier,
+          comment: String(raw.comment || raw.text || ""),
+          lane,
+          timestamp: Date.now(),
+        };
+        this._routeNormalizedEvent(normalized);
+        return normalized;
+      }
+
+      if (type === "like") {
+        const normalized = {
+          type: "like",
+          platform,
+          user: userObj,
+          likeCount: Math.max(1, Number(raw.likeCount || raw.count || 3)),
+          timestamp: Date.now(),
+        };
+        this._routeNormalizedEvent(normalized);
+        return normalized;
+      }
+
+      if (type === "share" || type === "follow" || type === "join") {
+        const normalized = {
+          type,
+          platform,
+          user: userObj,
+          timestamp: Date.now(),
+        };
+        this._routeNormalizedEvent(normalized);
+        return normalized;
+      }
+
+      const comment = String(raw.comment ?? raw.text ?? "").trim();
+      let lane = typeof raw.lane === "number" ? raw.lane : null;
+      if (lane === null && comment) {
+        const lc = comment.toLowerCase();
+        if (/^(#?1\b|croc|cá sấu|vàng)/.test(lc)) lane = 0;
+        else if (/^(#?2\b|carno|xanh lá)/.test(lc)) lane = 1;
+        else if (/^(#?3\b|trike|tricera|ba sừng|lam)/.test(lc)) lane = 2;
+        else if (/^(#?4\b|bary|đỏ|hồng)/.test(lc)) lane = 3;
+      }
+
+      const normalized = {
+        type: "chat",
+        platform,
+        user: userObj,
+        comment,
+        lane,
+        timestamp: Date.now(),
+      };
+      this._routeNormalizedEvent(normalized);
+      return normalized;
+    }
+
+    _routeNormalizedEvent(evt) {
+      this._emit("event", evt);
+      if (evt.type && this.handlers[evt.type]) {
+        this._emit(evt.type, evt);
+      }
+    }
+
+    on(eventName, callback) {
+      if (typeof callback !== "function") return () => {};
+      if (!this.handlers[eventName]) this.handlers[eventName] = [];
+      this.handlers[eventName].push(callback);
+      return () => {
+        this.handlers[eventName] = this.handlers[eventName].filter((fn) => fn !== callback);
+      };
+    }
+
+    _emit(eventName, payload) {
+      const list = this.handlers[eventName];
+      if (!list) return;
+      for (const fn of list) {
+        try {
+          fn(payload);
+        } catch (err) {
+          console.error(`[Game9K StreamBridge] Handler error (${eventName}):`, err);
+        }
+      }
+    }
+  }
+
+  // ==========================================================================
+  // 2. GOOGLE H5 GAMES AD PLACEMENT API WRAPPER (`adConfig` / `adBreak`)
+  // ==========================================================================
+  class Game9KAdsManager {
+    constructor(sdk) {
+      this.sdk = sdk;
+      this.configured = false;
+    }
+
+    ensureConfig() {
+      if (this.configured) return;
+      this.configured = true;
+      if (typeof global.adConfig === "function") {
+        global.adConfig({
+          preloadAdBreaks: "on",
+          sound: "on",
+          onReady: () => this.sdk.emitPortalEvent("ads_ready", {}),
+        });
+      }
+    }
+
+    /**
+     * Trigger an H5 Ad Break (`preroll`, `start`, `pause`, `next`, `browse`, `reward`).
+     * Enforces Google's 2,000ms preroll timeout safety rule and freezes game loop/audio.
+     */
+    triggerAdBreak({
+      type = "next",
+      name = "game9k-break",
+      onPause = null,
+      onResume = null,
+      onReward = null,
+      onDone = null,
+    } = {}) {
+      this.ensureConfig();
+
+      // Notify parent portal sandbox if embedded (allows Portal Simulator to mock ad overlays!)
+      if (this.sdk.isEmbedded) {
+        this.sdk.emitPortalEvent("ad_break_requested", { adType: type, name });
+      }
+
+      if (typeof global.adBreak !== "function") {
+        // Standalone graceful fallback when Google AdSense H5 tag is absent
+        if (type === "reward" && typeof onReward === "function") {
+          onReward();
+        }
+        if (typeof onDone === "function") {
+          onDone({ breakStatus: "standalone_simulated", breakType: type });
+        }
+        return;
+      }
+
+      let settled = false;
+      const finalize = (info = {}) => {
+        if (settled) return;
+        settled = true;
+        this.sdk._setPaused(false, "ad");
+        if (typeof onResume === "function") onResume();
+        if (typeof onDone === "function") onDone(info);
+      };
+
+      // Hard 2.0s safety timeout per Google H5 Games Ad Placement spec
+      const safetyTimer = setTimeout(() => {
+        finalize({ breakStatus: "timeout", breakType: type });
+      }, 2000);
+
+      global.adBreak({
+        type,
+        name,
+        beforeAd: () => {
+          clearTimeout(safetyTimer);
+          this.sdk._setPaused(true, "ad");
+          if (typeof onPause === "function") onPause();
+        },
+        afterAd: () => {
+          finalize({ breakStatus: "viewed", breakType: type });
+        },
+        beforeReward: (showAdFn) => {
+          clearTimeout(safetyTimer);
+          showAdFn();
+        },
+        adViewed: () => {
+          if (typeof onReward === "function") onReward();
+        },
+        adDismissed: () => {
+          // Dismissed early -> no reward granted
+        },
+        adBreakDone: (placementInfo) => {
+          clearTimeout(safetyTimer);
+          this.sdk.emitPortalEvent("ad_break_done", placementInfo || {});
+          finalize(placementInfo || {});
+        },
+      });
+    }
+  }
+
+  // ==========================================================================
+  // 3. GAME9K CORE BRIDGE (Sandbox PostMessage, Telemetry <= 20Hz, Legal Lock)
+  // ==========================================================================
+  class Game9KSDK {
+    constructor() {
+      this.gameId = "dino-race";
+      this.version = "1.0.0";
+      this.playerId = this._resolveGuestId();
+      this.isEmbedded = Boolean(global.parent && global.parent !== global);
+      this.pausedReasons = new Set();
+      this.legalLocked = false;
+      this.minTelemetryIntervalMs = 66; // ~15 Hz default (strictly <= 20 Hz Supabase limit)
+      this.lastTelemetryAt = 0;
+      this.pauseListeners = [];
+
+      this.stream = new LiveStreamBridge();
+      this.ads = new Game9KAdsManager(this);
+      this.storage = SafeStorage;
+
+      if (typeof global.addEventListener === "function") {
+        global.addEventListener("message", (evt) => this._handleWindowMessage(evt));
+      }
+    }
+
+    _resolveGuestId() {
+      const existing = SafeStorage.get("g9k_player_id");
+      if (existing) return existing;
+      const fresh = "g9k_" + Math.random().toString(36).slice(2, 10);
+      SafeStorage.set("g9k_player_id", fresh);
+      return fresh;
+    }
+
+    init({ gameId, version, maxTelemetryHz = 15, onPauseChange } = {}) {
+      if (gameId) this.gameId = gameId;
+      if (version) this.version = version;
+      const clampedHz = Math.max(1, Math.min(20, Number(maxTelemetryHz) || 15));
+      this.minTelemetryIntervalMs = Math.ceil(1000 / clampedHz);
+
+      if (typeof onPauseChange === "function") {
+        this.pauseListeners.push(onPauseChange);
+      }
+
+      this.emitPortalEvent("game_ready", {
+        gameId: this.gameId,
+        version: this.version,
+        mode: this.isEmbedded ? "PORTAL_CONNECTED" : "STANDALONE_G4",
+        maxTelemetryHz: clampedHz,
+      });
+
+      return this;
+    }
+
+    onPauseChange(fn) {
+      if (typeof fn === "function") this.pauseListeners.push(fn);
+    }
+
+    get isPaused() {
+      return this.pausedReasons.size > 0 || this.legalLocked;
+    }
+
+    _setPaused(paused, reason = "portal") {
+      if (paused) this.pausedReasons.add(reason);
+      else this.pausedReasons.delete(reason);
+      const nowPaused = this.isPaused;
+      for (const fn of this.pauseListeners) {
+        try {
+          fn(nowPaused, reason);
+        } catch {
+          // Ignore
+        }
+      }
+    }
+
+    /**
+     * Strict MDN Sandbox PostMessage Listener:
+     * Only accepts messages from `window.parent` (portal shell) or `window` (local bridge).
+     */
+    _handleWindowMessage(event) {
+      if (event.source !== global.parent && event.source !== global) return;
+      const msg = event.data;
+      if (!msg || typeof msg !== "object") return;
+
+      if (msg.type === "PAUSE_GAME") {
+        this._setPaused(true, "portal");
+      } else if (msg.type === "RESUME_GAME") {
+        this._setPaused(false, "portal");
+      } else if (msg.type === "UNDER18_LIMIT_LOCK") {
+        // NĐ 147/2024/NĐ-CP compliance: hard-freeze iframe when <18 player exceeds 60m/180m
+        this.legalLocked = true;
+        this._setPaused(true, "nd147_under18_limit");
+      } else if (msg.type === "UNDER18_LIMIT_UNLOCK") {
+        this.legalLocked = false;
+        this._setPaused(false, "nd147_under18_limit");
+      } else if ((msg.type === "TIKTOK_EVENT" || msg.type === "STREAM_EVENT") && msg.payload) {
+        this.stream.ingest(msg.payload);
+      }
+    }
+
+    /**
+     * Send structured event to Game9K Parent Portal (`window.parent.postMessage`).
+     */
+    emitPortalEvent(type, payload = {}) {
+      const envelope = {
+        source: `game9k:${this.gameId}`,
+        gameId: this.gameId,
+        version: this.version,
+        playerId: this.playerId,
+        type,
+        timestamp: Date.now(),
+        payload,
+      };
+
+      if (this.isEmbedded && global.parent) {
+        global.parent.postMessage(envelope, "*");
+      }
+      return envelope;
+    }
+
+    /**
+     * Throttled Realtime Broadcast tick (guaranteed <= 20 Hz for Supabase Realtime compliance).
+     */
+    broadcastTick(payload) {
+      const now =
+        typeof performance !== "undefined" ? performance.now() : Date.now();
+      if (now - this.lastTelemetryAt < this.minTelemetryIntervalMs) {
+        return false;
+      }
+      this.lastTelemetryAt = now;
+      this.emitPortalEvent("realtime_broadcast_tick", payload);
+      return true;
+    }
+
+    /**
+     * Submit verified race/session score to Portal & local API leaderboard.
+     */
+    async submitScore(entry = {}) {
+      const payload = {
+        playerId: this.playerId,
+        ...entry,
+      };
+      this.emitPortalEvent("leaderboard_submit", payload);
+
+      if (global.location?.origin && global.location.origin !== "null") {
+        try {
+          const res = await fetch(
+            `/api/portal/leaderboard/${encodeURIComponent(this.gameId)}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            }
+          );
+          if (res.ok) return await res.json();
+        } catch {
+          // Offline / G4 standalone fallback
+        }
+      }
+      return { ok: true, offline: true };
+    }
+
+    /**
+     * Cloud Save (`G2` mode) with transparent SafeStorage (`G4` mode) fallback.
+     */
+    async saveCloudState(stateObj) {
+      SafeStorage.set(`g9k_save_${this.gameId}`, JSON.stringify(stateObj));
+      this.emitPortalEvent("cloud_save", { data: stateObj });
+
+      if (global.location?.origin && global.location.origin !== "null") {
+        try {
+          await fetch(
+            `/api/portal/cloud-save/${encodeURIComponent(this.gameId)}/${encodeURIComponent(
+              this.playerId
+            )}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ data: stateObj }),
+            }
+          );
+        } catch {
+          // Ignore in offline G4 mode
+        }
+      }
+    }
+
+    async loadCloudState() {
+      if (global.location?.origin && global.location.origin !== "null") {
+        try {
+          const res = await fetch(
+            `/api/portal/cloud-save/${encodeURIComponent(this.gameId)}/${encodeURIComponent(
+              this.playerId
+            )}`
+          );
+          if (res.ok) {
+            const json = await res.json();
+            if (json?.save?.data) return json.save.data;
+          }
+        } catch {
+          // Fallback to SafeStorage
+        }
+      }
+      const localRaw = SafeStorage.get(`g9k_save_${this.gameId}`);
+      if (!localRaw) return null;
+      try {
+        return JSON.parse(localRaw);
+      } catch {
+        return null;
+      }
+    }
+  }
+
+  const sdkInstance = new Game9KSDK();
+  global.Game9K = sdkInstance;
+  global.LiveStreamBridge = sdkInstance.stream;
+  // 100% compatibility alias for `vamnguyen/tiktok-live-games` & KOL scripts
+  global.TikTokBridge = sdkInstance.stream;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+(function () {
+"use strict";
+/**
+ * config.js
+ * Core species, Catmull-Rom Sanctuary tracks, lighting themes, and
+ * TikTok Gift / YouTube SuperChat power-up definitions for Jurassic Sanctuary Sprint.
+ */
+const SPECIES = [
+  {
+    id: 0,
+    code: "1",
+    name: "Crocodilia",
+    fullName: "Crocodilia Apex",
+    emoji: "🐊",
+    color: "#f59e0b",
+    accent: "#fde68a",
+    badgeBg: "rgba(245, 158, 11, 0.22)",
+    trait: "Chúa Tể Đầm Lầy (Miễn giảm tốc nước)",
+    maxSpeed: 372,
+    accel: 298,
+    turnSpeed: 2.88,
+    swampPenalty: 1.0, // Immune to swamp slowdown!
+    maxBoost: 105,
+    clutchBonus: 1.02,
+  },
+  {
+    id: 1,
+    code: "2",
+    name: "Carnotaurus",
+    fullName: "Carnotaurus Coastal",
+    emoji: "🦖",
+    color: "#10b981",
+    accent: "#6ee7b7",
+    badgeBg: "rgba(16, 185, 129, 0.22)",
+    trait: "Sát Thủ Tốc Độ (Nước rút đường trường)",
+    maxSpeed: 392,
+    accel: 332,
+    turnSpeed: 3.18,
+    swampPenalty: 0.74,
+    maxBoost: 95,
+    clutchBonus: 1.0,
+  },
+  {
+    id: 2,
+    code: "3",
+    name: "Triceratops",
+    fullName: "Triceratops Titan",
+    emoji: "🦕",
+    color: "#14b8a6",
+    accent: "#5eead4",
+    badgeBg: "rgba(20, 184, 166, 0.22)",
+    trait: "Thiết Giáp 3 Sừng (Bình Nộ Khí khổng lồ)",
+    maxSpeed: 360,
+    accel: 286,
+    turnSpeed: 3.32,
+    swampPenalty: 0.82,
+    maxBoost: 140,
+    clutchBonus: 1.03,
+  },
+  {
+    id: 3,
+    code: "4",
+    name: "Baryonyx",
+    fullName: "Baryonyx Claw",
+    emoji: "🦎",
+    color: "#f43f5e",
+    accent: "#fda4af",
+    badgeBg: "rgba(244, 63, 94, 0.22)",
+    trait: " Vuốt Săn Đêm (Bứt phá vòng cuối)",
+    maxSpeed: 378,
+    accel: 314,
+    turnSpeed: 3.02,
+    swampPenalty: 0.91,
+    maxBoost: 110,
+    clutchBonus: 1.08, // Extra surge on final lap!
+  },
+];
+const MAPS = [
+  {
+    id: "crocodilia-coast",
+    name: "🏝️ Bờ Biển Crocodilia",
+    trackWidth: 170,
+    laps: 3,
+    waypoints: [
+      { x: 0, y: -520 },
+      { x: 520, y: -500 },
+      { x: 860, y: -240 },
+      { x: 820, y: 180 },
+      { x: 460, y: 460 },
+      { x: 40, y: 340 },
+      { x: -340, y: 520 },
+      { x: -780, y: 340 },
+      { x: -860, y: -120 },
+      { x: -520, y: -480 },
+    ],
+    swamps: [
+      { x: 640, y: 320, r: 155, label: "Đầm Ngập Mặn" },
+      { x: -620, y: 410, r: 142, label: "Bãi Bùn Tây" },
+      { x: -790, y: -60, r: 135, label: "Vịnh Cá Sấu" },
+    ],
+    props: [
+      { type: "nest", x: 110, y: 190 },
+      { type: "nest", x: -120, y: 240 },
+      { type: "watchtower", x: -160, y: -360 },
+      { type: "watchtower", x: 580, y: -310 },
+    ],
+  },
+  {
+    id: "amber-volcano",
+    name: "🌋 Hẻm Núi Hổ Phách",
+    trackWidth: 162,
+    laps: 3,
+    waypoints: [
+      { x: 0, y: -560 },
+      { x: 620, y: -460 },
+      { x: 920, y: -60 },
+      { x: 620, y: 260 },
+      { x: 840, y: 540 },
+      { x: 180, y: 580 },
+      { x: -140, y: 220 },
+      { x: -580, y: 520 },
+      { x: -880, y: 80 },
+      { x: -560, y: -440 },
+    ],
+    swamps: [
+      { x: 620, y: 260, r: 138, label: "Hồ Nhựa Hổ Phách" },
+      { x: -580, y: 520, r: 145, label: "Suối Khoáng Nóng" },
+    ],
+    props: [
+      { type: "nest", x: 180, y: 410 },
+      { type: "nest", x: -340, y: -180 },
+      { type: "watchtower", x: 320, y: -260 },
+      { type: "watchtower", x: -640, y: -120 },
+    ],
+  },
+  {
+    id: "biolum-lagoon",
+    name: "🌌 Đầm Lầy Phát Quang",
+    trackWidth: 176,
+    laps: 3,
+    waypoints: [
+      { x: 0, y: -480 },
+      { x: 700, y: -420 },
+      { x: 940, y: 60 },
+      { x: 560, y: 490 },
+      { x: 0, y: 420 },
+      { x: -560, y: 490 },
+      { x: -940, y: 60 },
+      { x: -700, y: -420 },
+    ],
+    swamps: [
+      { x: 760, y: 260, r: 165, label: "Đầm Neon Đông" },
+      { x: -760, y: 260, r: 165, label: "Đầm Neon Tây" },
+      { x: 0, y: 440, r: 130, label: "Vực San Hô Cổ" },
+    ],
+    props: [
+      { type: "nest", x: 280, y: 120 },
+      { type: "nest", x: -280, y: 120 },
+      { type: "watchtower", x: 0, y: -220 },
+    ],
+  },
+];
+const LIGHTING_MODES = [
+  {
+    id: "sunset",
+    name: "🌅 Hoàng hôn",
+    bg: "#0d1a14",
+    road: "#3f3226",
+    border: "#b45309",
+    swampInner: "rgba(13, 148, 136, 0.58)",
+    swampOuter: "rgba(15, 118, 110, 0.34)",
+    tint: "rgba(245, 158, 11, 0.08)",
+  },
+  {
+    id: "day",
+    name: "☀️ Ban ngày",
+    bg: "#10281e",
+    road: "#4c3e31",
+    border: "#10b981",
+    swampInner: "rgba(14, 165, 233, 0.52)",
+    swampOuter: "rgba(2, 132, 199, 0.28)",
+    tint: "rgba(16, 185, 129, 0.03)",
+  },
+  {
+    id: "night",
+    name: "🌙 Đêm phát quang",
+    bg: "#050b14",
+    road: "#1e293b",
+    border: "#38bdf8",
+    swampInner: "rgba(34, 211, 238, 0.55)",
+    swampOuter: "rgba(168, 85, 247, 0.28)",
+    tint: "rgba(14, 165, 233, 0.11)",
+  },
+];
+const POWERUP_TIERS = {
+  rose: {
+    id: "rose",
+    icon: "🌹",
+    label: "Hoa Hồng / $0.50",
+    coins: 1,
+    color: "#f472b6",
+    desc: "+45 Nộ Khí & Bứt tốc 2s",
+  },
+  meat: {
+    id: "meat",
+    icon: "🥩",
+    label: "Đùi Thịt / $1",
+    coins: 5,
+    color: "#fbbf24",
+    desc: "Đầy Nộ Khí + Gầm Nitro 3s",
+  },
+  banana: {
+    id: "banana",
+    icon: "🍌",
+    label: "Bẫy Bùn / $2",
+    coins: 10,
+    color: "#facc15",
+    desc: "Thả bẫy trượt trước mặt Top 1",
+  },
+  meteor: {
+    id: "meteor",
+    icon: "☄️",
+    label: "Thiên Thạch / $5",
+    coins: 20,
+    color: "#c084fc",
+    desc: "Khóa mục tiêu & làm choáng Top 1",
+  },
+  crown: {
+    id: "crown",
+    icon: "👑",
+    label: "Vương Miện / $20",
+    coins: 99,
+    color: "#fde047",
+    desc: "Hào Quang Vua 4.5s + Mưa Dê Vàng",
+  },
+};
+
+/**
+ * Interpolate closed-loop Catmull-Rom spline waypoints into dense smooth track points.
+ * @param {Array<{x: number, y: number}>} waypoints
+ * @param {number} [subdivisions=28]
+ * @returns {Array<{x: number, y: number}>}
+ */
+function buildCatmullRomTrack(waypoints, subdivisions = 28) {
+  const pts = [];
+  const n = waypoints.length;
+  for (let i = 0; i < n; i++) {
+    const p0 = waypoints[(i - 1 + n) % n];
+    const p1 = waypoints[i];
+    const p2 = waypoints[(i + 1) % n];
+    const p3 = waypoints[(i + 2) % n];
+
+    for (let step = 0; step < subdivisions; step++) {
+      const t = step / subdivisions;
+      const t2 = t * t;
+      const t3 = t2 * t;
+
+      const x =
+        0.5 *
+        (2 * p1.x +
+          (-p0.x + p2.x) * t +
+          (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+          (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3);
+      const y =
+        0.5 *
+        (2 * p1.y +
+          (-p0.y + p2.y) * t +
+          (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
+          (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3);
+
+      pts.push({ x, y });
+    }
+  }
+  return pts;
+}
+
+/**
+ * audio.js
+ * Procedural Web Audio API Sound FX Synthesizer for Jurassic Sanctuary Sprint.
+ *
+ * - Zero external MP3/WAV downloads (instant load, tiny bundle)
+ * - Auto-unlocks AudioContext on first user gesture (Safari iOS & TikTok WebView safe)
+ * - Respects Google H5 Ad Placement API mute hooks (`setAdMute`)
+ */
+function createSoundFX() {
+  let ctx = null;
+  let enabled = true;
+  let mutedByAd = false;
+
+  function init() {
+    if (typeof window === "undefined") return;
+    if (!ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) ctx = new AudioCtx();
+    }
+    if (ctx && ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    ["pointerdown", "touchstart", "keydown"].forEach((evt) => {
+      window.addEventListener(evt, init, { once: true, passive: true });
+    });
+  }
+
+  function canPlay() {
+    return enabled && !mutedByAd;
+  }
+
+  function playRoar() {
+    if (!canPlay()) return;
+    init();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(148, now);
+    osc.frequency.exponentialRampToValueAtTime(46, now + 0.58);
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(750, now);
+    filter.frequency.linearRampToValueAtTime(220, now + 0.58);
+
+    gain.gain.setValueAtTime(0.01, now);
+    gain.gain.linearRampToValueAtTime(0.24, now + 0.07);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.62);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.64);
+  }
+
+  function playBite() {
+    if (!canPlay()) return;
+    init();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(340, now);
+    osc.frequency.exponentialRampToValueAtTime(720, now + 0.13);
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.16);
+  }
+
+  function playSlip() {
+    if (!canPlay()) return;
+    init();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(620, now);
+    osc.frequency.linearRampToValueAtTime(240, now + 0.16);
+    osc.frequency.linearRampToValueAtTime(520, now + 0.32);
+    gain.gain.setValueAtTime(0.16, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.36);
+  }
+
+  function playMeteorImpact() {
+    if (!canPlay()) return;
+    init();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(110, now);
+    osc.frequency.exponentialRampToValueAtTime(28, now + 0.48);
+    gain.gain.setValueAtTime(0.28, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.52);
+  }
+
+  function playGiftFanfare(grand = false) {
+    if (!canPlay()) return;
+    init();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const notes = grand
+      ? [523.25, 659.25, 783.99, 1046.5, 1318.5]
+      : [440, 554.37, 659.25];
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(freq, now + idx * 0.065);
+      gain.gain.setValueAtTime(0.16, now + idx * 0.065);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.065 + 0.24);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + idx * 0.065);
+      osc.stop(now + idx * 0.065 + 0.26);
+    });
+  }
+
+  function playBeep(high = false) {
+    if (!canPlay()) return;
+    init();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(high ? 880 : 440, now);
+    gain.gain.setValueAtTime(0.14, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  }
+
+  return {
+    init,
+    playRoar,
+    playBite,
+    playSlip,
+    playMeteorImpact,
+    playGiftFanfare,
+    playBeep,
+    setAdMute(mute) {
+      mutedByAd = Boolean(mute);
+    },
+    toggle() {
+      enabled = !enabled;
+      return enabled;
+    },
+    isEnabled() {
+      return enabled;
+    },
+  };
+}
+
+/**
+ * race-engine.js
+ * Pure deterministic Physics + 24/7 KOL Live Stream State Machine for Jurassic Sanctuary Sprint.
+ *
+ * ZERO DOM / Canvas dependencies — runs identically in Browser 60 FPS and Node.js unit tests!
+ *
+ * Supports 3 Play Modes:
+ * - `SOLO`            : Player-controlled dinosaur (WASD/Arrows/Touch + SPACE Roar) vs 3 AI rivals
+ * - `KOL_DERBY`       : 4-Team 24/7 Automated KOL Stream Loop (Chat 1-4 + TikTok Gifts + YouTube SuperChats)
+ * - `VIEWER_STAMPEDE` : Marble-Race-style Viewer Avatar Stampede (up to 24 viewer-owned dinos + Elimination!)
+ */
+class DinoRaceEngine {
+  constructor(options = {}) {
+    this.playMode = options.playMode || "SOLO"; // 'SOLO' | 'KOL_DERBY' | 'VIEWER_STAMPEDE'
+    this.eliminationMode = Boolean(options.eliminationMode);
+    this.selectedSpeciesIdx = options.selectedSpeciesIdx ?? 0;
+    this.mapIndex = options.mapIndex ?? 0;
+
+    this.gameState = "MENU"; // 'MENU' | 'LOBBY' | 'COUNTDOWN' | 'RACING' | 'FINISHED'
+    this.lobbyDuration = options.lobbyDuration ?? 9.0;
+    this.countdownDuration = options.countdownDuration ?? 3.0;
+    this.finishCooldownDuration = options.finishCooldownDuration ?? 6.5;
+
+    this.phaseTimer = 0;
+    this.raceElapsed = 0;
+    this.roundNumber = 1;
+    this.screenShake = 0;
+
+    this.racers = [];
+    this.survivorPool = []; // Used across Elimination rounds in VIEWER_STAMPEDE
+    this.goats = [];
+    this.traps = []; // Slippery banana/tar traps on track
+    this.particles = [];
+    this.floatingCallouts = [];
+    this.queuedGifts = []; // Gifts sent between races fire right after next start!
+
+    /** @type {Map<string, {user: string, platform: string, avatar: string, coins: number, cheers: number, lane: number}>} */
+    this.supporters = new Map();
+    this.activeViewers = new Set();
+
+    this.callbacks = {
+      onSound: options.onSound || (() => {}),
+      onFeedLog: options.onFeedLog || (() => {}),
+      onRaceStart: options.onRaceStart || (() => {}),
+      onRaceFinish: options.onRaceFinish || (() => {}),
+    };
+
+    this._loadMap(this.mapIndex);
+  }
+
+  _loadMap(idx) {
+    const safeIdx = ((idx % MAPS.length) + MAPS.length) % MAPS.length;
+    this.mapIndex = safeIdx;
+    this.map = MAPS[safeIdx];
+    this.trackPoints = buildCatmullRomTrack(this.map.waypoints, 28);
+    this.totalLaps = this.map.laps || 3;
+  }
+
+  setMap(idx) {
+    this._loadMap(idx);
+    if (this.gameState !== "MENU") {
+      this.startNewRound(true);
+    }
+  }
+
+  setPlayMode(mode, { elimination = false } = {}) {
+    this.playMode = mode;
+    this.eliminationMode = Boolean(elimination);
+    this.survivorPool = [];
+    this.roundNumber = 1;
+  }
+
+  // ==========================================================================
+  // ROUND INITIALIZATION & SPAWNING
+  // ==========================================================================
+
+  startNewRound(resetTournament = false) {
+    if (resetTournament) {
+      this.survivorPool = [];
+      this.roundNumber = 1;
+      this.supporters.clear();
+    }
+
+    this.traps = [];
+    this.particles = [];
+    this.floatingCallouts = [];
+    this.raceElapsed = 0;
+    this.spawnGoats(false);
+
+    if (this.playMode === "VIEWER_STAMPEDE") {
+      if (this.eliminationMode && this.survivorPool.length > 1) {
+        // Carry surviving viewer dinos into next Elimination heat!
+        this.racers = this.survivorPool.map((prev, idx) =>
+          this._createRacer({
+            slotIndex: idx,
+            speciesIdx: prev.species.id,
+            isPlayer: false,
+            ownerName: prev.ownerName,
+            ownerId: prev.ownerId,
+            ownerAvatar: prev.ownerAvatar,
+            ownerPlatform: prev.ownerPlatform,
+          })
+        );
+        this.gameState = "COUNTDOWN";
+        this.phaseTimer = this.countdownDuration;
+      } else {
+        // Open Lobby so TikTok & YouTube viewers can comment/like to drop their Dino in!
+        this.racers = [];
+        this.roundNumber = 1;
+        this.gameState = "LOBBY";
+        this.phaseTimer = this.lobbyDuration;
+      }
+      return;
+    }
+
+    // SOLO or KOL_DERBY (4 lanes)
+    const lineup =
+      this.playMode === "KOL_DERBY"
+        ? [0, 1, 2, 3]
+        : [
+            this.selectedSpeciesIdx,
+            ...[0, 1, 2, 3].filter((i) => i !== this.selectedSpeciesIdx),
+          ];
+
+    this.racers = lineup.map((spIdx, gridPos) =>
+      this._createRacer({
+        slotIndex: gridPos,
+        speciesIdx: spIdx,
+        isPlayer: this.playMode === "SOLO" && gridPos === 0,
+      })
+    );
+
+    this.gameState = "COUNTDOWN";
+    this.phaseTimer = this.countdownDuration;
+  }
+
+  _createRacer({
+    slotIndex,
+    speciesIdx,
+    isPlayer = false,
+    ownerName = "",
+    ownerId = "",
+    ownerAvatar = "",
+    ownerPlatform = "tiktok",
+  }) {
+    const sp = SPECIES[speciesIdx % SPECIES.length];
+    const p0 = this.trackPoints[0];
+    const p1 = this.trackPoints[1];
+    const startAngle = Math.atan2(p1.y - p0.y, p1.x - p0.x);
+
+    const cols = this.playMode === "VIEWER_STAMPEDE" ? 4 : 2;
+    const row = Math.floor(slotIndex / cols);
+    const col = slotIndex % cols;
+    const centeredCol = col - (cols - 1) / 2;
+
+    const backDist = -32 - row * 44;
+    const sideDist = centeredCol * 32;
+
+    const rx = p0.x + Math.cos(startAngle) * backDist - Math.sin(startAngle) * sideDist;
+    const ry = p0.y + Math.sin(startAngle) * backDist + Math.cos(startAngle) * sideDist;
+
+    return {
+      slotIndex,
+      laneIndex: slotIndex,
+      isPlayer,
+      species: sp,
+      ownerName,
+      ownerId,
+      ownerAvatar,
+      ownerPlatform,
+      lastSupporter: ownerName || "",
+      lastPlatform: ownerPlatform,
+      x: rx,
+      y: ry,
+      angle: startAngle,
+      speed: 0,
+      boost: sp.maxBoost * 0.78,
+      isBoosting: false,
+      surgeTimer: 0,
+      stunTimer: 0,
+      slipTimer: 0,
+      mudImmuneTimer: 0,
+      kingTimer: 0,
+      lap: 1,
+      waypointIdx: 1,
+      totalProgress: 0,
+      finished: false,
+      finishTime: 0,
+      eliminated: false,
+      goatsEaten: 0,
+      stridePhase: slotIndex * 1.3,
+      aiSkill: 0.91 + (slotIndex % 5) * 0.016,
+      aiTargetOffset: centeredCol * 20,
+      dramaTimer: 2.0 + (slotIndex % 4) * 0.85,
+    };
+  }
+
+  spawnGoats(goldenBonus = false) {
+    if (!goldenBonus) this.goats = [];
+    const count = goldenBonus ? 12 : 10;
+    const step = Math.max(1, Math.floor(this.trackPoints.length / count));
+    for (let i = 1; i < count; i++) {
+      const pt = this.trackPoints[(i * step) % this.trackPoints.length];
+      const offsetAngle = (i % 2 === 0 ? 1 : -1) * 1.35 + (goldenBonus ? 0.5 : 0);
+      const offsetDist = goldenBonus ? 18 : 34;
+      this.goats.push({
+        x: pt.x + Math.cos(offsetAngle) * offsetDist,
+        y: pt.y + Math.sin(offsetAngle) * offsetDist,
+        golden: goldenBonus,
+        active: true,
+        respawnTimer: 0,
+        hopPhase: i * 0.85,
+      });
+    }
+  }
+
+  _ensureStampedeMinimumField() {
+    const botGuardians = [
+      "Ranger_Rex",
+      "Coast_Alpha",
+      "Amber_Scout",
+      "Delta_Claw",
+      "Lagoon_Fang",
+      "Jungle_Dash",
+    ];
+    let idx = 0;
+    while (this.racers.length < 6) {
+      const name = botGuardians[idx % botGuardians.length];
+      this.racers.push(
+        this._createRacer({
+          slotIndex: this.racers.length,
+          speciesIdx: this.racers.length % SPECIES.length,
+          ownerName: name,
+          ownerId: `bot_${idx}`,
+          ownerPlatform: idx % 2 === 0 ? "tiktok" : "youtube",
+        })
+      );
+      idx++;
+    }
+  }
+
+  // ==========================================================================
+  // STREAM INTERACTION: CHAT, GIFTS, SUPERCHATS, LIKES & GIFT QUEUE
+  // ==========================================================================
+
+  addFloatingCallout(x, y, text, color = "#fbbf24") {
+    this.floatingCallouts.push({ x, y, text, color, life: 1.45, maxLife: 1.45 });
+    if (this.floatingCallouts.length > 40) this.floatingCallouts.shift();
+  }
+
+  _recordSupporter(userObj, coins, cheers, laneIdx) {
+    const uid = userObj.uniqueId || userObj.nickname || "viewer";
+    const nickname = userObj.nickname || uid;
+    const platform = userObj.platform || "tiktok";
+    const avatar = userObj.profilePictureUrl || "";
+
+    const prev = this.supporters.get(uid) || {
+      user: nickname,
+      platform,
+      avatar,
+      coins: 0,
+      cheers: 0,
+      lane: laneIdx ?? 0,
+    };
+    prev.user = nickname;
+    prev.platform = platform;
+    if (avatar) prev.avatar = avatar;
+    prev.coins += coins;
+    prev.cheers += cheers;
+    if (typeof laneIdx === "number" && laneIdx >= 0) prev.lane = laneIdx;
+
+    this.supporters.set(uid, prev);
+    this.activeViewers.add(uid);
+  }
+
+  /**
+   * Spawn or locate a viewer's personal dinosaur in `VIEWER_STAMPEDE` mode.
+   */
+  _findOrSpawnViewerRacer(userObj, preferredSpeciesIdx = null) {
+    const uid = userObj.uniqueId || userObj.nickname;
+    const existing = this.racers.find((r) => r.ownerId === uid);
+    if (existing) return existing;
+
+    // Allow joining in LOBBY, COUNTDOWN, or early first lap (up to 24 racers max)
+    const canJoinNow =
+      this.racers.length < 24 &&
+      (this.gameState === "LOBBY" ||
+        this.gameState === "COUNTDOWN" ||
+        (this.gameState === "RACING" && this.raceElapsed < 12));
+
+    if (!canJoinNow) {
+      // Fall back to last-place racer so late viewer's boost still helps an underdog!
+      if (this.racers.length === 0) return null;
+      const sorted = this.getSortedStandings();
+      return sorted[sorted.length - 1];
+    }
+
+    const spIdx =
+      typeof preferredSpeciesIdx === "number" && preferredSpeciesIdx >= 0
+        ? preferredSpeciesIdx % SPECIES.length
+        : this.racers.length % SPECIES.length;
+
+    const racer = this._createRacer({
+      slotIndex: this.racers.length,
+      speciesIdx: spIdx,
+      ownerName: userObj.nickname || uid,
+      ownerId: uid,
+      ownerAvatar: userObj.profilePictureUrl || "",
+      ownerPlatform: userObj.platform || "tiktok",
+    });
+
+    this.racers.push(racer);
+    const pBadge = racer.ownerPlatform === "youtube" ? "▶️" : "🎵";
+    this.addFloatingCallout(
+      racer.x,
+      racer.y - 30,
+      `${pBadge} ${racer.ownerName} THAM CHIẾN!`,
+      racer.species.accent
+    );
+
+    // Start early if lobby reaches max capacity (24 dinos)
+    if (this.gameState === "LOBBY" && this.racers.length >= 24) {
+      this.gameState = "COUNTDOWN";
+      this.phaseTimer = this.countdownDuration;
+    }
+
+    return racer;
+  }
+
+  /**
+   * Process a normalized stream event (`chat`, `gift`, `like`, `share`, `follow`, `join`).
+   */
+  applyStreamEvent(evt) {
+    if (!evt || typeof evt !== "object") return;
+    const platform = evt.platform || "tiktok";
+    const pIcon = platform === "youtube" ? "▶️" : "🎵";
+    const userObj =
+      evt.user && typeof evt.user === "object"
+        ? { ...evt.user, platform }
+        : {
+            uniqueId: String(evt.user || "viewer"),
+            nickname: String(evt.user || "Khán Giả"),
+            profilePictureUrl: evt.avatar || "",
+            platform,
+          };
+
+    if (evt.type === "chat") {
+      const lane = typeof evt.lane === "number" ? evt.lane : null;
+
+      if (this.playMode === "VIEWER_STAMPEDE") {
+        const racer = this._findOrSpawnViewerRacer(userObj, lane);
+        if (racer) {
+          racer.boost = Math.min(racer.species.maxBoost, racer.boost + 18);
+          racer.surgeTimer = Math.max(racer.surgeTimer, 1.0);
+          this._recordSupporter(userObj, 0, 1, racer.species.id);
+          this.callbacks.onFeedLog(
+            `<span>${pIcon}</span> <b class="text-white">${userObj.nickname}</b> cổ vũ <b>${racer.species.emoji}</b>`
+          );
+        }
+        return;
+      }
+
+      if (lane !== null && this.racers[lane]) {
+        const r = this.racers[lane];
+        r.boost = Math.min(r.species.maxBoost, r.boost + 20);
+        r.surgeTimer = Math.max(r.surgeTimer, 1.15);
+        r.lastSupporter = userObj.nickname;
+        r.lastPlatform = platform;
+        if (userObj.profilePictureUrl) r.ownerAvatar = userObj.profilePictureUrl;
+
+        this._recordSupporter(userObj, 0, 1, lane);
+        this.addFloatingCallout(
+          r.x,
+          r.y - 32,
+          `${pIcon} ${userObj.nickname}`,
+          r.species.accent
+        );
+        this.callbacks.onFeedLog(
+          `<span>${pIcon}</span> <b class="text-white">${userObj.nickname}</b> chọn <b>#${lane + 1} ${r.species.emoji}</b>`
+        );
+      }
+      return;
+    }
+
+    if (evt.type === "like" || evt.type === "join" || evt.type === "follow" || evt.type === "share") {
+      if (this.playMode === "VIEWER_STAMPEDE") {
+        const racer = this._findOrSpawnViewerRacer(userObj, null);
+        if (racer) {
+          racer.boost = Math.min(racer.species.maxBoost, racer.boost + 10);
+          this._recordSupporter(userObj, 0, 1, racer.species.id);
+        }
+      } else if (this.racers.length > 0) {
+        const idx = Math.floor(Math.random() * this.racers.length);
+        const r = this.racers[idx];
+        r.boost = Math.min(r.species.maxBoost, r.boost + 10);
+        this._recordSupporter(userObj, 0, 1, idx);
+      }
+      return;
+    }
+
+    if (evt.type === "gift") {
+      const coins = Math.max(1, Number(evt.giftValue || evt.coins || 1));
+      const tier = evt.giftTier || "rose";
+      let targetLane =
+        typeof evt.lane === "number" && evt.lane >= 0
+          ? evt.lane % Math.max(1, this.racers.length)
+          : 0;
+
+      this._recordSupporter(userObj, coins, 1, targetLane);
+
+      // Queue gift if race is not currently in RACING state so no supporter's gift is ever wasted!
+      if (this.gameState !== "RACING") {
+        this.queuedGifts.push({ evt, userObj, coins, tier, platform });
+        this.callbacks.onFeedLog(
+          `<span class="text-amber-300">[Hàng đợi 🎁]</span> <b>${userObj.nickname}</b> gửi <b>${evt.giftName || tier}</b> (kích hoạt ngay khi xuất phát!)`
+        );
+        return;
+      }
+
+      this._executeGiftPowerUp({ evt, userObj, coins, tier, platform });
+    }
+  }
+
+  _executeGiftPowerUp({ evt, userObj, coins, tier, platform }) {
+    const pIcon = platform === "youtube" ? "▶️" : "🎵";
+    let targetRacer = null;
+
+    if (this.playMode === "VIEWER_STAMPEDE") {
+      targetRacer = this._findOrSpawnViewerRacer(userObj, evt.lane);
+    } else {
+      const laneIdx =
+        typeof evt.lane === "number" && evt.lane >= 0 && evt.lane < this.racers.length
+          ? evt.lane
+          : 0;
+      targetRacer = this.racers[laneIdx];
+    }
+
+    if (!targetRacer) return;
+
+    targetRacer.lastSupporter = userObj.nickname;
+    targetRacer.lastPlatform = platform;
+    if (userObj.profilePictureUrl) targetRacer.ownerAvatar = userObj.profilePictureUrl;
+
+    const standings = this.getSortedStandings();
+    const leader = standings[0];
+
+    if (tier === "rose") {
+      targetRacer.boost = Math.min(
+        targetRacer.species.maxBoost,
+        targetRacer.boost + 45
+      );
+      targetRacer.surgeTimer = Math.max(targetRacer.surgeTimer, 2.0);
+      this.addFloatingCallout(
+        targetRacer.x,
+        targetRacer.y - 36,
+        `🌹 ${userObj.nickname} +NỘ KHÍ`,
+        "#f472b6"
+      );
+      this.callbacks.onFeedLog(
+        `<span class="text-pink-400">[🌹 ${coins}xu ${pIcon}]</span> <b>${userObj.nickname}</b> tăng tốc <b>${targetRacer.species.emoji}</b>`
+      );
+      this.callbacks.onSound("bite");
+      return;
+    }
+
+    if (tier === "meat") {
+      targetRacer.boost = targetRacer.species.maxBoost;
+      targetRacer.surgeTimer = Math.max(targetRacer.surgeTimer, 3.0);
+      targetRacer.mudImmuneTimer = Math.max(targetRacer.mudImmuneTimer, 4.5);
+      this.addFloatingCallout(
+        targetRacer.x,
+        targetRacer.y - 38,
+        `🥩 ${userObj.nickname} GẦM NITRO!`,
+        "#fbbf24"
+      );
+      this.callbacks.onFeedLog(
+        `<span class="text-amber-400">[🥩 ${coins}xu ${pIcon}]</span> <b>${userObj.nickname}</b> bơm Đùi Thịt Nitro cho <b>${targetRacer.species.emoji}</b>!`
+      );
+      this.callbacks.onSound("roar");
+      this.screenShake = Math.max(this.screenShake, 6);
+      return;
+    }
+
+    if (tier === "banana") {
+      // Smart Sabotage: if targetRacer is behind, drop trap right in front of #1 Leader!
+      // If targetRacer IS #1 Leader, drop trap behind #1 Leader to trip #2!
+      const victim = leader && leader !== targetRacer ? leader : standings[1] || leader;
+      if (victim) {
+        const aheadSign = victim === targetRacer ? -1 : 1;
+        const dropDist = aheadSign * 64;
+        const trapX = victim.x + Math.cos(victim.angle) * dropDist;
+        const trapY = victim.y + Math.sin(victim.angle) * dropDist;
+        this.traps.push({
+          x: trapX,
+          y: trapY,
+          ownerRacer: targetRacer,
+          ttl: 14.0,
+        });
+        this.addFloatingCallout(trapX, trapY - 24, `🍌 BẪY TRƯỢT!`, "#facc15");
+      }
+      targetRacer.surgeTimer = Math.max(targetRacer.surgeTimer, 1.8);
+      this.callbacks.onFeedLog(
+        `<span class="text-yellow-300">[🍌 ${coins}xu ${pIcon}]</span> <b>${userObj.nickname}</b> rải Bẫy Bùn Chuối chặn đầu đối thủ!`
+      );
+      this.callbacks.onSound("slip");
+      return;
+    }
+
+    if (tier === "meteor") {
+      // Meteor Shell locks onto #1 Leader (or all rivals ahead of targetRacer!)
+      let hitCount = 0;
+      for (const other of standings) {
+        if (other !== targetRacer && hitCount < 2) {
+          other.stunTimer = Math.max(other.stunTimer, 1.7);
+          other.speed *= 0.35;
+          this.addFloatingCallout(other.x, other.y - 32, `☄️ CHOÁNG!`, "#c084fc");
+          hitCount++;
+        }
+      }
+      targetRacer.surgeTimer = Math.max(targetRacer.surgeTimer, 2.5);
+      this.addFloatingCallout(
+        targetRacer.x,
+        targetRacer.y - 42,
+        `☄️ ${userObj.nickname} THIÊN THẠCH!`,
+        "#e879f9"
+      );
+      this.callbacks.onFeedLog(
+        `<span class="text-purple-400">[☄️ ${coins}xu ${pIcon}]</span> <b>${userObj.nickname}</b> giáng Thiên Thạch hạ gục Top đầu!`
+      );
+      this.callbacks.onSound("meteor");
+      this.screenShake = Math.max(this.screenShake, 12);
+      return;
+    }
+
+    // `crown` (99+ xu): Golden King Aura + Chaos + Golden Goat Rain!
+    targetRacer.boost = targetRacer.species.maxBoost;
+    targetRacer.surgeTimer = Math.max(targetRacer.surgeTimer, 4.5);
+    targetRacer.kingTimer = Math.max(targetRacer.kingTimer, 5.0);
+    targetRacer.mudImmuneTimer = Math.max(targetRacer.mudImmuneTimer, 6.0);
+    this.spawnGoats(true);
+
+    for (const other of this.racers) {
+      if (other !== targetRacer) {
+        other.stunTimer = Math.max(other.stunTimer, 0.9);
+      }
+    }
+
+    this.addFloatingCallout(
+      targetRacer.x,
+      targetRacer.y - 48,
+      `👑 ${userObj.nickname} CHÚA TỂ KHU BẢO TỒN!`,
+      "#fde047"
+    );
+    this.callbacks.onFeedLog(
+      `<span class="text-yellow-300 font-bold">[👑 ${coins}xu ${pIcon}]</span> <b>${userObj.nickname}</b> triệu hồi VƯƠNG MIỆN & MƯA DÊ VÀNG cho <b>${targetRacer.species.emoji}</b>!`
+    );
+    this.callbacks.onSound("fanfare_grand");
+    this.screenShake = Math.max(this.screenShake, 16);
+  }
+
+  // ==========================================================================
+  // SIMULATION STEP (`step(dt, playerInput)`)
+  // ==========================================================================
+
+  _findNearestTrackIndex(x, y, hintIdx) {
+    const len = this.trackPoints.length;
+    let bestIdx = hintIdx;
+    let bestDist = Infinity;
+    for (let offset = -18; offset <= 24; offset++) {
+      const idx = (hintIdx + offset + len) % len;
+      const d = Math.hypot(x - this.trackPoints[idx].x, y - this.trackPoints[idx].y);
+      if (d < bestDist) {
+        bestDist = d;
+        bestIdx = idx;
+      }
+    }
+    return { idx: bestIdx, dist: bestDist };
+  }
+
+  step(dt, input = {}) {
+    if (this.screenShake > 0) {
+      this.screenShake = Math.max(0, this.screenShake - 30 * dt);
+    }
+
+    for (let i = this.floatingCallouts.length - 1; i >= 0; i--) {
+      const fc = this.floatingCallouts[i];
+      fc.y -= 26 * dt;
+      fc.life -= dt;
+      if (fc.life <= 0) this.floatingCallouts.splice(i, 1);
+    }
+
+    // 1. LOBBY phase (Viewer Stampede)
+    if (this.gameState === "LOBBY") {
+      this.phaseTimer -= dt;
+      if (this.phaseTimer <= 0) {
+        this._ensureStampedeMinimumField();
+        this.gameState = "COUNTDOWN";
+        this.phaseTimer = this.countdownDuration;
+      }
+      return;
+    }
+
+    // 2. COUNTDOWN phase
+    if (this.gameState === "COUNTDOWN") {
+      const prevSec = Math.ceil(this.phaseTimer);
+      this.phaseTimer -= dt;
+      const curSec = Math.ceil(this.phaseTimer);
+      if (curSec < prevSec && curSec > 0) {
+        this.callbacks.onSound("beep_low");
+      }
+      if (this.phaseTimer <= 0) {
+        this.callbacks.onSound("beep_high");
+        this.gameState = "RACING";
+        this.callbacks.onRaceStart({
+          playMode: this.playMode,
+          mapId: this.map.id,
+          racerCount: this.racers.length,
+          roundNumber: this.roundNumber,
+        });
+      }
+      return;
+    }
+
+    // 3. FINISHED / Auto-Restart Cooldown phase
+    if (this.gameState === "FINISHED") {
+      if (this.playMode !== "SOLO" && this.phaseTimer > 0) {
+        this.phaseTimer -= dt;
+        if (this.phaseTimer <= 0) {
+          this.startNewRound(false);
+        }
+      }
+      return;
+    }
+
+    if (this.gameState !== "RACING") return;
+
+    const prevElapsed = this.raceElapsed;
+    this.raceElapsed += dt;
+
+    // Flush queued between-race gifts 0.5s after gate opens!
+    if (prevElapsed < 0.5 && this.raceElapsed >= 0.5 && this.queuedGifts.length > 0) {
+      const pending = this.queuedGifts.splice(0, this.queuedGifts.length);
+      for (const item of pending) {
+        this._executeGiftPowerUp(item);
+      }
+    }
+
+    // Update Prey Goats
+    for (const g of this.goats) {
+      if (!g.active) {
+        g.respawnTimer -= dt;
+        if (g.respawnTimer <= 0 && !g.golden) g.active = true;
+      } else {
+        g.hopPhase += dt * 5.2;
+      }
+    }
+
+    // Update Banana / Tar Traps
+    for (let i = this.traps.length - 1; i >= 0; i--) {
+      this.traps[i].ttl -= dt;
+      if (this.traps[i].ttl <= 0) this.traps.splice(i, 1);
+    }
+
+    const maxProgress =
+      this.racers.length > 0
+        ? Math.max(...this.racers.map((r) => r.totalProgress))
+        : 0;
+
+    // Update each Dinosaur Racer
+    for (const r of this.racers) {
+      const sp = r.species;
+      let throttle = 0;
+      let steer = 0;
+      let wantBoost = false;
+
+      if (r.surgeTimer > 0) r.surgeTimer = Math.max(0, r.surgeTimer - dt);
+      if (r.stunTimer > 0) r.stunTimer = Math.max(0, r.stunTimer - dt);
+      if (r.slipTimer > 0) r.slipTimer = Math.max(0, r.slipTimer - dt);
+      if (r.mudImmuneTimer > 0) r.mudImmuneTimer = Math.max(0, r.mudImmuneTimer - dt);
+      if (r.kingTimer > 0) r.kingTimer = Math.max(0, r.kingTimer - dt);
+
+      if (r.isPlayer && !r.finished) {
+        if (input.up) throttle = 1;
+        if (input.down) throttle = -0.5;
+        if (input.left) steer -= 1;
+        if (input.right) steer += 1;
+        if (input.boost || r.surgeTimer > 0) wantBoost = true;
+      } else {
+        // AI & Rubber-banding comeback surges (inspired by qafaraz/Horse-Race)
+        r.dramaTimer -= dt;
+        if (r.dramaTimer <= 0) {
+          r.dramaTimer = 2.1 + Math.random() * 3.2;
+          const behindGap = maxProgress - r.totalProgress;
+          const finalLapBonus = r.lap >= this.totalLaps ? sp.clutchBonus : 1.0;
+          if (behindGap > 32 && Math.random() < 0.62 * finalLapBonus) {
+            r.surgeTimer = Math.max(r.surgeTimer, 1.45);
+          }
+        }
+
+        const lookAhead = 12;
+        const targetIdx = (r.waypointIdx + lookAhead) % this.trackPoints.length;
+        const targetPt = this.trackPoints[targetIdx];
+        const tx = targetPt.x + Math.cos(r.angle + Math.PI / 2) * r.aiTargetOffset;
+        const ty = targetPt.y + Math.sin(r.angle + Math.PI / 2) * r.aiTargetOffset;
+
+        const desiredAngle = Math.atan2(ty - r.y, tx - r.x);
+        let diff = desiredAngle - r.angle;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+
+        steer = Math.max(-1, Math.min(1, diff * 2.7));
+        throttle = r.finished ? 0.42 : r.aiSkill;
+        if (!r.finished && ((r.boost > 68 && Math.abs(diff) < 0.22) || r.surgeTimer > 0)) {
+          wantBoost = true;
+        }
+      }
+
+      // Swamp slowdown check
+      let inSwamp = false;
+      for (const sw of this.map.swamps) {
+        if (Math.hypot(r.x - sw.x, r.y - sw.y) < sw.r) {
+          inSwamp = true;
+          break;
+        }
+      }
+
+      const trackInfo = this._findNearestTrackIndex(r.x, r.y, r.waypointIdx);
+      const offRoad = trackInfo.dist > this.map.trackWidth * 0.52;
+
+      // Boost / Stun / Slip state
+      if (r.stunTimer > 0 || r.slipTimer > 0) {
+        r.isBoosting = false;
+      } else if ((wantBoost && r.boost > 5 && throttle > 0) || r.surgeTimer > 0) {
+        if (!r.isBoosting && r.isPlayer) this.callbacks.onSound("roar");
+        r.isBoosting = true;
+        if (r.surgeTimer <= 0) {
+          r.boost = Math.max(0, r.boost - 32 * dt);
+        }
+      } else {
+        r.isBoosting = false;
+        r.boost = Math.min(sp.maxBoost, r.boost + 6.8 * dt);
+      }
+
+      let effectiveMax = sp.maxSpeed;
+      if (r.lap >= this.totalLaps) effectiveMax *= sp.clutchBonus;
+      if (inSwamp && r.mudImmuneTimer <= 0) effectiveMax *= sp.swampPenalty;
+      if (offRoad && r.mudImmuneTimer <= 0) effectiveMax *= 0.68;
+      if (r.isBoosting) {
+        effectiveMax *= r.kingTimer > 0 ? 1.52 : r.surgeTimer > 0 ? 1.42 : 1.34;
+      }
+      if (r.stunTimer > 0) effectiveMax *= 0.38;
+      if (r.slipTimer > 0) effectiveMax *= 0.52;
+
+      if (throttle > 0) {
+        r.speed += sp.accel * throttle * (r.isBoosting ? 1.45 : 1.0) * dt;
+      } else if (throttle < 0) {
+        r.speed += sp.accel * throttle * dt;
+      } else {
+        r.speed *= Math.pow(0.18, dt);
+      }
+
+      if (r.speed > effectiveMax) {
+        r.speed += (effectiveMax - r.speed) * 6 * dt;
+      }
+      if (r.speed < -110) r.speed = -110;
+
+      if (r.slipTimer > 0) {
+        // Spin wobble when slipping on Banana/Tar trap!
+        r.angle += 7.5 * dt;
+      } else {
+        const steerFactor = Math.min(1, Math.abs(r.speed) / 90);
+        r.angle += steer * sp.turnSpeed * steerFactor * (r.speed >= 0 ? 1 : -1) * dt;
+      }
+
+      r.x += Math.cos(r.angle) * r.speed * dt;
+      r.y += Math.sin(r.angle) * r.speed * dt;
+      r.stridePhase += (Math.abs(r.speed) / 36) * dt;
+
+      // Particles
+      if (Math.abs(r.speed) > 80 && this.particles.length < 180 && Math.random() < 0.42) {
+        const pColor =
+          r.kingTimer > 0
+            ? "rgba(253, 224, 71, 0.85)"
+            : r.stunTimer > 0
+            ? "rgba(192, 132, 252, 0.75)"
+            : inSwamp
+            ? "rgba(45, 212, 191, 0.58)"
+            : r.isBoosting
+            ? "rgba(251, 191, 36, 0.72)"
+            : "rgba(180, 140, 100, 0.34)";
+        this.particles.push({
+          x: r.x - Math.cos(r.angle) * 18,
+          y: r.y - Math.sin(r.angle) * 18,
+          color: pColor,
+          size: r.isBoosting ? 6.5 : 4,
+          vx: (Math.random() - 0.5) * 32,
+          vy: (Math.random() - 0.5) * 32,
+          life: 0.34,
+          maxLife: 0.34,
+        });
+      }
+
+      // Prey Goat Pickup
+      for (const g of this.goats) {
+        if (g.active && Math.hypot(r.x - g.x, r.y - g.y) < 34) {
+          g.active = false;
+          g.respawnTimer = 7.5;
+          const gain = g.golden ? 80 : 45;
+          r.boost = Math.min(sp.maxBoost, r.boost + gain);
+          if (g.golden) r.surgeTimer = Math.max(r.surgeTimer, 1.5);
+          r.goatsEaten++;
+          if (r.isPlayer) this.callbacks.onSound("bite");
+        }
+      }
+
+      // Banana / Tar Trap collision
+      for (let ti = this.traps.length - 1; ti >= 0; ti--) {
+        const tr = this.traps[ti];
+        if (
+          tr.ownerRacer !== r &&
+          r.kingTimer <= 0 &&
+          Math.hypot(r.x - tr.x, r.y - tr.y) < 30
+        ) {
+          this.traps.splice(ti, 1);
+          r.slipTimer = 1.25;
+          r.speed *= 0.45;
+          this.addFloatingCallout(r.x, r.y - 30, `🍌 TRƯỢT VỎ CHUỐI!`, "#facc15");
+          this.callbacks.onSound("slip");
+        }
+      }
+
+      // Lap & Finish Detection
+      const prevIdx = r.waypointIdx;
+      const newIdx = trackInfo.idx;
+      const totalPts = this.trackPoints.length;
+
+      if (prevIdx > totalPts * 0.8 && newIdx < totalPts * 0.2) {
+        r.lap++;
+        if (r.lap > this.totalLaps && !r.finished) {
+          r.finished = true;
+          r.finishTime = this.raceElapsed;
+          if (this.playMode === "SOLO" && r.isPlayer) {
+            this._completeRound();
+            return;
+          } else if (this.playMode !== "SOLO") {
+            this._completeRound();
+            return;
+          }
+        }
+      } else if (prevIdx < totalPts * 0.2 && newIdx > totalPts * 0.8) {
+        r.lap = Math.max(1, r.lap - 1);
+      }
+
+      r.waypointIdx = newIdx;
+      r.totalProgress = (r.lap - 1) * totalPts + newIdx;
+    }
+
+    // Dinosaur body-check collisions
+    for (let i = 0; i < this.racers.length; i++) {
+      for (let j = i + 1; j < this.racers.length; j++) {
+        const a = this.racers[i];
+        const b = this.racers[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.hypot(dx, dy);
+        const minSep = this.playMode === "VIEWER_STAMPEDE" ? 26 : 34;
+        if (dist > 0 && dist < minSep) {
+          const overlap = (minSep - dist) * 0.5;
+          const nx = dx / dist;
+          const ny = dy / dist;
+          a.x -= nx * overlap;
+          a.y -= ny * overlap;
+          b.x += nx * overlap;
+          b.y += ny * overlap;
+        }
+      }
+    }
+
+    // Update particles
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.life -= dt;
+      if (p.life <= 0) this.particles.splice(i, 1);
+    }
+  }
+
+  _completeRound() {
+    if (this.gameState === "FINISHED") return;
+    this.gameState = "FINISHED";
+    this.phaseTimer = this.finishCooldownDuration;
+    this.callbacks.onSound("fanfare_grand");
+
+    const standings = this.getSortedStandings();
+    let eliminatedThisRound = [];
+    let tournamentChampion = null;
+
+    if (this.playMode === "VIEWER_STAMPEDE" && this.eliminationMode) {
+      if (standings.length > 2) {
+        const dropCount = Math.max(1, Math.ceil(standings.length * 0.25));
+        const keepCount = Math.max(1, standings.length - dropCount);
+        this.survivorPool = standings.slice(0, keepCount);
+        eliminatedThisRound = standings.slice(keepCount);
+        eliminatedThisRound.forEach((r) => {
+          r.eliminated = true;
+        });
+        this.roundNumber += 1;
+      } else {
+        tournamentChampion = standings[0] || null;
+        this.survivorPool = [];
+        this.roundNumber = 1;
+      }
+    }
+
+    const topSupporters = this.getTopSupporters(3);
+
+    this.callbacks.onRaceFinish({
+      playMode: this.playMode,
+      eliminationMode: this.eliminationMode,
+      standings,
+      winner: standings[0] || null,
+      tournamentChampion,
+      eliminatedThisRound,
+      topSupporters,
+      elapsedSec: Number(this.raceElapsed.toFixed(2)),
+      viewerCount: this.activeViewers.size,
+    });
+  }
+
+  getSortedStandings() {
+    return [...this.racers].sort((a, b) => {
+      if (a.finished && b.finished) return a.finishTime - b.finishTime;
+      if (a.finished) return -1;
+      if (b.finished) return 1;
+      return b.totalProgress - a.totalProgress;
+    });
+  }
+
+  getTopSupporters(limit = 3) {
+    return [...this.supporters.values()]
+      .sort((a, b) => b.coins * 12 + b.cheers - (a.coins * 12 + a.cheers))
+      .slice(0, limit);
+  }
+}
+
+/**
+ * renderer.js
+ * 60 FPS HTML5 Canvas 2D Renderer for Jurassic Sanctuary Sprint.
+ *
+ * Features:
+ * - Smooth lerp esports broadcast camera tracking player (SOLO) or leader (KOL Live)
+ * - Auto-zoom scaling for 9:16 Vertical (TikTok Live / Shorts) & 16:9 Landscape (YouTube Live)
+ * - Optional Transparent Background (`transparentBg`) for OBS webcam overlay compositing
+ * - Circular Viewer Avatar Rider Badges (`crossOrigin="anonymous"` via `/api/avatar` + initials fallback)
+ * - Animated Dinosaurs, Swamp Lagoons, Banana Traps, Golden Goats, Screen Shake & Minimap
+ */
+class DinoRaceRenderer {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext("2d");
+    this.lightingIdx = 0;
+    this.transparentBg = false;
+    this.showMinimap = true;
+
+    this.camX = 0;
+    this.camY = -520;
+    this.foliage = [];
+    this.lastMapId = null;
+
+    /** @type {Map<string, HTMLImageElement|null>} */
+    this.avatarCache = new Map();
+
+    this.resize();
+    window.addEventListener("resize", () => this.resize());
+  }
+
+  resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = this.canvas.clientWidth || window.innerWidth;
+    const h = this.canvas.clientHeight || window.innerHeight;
+    this.canvas.width = w * dpr;
+    this.canvas.height = h * dpr;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  cycleLighting() {
+    this.lightingIdx = (this.lightingIdx + 1) % LIGHTING_MODES.length;
+    return LIGHTING_MODES[this.lightingIdx];
+  }
+
+  _ensureFoliage(engine) {
+    if (this.lastMapId === engine.map.id) return;
+    this.lastMapId = engine.map.id;
+    this.foliage = [];
+    const pts = engine.trackPoints;
+    const minClearance = engine.map.trackWidth * 0.74;
+
+    for (let i = 0; i < 150; i++) {
+      const angle = i * 137.5 * (Math.PI / 180);
+      const rad = 180 + (i % 15) * 68;
+      const fx = Math.cos(angle) * rad * 1.15;
+      const fy = Math.sin(angle) * rad * 0.78;
+      let minDist = Infinity;
+      for (let j = 0; j < pts.length; j += 4) {
+        const d = Math.hypot(fx - pts[j].x, fy - pts[j].y);
+        if (d < minDist) minDist = d;
+      }
+      if (minDist > minClearance) {
+        this.foliage.push({
+          x: fx,
+          y: fy,
+          size: 15 + (i % 4) * 7,
+          variant: i % 3,
+        });
+      }
+    }
+  }
+
+  _getAvatarImage(url) {
+    if (!url) return null;
+    if (this.avatarCache.has(url)) return this.avatarCache.get(url);
+    if (this.avatarCache.size > 120) this.avatarCache.clear();
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.loadedOk = false;
+    img.onload = () => {
+      img.loadedOk = true;
+    };
+    img.onerror = () => {
+      this.avatarCache.set(url, null);
+    };
+    img.src = url;
+    this.avatarCache.set(url, img);
+    return img;
+  }
+
+  render(engine, dt = 0.016) {
+    this._ensureFoliage(engine);
+
+    const ctx = this.ctx;
+    const w = this.canvas.clientWidth || window.innerWidth;
+    const h = this.canvas.clientHeight || window.innerHeight;
+    const theme = LIGHTING_MODES[this.lightingIdx];
+
+    if (this.transparentBg) {
+      ctx.clearRect(0, 0, w, h);
+    } else {
+      ctx.fillStyle = theme.bg;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // Determine camera target (smooth esports broadcast lerp!)
+    let focus = engine.racers[0] || engine.trackPoints[0] || { x: 0, y: -520 };
+    if (engine.playMode !== "SOLO" && engine.racers.length > 0) {
+      const standings = engine.getSortedStandings();
+      focus = standings[0] || focus;
+    }
+
+    const lerpSpeed = Math.min(1, dt * 6.5);
+    this.camX += (focus.x - this.camX) * lerpSpeed;
+    this.camY += (focus.y - this.camY) * lerpSpeed;
+
+    // Responsive zoom for narrow 9:16 portrait screens vs 16:9 widescreens
+    const zoom = w < 560 ? Math.max(0.66, w / 680) : 1.0;
+
+    const shakeX =
+      engine.screenShake > 0 ? (Math.random() - 0.5) * engine.screenShake : 0;
+    const shakeY =
+      engine.screenShake > 0 ? (Math.random() - 0.5) * engine.screenShake : 0;
+
+    ctx.save();
+    ctx.translate(w * 0.5 + shakeX, h * 0.5 + shakeY);
+    ctx.scale(zoom, zoom);
+    ctx.translate(-this.camX, -this.camY);
+
+    // 1. Swamp Lagoons with animated water ripples
+    for (const sw of engine.map.swamps) {
+      const grad = ctx.createRadialGradient(sw.x, sw.y, 15, sw.x, sw.y, sw.r);
+      grad.addColorStop(0, theme.swampInner);
+      grad.addColorStop(0.75, theme.swampOuter);
+      grad.addColorStop(1, "rgba(15, 118, 110, 0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
+      ctx.fill();
+
+      const rippleR = 32 + ((engine.raceElapsed * 24) % (sw.r * 0.65));
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.16)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(sw.x, sw.y, rippleR, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // 2. Dirt Sanctuary Road
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    engine.trackPoints.forEach((pt, idx) => {
+      if (idx === 0) ctx.moveTo(pt.x, pt.y);
+      else ctx.lineTo(pt.x, pt.y);
+    });
+    ctx.closePath();
+
+    ctx.strokeStyle = theme.border;
+    ctx.lineWidth = engine.map.trackWidth + 14;
+    ctx.stroke();
+
+    ctx.strokeStyle = theme.road;
+    ctx.lineWidth = engine.map.trackWidth;
+    ctx.stroke();
+
+    ctx.setLineDash([18, 22]);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 3. Checkered Start / Finish Sanctuary Gate
+    const p0 = engine.trackPoints[0];
+    const p1 = engine.trackPoints[1];
+    const gateAngle = Math.atan2(p1.y - p0.y, p1.x - p0.x);
+    ctx.save();
+    ctx.translate(p0.x, p0.y);
+    ctx.rotate(gateAngle);
+    const squares = 8;
+    const sqSize = engine.map.trackWidth / squares;
+    for (let r = 0; r < 2; r++) {
+      for (let c = 0; c < squares; c++) {
+        ctx.fillStyle = (r + c) % 2 === 0 ? "#f8fafc" : "#0f172a";
+        ctx.fillRect(
+          -sqSize + r * sqSize,
+          -engine.map.trackWidth / 2 + c * sqSize,
+          sqSize,
+          sqSize
+        );
+      }
+    }
+    ctx.restore();
+
+    // 4. Sanctuary Props (Egg Nests & Ranger Watchtowers)
+    if (!this.transparentBg) {
+      for (const pr of engine.map.props) {
+        if (pr.type === "nest") {
+          ctx.fillStyle = "#78350f";
+          ctx.beginPath();
+          ctx.arc(pr.x, pr.y, 22, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#fef3c7";
+          [
+            [-6, -4],
+            [7, -3],
+            [0, 6],
+          ].forEach(([ox, oy]) => {
+            ctx.beginPath();
+            ctx.ellipse(pr.x + ox, pr.y + oy, 5, 7, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        } else if (pr.type === "watchtower") {
+          ctx.fillStyle = "#1e293b";
+          ctx.strokeStyle = "#34d399";
+          ctx.lineWidth = 2;
+          ctx.fillRect(pr.x - 18, pr.y - 18, 36, 36);
+          ctx.strokeRect(pr.x - 18, pr.y - 18, 36, 36);
+          ctx.fillStyle = "#fbbf24";
+          ctx.beginPath();
+          ctx.arc(pr.x, pr.y, 5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // 5. Tropical Foliage
+      for (const f of this.foliage) {
+        ctx.fillStyle =
+          f.variant === 0 ? "#064e3b" : f.variant === 1 ? "#065f46" : "#14532d";
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // 6. Slippery Banana / Tar Traps
+    for (const tr of engine.traps) {
+      ctx.fillStyle = "rgba(250, 204, 21, 0.28)";
+      ctx.beginPath();
+      ctx.arc(tr.x, tr.y, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.font = "20px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("🍌", tr.x, tr.y);
+    }
+
+    // 7. Prey Goats & Golden Goats
+    for (const g of engine.goats) {
+      if (!g.active) continue;
+      const hopY = Math.abs(Math.sin(g.hopPhase)) * 5.5;
+      if (g.golden) {
+        ctx.fillStyle = "rgba(253, 224, 71, 0.35)";
+        ctx.beginPath();
+        ctx.arc(g.x, g.y - hopY, 15, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = "rgba(0,0,0,0.35)";
+      ctx.beginPath();
+      ctx.ellipse(g.x, g.y + 6, 10, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.font = g.golden ? "21px sans-serif" : "18px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("🐐", g.x, g.y - hopY);
+    }
+
+    // 8. Particles
+    for (const p of engine.particles) {
+      ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // 9. Dinosaurs + Viewer Avatar Riders
+    for (const r of engine.racers) {
+      this._drawDinosaur(r, engine);
+    }
+
+    // 10. Floating Callout Banners
+    for (const fc of engine.floatingCallouts) {
+      ctx.globalAlpha = Math.min(1, fc.life / (fc.maxLife * 0.4));
+      ctx.font = "bold 12px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#050908";
+      ctx.fillText(fc.text, fc.x + 1.5, fc.y + 1.5);
+      ctx.fillStyle = fc.color;
+      ctx.fillText(fc.text, fc.x, fc.y);
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.restore();
+
+    // Atmospheric tint (only when not in OBS Transparent Chroma mode)
+    if (!this.transparentBg) {
+      ctx.fillStyle = theme.tint;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // 11. Minimap Radar
+    if (
+      this.showMinimap &&
+      (engine.gameState === "RACING" || engine.gameState === "COUNTDOWN")
+    ) {
+      this._drawMinimap(engine, w);
+    }
+
+    // 12. Lobby & Countdown Overlays
+    if (engine.gameState === "LOBBY") {
+      ctx.fillStyle = "rgba(4, 12, 10, 0.62)";
+      ctx.fillRect(0, h * 0.36, w, h * 0.28);
+      ctx.fillStyle = "#fde047";
+      ctx.font = `900 ${w < 500 ? 22 : 30}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.fillText(
+        `ĐẠI CHIẾN AVATAR — BÌNH LUẬN ĐỂ VÀO ĐUA! (${engine.racers.length}/24)`,
+        w / 2,
+        h * 0.46
+      );
+      ctx.fillStyle = "#6ee7b7";
+      ctx.font = "bold 16px sans-serif";
+      ctx.fillText(
+        `Xuất phát sau ${Math.ceil(engine.phaseTimer)}s · Chat trên TikTok Live hoặc YouTube Live`,
+        w / 2,
+        h * 0.54
+      );
+    } else if (engine.gameState === "COUNTDOWN") {
+      ctx.fillStyle = "rgba(0,0,0,0.42)";
+      ctx.fillRect(0, 0, w, h);
+      const num = Math.ceil(engine.phaseTimer);
+      ctx.fillStyle = "#fbbf24";
+      ctx.font = "900 78px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(num > 0 ? String(num) : "GẦM!", w / 2, h / 2);
+    }
+  }
+
+  _drawDinosaur(r, engine) {
+    const ctx = this.ctx;
+    const scale = engine.playMode === "VIEWER_STAMPEDE" ? 0.86 : 1.0;
+
+    ctx.save();
+    ctx.translate(r.x, r.y);
+    ctx.scale(scale, scale);
+    ctx.rotate(r.angle);
+
+    // Golden King Aura (99-coin Crown!)
+    if (r.kingTimer > 0) {
+      ctx.beginPath();
+      ctx.arc(0, 0, 36 + Math.sin(engine.raceElapsed * 30) * 4, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(253, 224, 71, 0.9)";
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    } else if (r.isBoosting) {
+      ctx.beginPath();
+      ctx.arc(0, 0, 30 + Math.sin(engine.raceElapsed * 24) * 5, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(251, 191, 36, 0.65)";
+      ctx.lineWidth = 2.8;
+      ctx.stroke();
+    }
+
+    // Stun ring (Meteor impact)
+    if (r.stunTimer > 0) {
+      ctx.beginPath();
+      ctx.arc(0, 0, 28, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(192, 132, 252, 0.9)";
+      ctx.setLineDash([5, 5]);
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Shadow
+    ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
+    ctx.beginPath();
+    ctx.ellipse(-2, 5, 24, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wagging Tail
+    const tailWag = Math.sin(r.stridePhase) * 0.36;
+    ctx.save();
+    ctx.translate(-14, 0);
+    ctx.rotate(tailWag);
+    ctx.fillStyle = r.species.color;
+    ctx.beginPath();
+    ctx.moveTo(0, -6);
+    ctx.lineTo(-24, 0);
+    ctx.lineTo(0, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Striding Legs
+    const legOffset = Math.sin(r.stridePhase) * 6;
+    ctx.fillStyle = "#1c1917";
+    ctx.fillRect(-4 + legOffset, -13, 8, 4);
+    ctx.fillRect(-4 - legOffset, 9, 8, 4);
+
+    // Torso & Dorsal Spines
+    ctx.fillStyle = r.species.color;
+    ctx.beginPath();
+    ctx.ellipse(2, 0, 17, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = r.species.accent;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 11, 3.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head & Glowing Eyes
+    ctx.fillStyle = r.species.color;
+    ctx.beginPath();
+    ctx.ellipse(20, 0, 10, 6.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#fef08a";
+    ctx.beginPath();
+    ctx.arc(22, -3.5, 1.8, 0, Math.PI * 2);
+    ctx.arc(22, 3.5, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+    // Overhead Tag + Circular Viewer Avatar Rider Bubble!
+    const displayName = r.ownerName || r.lastSupporter;
+    if (engine.playMode === "SOLO" && r.isPlayer) {
+      ctx.fillStyle = "#fbbf24";
+      ctx.font = "bold 11px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("▼ BẠN", r.x, r.y - 24);
+    } else if (engine.playMode !== "SOLO") {
+      const badgeY = r.y - 26;
+      if (displayName) {
+        this._drawViewerBadge(r, displayName, badgeY);
+      } else {
+        ctx.fillStyle = r.species.accent;
+        ctx.font = "bold 11px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(`#${r.species.code} ${r.species.name}`, r.x, badgeY);
+      }
+    }
+
+    if (r.kingTimer > 0) {
+      ctx.font = "16px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("👑", r.x, r.y - 42);
+    }
+  }
+
+  _drawViewerBadge(r, displayName, badgeY) {
+    const ctx = this.ctx;
+    const pMark = r.lastPlatform === "youtube" ? "▶" : "♪";
+    const prefix =
+      r.ownerName ? "" : `#${r.species.code} `;
+    const text = `${prefix}${displayName.slice(0, 14)}`;
+
+    ctx.font = "bold 10.5px sans-serif";
+    const textW = ctx.measureText(text).width;
+    const pillW = textW + 28;
+    const pillH = 18;
+    const px = r.x - pillW / 2;
+    const py = badgeY - pillH / 2;
+
+    ctx.fillStyle = "rgba(8, 16, 14, 0.84)";
+    ctx.strokeStyle = r.species.color;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.roundRect(px, py, pillW, pillH, 9);
+    ctx.fill();
+    ctx.stroke();
+
+    // Circular Avatar inside left side of pill
+    const cx = px + 9;
+    const cy = badgeY;
+    const img = this._getAvatarImage(r.ownerAvatar);
+    if (img && img.loadedOk) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(img, cx - 7, cy - 7, 14, 14);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = r.lastPlatform === "youtube" ? "#ef4444" : r.species.color;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 8px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(pMark, cx, cy + 0.5);
+    }
+
+    ctx.fillStyle = r.species.accent;
+    ctx.font = "bold 10.5px sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, px + 20, badgeY + 0.5);
+  }
+
+  _drawMinimap(engine, viewportW) {
+    const ctx = this.ctx;
+    const mapW = 128;
+    const mapH = 88;
+    const mx = viewportW - mapW - 12;
+    const my = 12;
+
+    ctx.fillStyle = "rgba(6, 18, 14, 0.84)";
+    ctx.strokeStyle = "rgba(52, 211, 153, 0.35)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(mx, my, mapW, mapH, 10);
+    ctx.fill();
+    ctx.stroke();
+
+    const scale = 0.056;
+    const cx = mx + mapW / 2;
+    const cy = my + mapH / 2;
+
+    ctx.beginPath();
+    engine.trackPoints.forEach((pt, idx) => {
+      const px = cx + pt.x * scale;
+      const py = cy + pt.y * scale;
+      if (idx === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.closePath();
+    ctx.strokeStyle = "rgba(255,255,255,0.34)";
+    ctx.lineWidth = 3.8;
+    ctx.stroke();
+
+    for (const r of engine.racers) {
+      ctx.fillStyle = r.isPlayer ? "#fbbf24" : r.species.color;
+      ctx.beginPath();
+      ctx.arc(cx + r.x * scale, cy + r.y * scale, r.isPlayer ? 4 : 2.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+/**
+ * main.js
+ * Wires DinoRaceEngine, DinoRaceRenderer, SoundFX, Game9K SDK, and
+ * Multi-Platform KOL Stream Controls (TikTok Live + YouTube Live).
+ */
+
+
+
+
+const SoundFX = createSoundFX();
+const canvas = document.getElementById("raceCanvas");
+const renderer = new DinoRaceRenderer(canvas);
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  const tenths = Math.floor((sec * 10) % 10);
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}.${tenths}`;
+}
+
+function appendFeedLog(html) {
+  const feed = document.getElementById("live-event-feed");
+  if (!feed) return;
+  const row = document.createElement("div");
+  row.className = "leading-snug border-b border-white/5 pb-1";
+  row.innerHTML = html;
+  feed.prepend(row);
+  while (feed.children.length > 40) {
+    feed.removeChild(feed.lastChild);
+  }
+}
+
+const engine = new DinoRaceEngine({
+  playMode: "SOLO",
+  onSound(kind) {
+    if (kind === "roar") SoundFX.playRoar();
+    else if (kind === "bite") SoundFX.playBite();
+    else if (kind === "slip") SoundFX.playSlip();
+    else if (kind === "meteor") SoundFX.playMeteorImpact();
+    else if (kind === "fanfare_grand") SoundFX.playGiftFanfare(true);
+    else if (kind === "beep_low") SoundFX.playBeep(false);
+    else if (kind === "beep_high") SoundFX.playBeep(true);
+  },
+  onFeedLog: appendFeedLog,
+  onRaceStart(info) {
+    document.getElementById("overlay-finish").classList.add("hidden");
+    window.Game9K?.emitPortalEvent("race_started", info);
+  },
+  onRaceFinish(summary) {
+    renderFinishOverlay(summary);
+    window.Game9K?.emitPortalEvent("race_finished", {
+      mode: summary.playMode,
+      winner: summary.winner?.ownerName || summary.winner?.species?.name || "Unknown",
+      timeSec: summary.elapsedSec,
+      viewerCount: summary.viewerCount,
+      topSupporters: summary.topSupporters,
+    });
+
+    if (summary.playMode === "SOLO" && engine.racers[0]) {
+      const player = engine.racers[0];
+      const rank = summary.standings.findIndex((r) => r.isPlayer) + 1;
+      const score = Math.max(
+        100,
+        Math.round(3000 - summary.elapsedSec * 22 + (4 - rank) * 450 + player.goatsEaten * 80)
+      );
+      window.Game9K?.submitScore({
+        nickname: "Sanctuary Driver",
+        score,
+        timeSec: summary.elapsedSec,
+        species: player.species.name,
+        mode: "SOLO",
+      });
+      window.Game9K?.saveCloudState({
+        lastMapId: engine.map.id,
+        lastSpeciesIdx: engine.selectedSpeciesIdx,
+        bestScore: score,
+      });
+    }
+  },
+});
+
+// Initialize Game9K SDK Bridge & Google H5 Ad Placement hooks
+if (window.Game9K) {
+  window.Game9K.init({
+    gameId: "dino-race",
+    version: "1.0.0",
+    maxTelemetryHz: 15,
+    onPauseChange(paused, reason) {
+      SoundFX.setAdMute(paused);
+      const legalBanner = document.getElementById("nd147-lock-overlay");
+      if (legalBanner) {
+        if (window.Game9K.legalLocked) legalBanner.classList.remove("hidden");
+        else legalBanner.classList.add("hidden");
+      }
+      if (reason === "nd147_under18_limit") {
+        appendFeedLog(`<span class="text-red-400 font-bold">[NĐ 147/2024]</span> Đã chạm trần giờ chơi U18!`);
+      }
+    },
+  });
+
+  // Connect incoming TikTok Live & YouTube Live events from SDK StreamBridge -> Engine
+  window.Game9K.stream.on("event", (evt) => {
+    engine.applyStreamEvent(evt);
+  });
+
+  window.Game9K.stream.on("status", (st) => {
+    const pLabel = st.platform === "youtube" ? "▶️ YouTube" : st.platform === "tiktok" ? "🎵 TikTok" : "🤖 Demo";
+    const statusBadge = document.getElementById("stream-conn-status");
+    if (statusBadge) {
+      statusBadge.textContent = `${pLabel}: ${st.status.toUpperCase()}`;
+    }
+    appendFeedLog(
+      `<span class="text-teal-300">[Kết nối]</span> <b>${pLabel}</b> → <code>${st.status}</code> ${st.message ? `(${st.message})` : ""}`
+    );
+  });
+}
+
+// ============================================================================
+// KEYBOARD & MOBILE TOUCH INPUT
+// ============================================================================
+const rawKeys = {};
+window.addEventListener("keydown", (e) => {
+  rawKeys[e.code] = true;
+  if (e.code === "Space" && engine.gameState === "RACING" && engine.playMode === "SOLO") {
+    e.preventDefault();
+  }
+});
+window.addEventListener("keyup", (e) => {
+  rawKeys[e.code] = false;
+});
+
+function bindTouchButton(id, keyCode) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    rawKeys[keyCode] = true;
+  });
+  ["pointerup", "pointercancel", "pointerleave"].forEach((ev) => {
+    el.addEventListener(ev, () => {
+      rawKeys[keyCode] = false;
+    });
+  });
+}
+bindTouchButton("touch-left", "TouchLeft");
+bindTouchButton("touch-right", "TouchRight");
+bindTouchButton("touch-gas", "TouchGas");
+bindTouchButton("touch-boost", "TouchBoost");
+
+function collectPlayerInput() {
+  return {
+    up: Boolean(rawKeys.ArrowUp || rawKeys.KeyW || rawKeys.TouchGas),
+    down: Boolean(rawKeys.ArrowDown || rawKeys.KeyS),
+    left: Boolean(rawKeys.ArrowLeft || rawKeys.KeyA || rawKeys.TouchLeft),
+    right: Boolean(rawKeys.ArrowRight || rawKeys.KeyD || rawKeys.TouchRight),
+    boost: Boolean(rawKeys.Space || rawKeys.TouchBoost),
+  };
+}
+
+// ============================================================================
+// HUD & PODIUM OVERLAY RENDERING
+// ============================================================================
+function syncModeBadges() {
+  const pill = document.getElementById("mode-pill");
+  const liveLanes = document.getElementById("live-hud-lanes");
+  const hudBottom = document.getElementById("hud-bottom");
+
+  if (engine.playMode === "SOLO") {
+    pill.textContent = window.Game9K?.isEmbedded ? "PORTAL G2" : "SOLO G4";
+    pill.className =
+      "px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+    liveLanes.classList.add("hidden");
+    if (engine.gameState !== "MENU") hudBottom.classList.remove("hidden");
+  } else {
+    pill.textContent =
+      engine.playMode === "VIEWER_STAMPEDE" ? "👥 STAMPEDE LIVE" : "🔴 KOL DERBY 24/7";
+    pill.className =
+      "px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-rose-500/25 text-rose-300 border border-rose-500/50";
+    liveLanes.classList.remove("hidden");
+    hudBottom.classList.add("hidden");
+  }
+}
+
+function updateLiveHUD() {
+  const standings = engine.getSortedStandings();
+  const leader = standings[0];
+  const focus = engine.playMode === "SOLO" ? engine.racers[0] : leader;
+
+  if (focus) {
+    const rank = standings.findIndex((r) => r === focus) + 1;
+    document.getElementById("hud-rank").textContent =
+      engine.playMode === "SOLO"
+        ? `${rank}/${engine.racers.length}`
+        : `${focus.species.emoji} ${focus.ownerName || "#" + focus.species.code}`;
+    document.getElementById("hud-lap").textContent = `${Math.min(
+      focus.lap,
+      engine.totalLaps
+    )}/${engine.totalLaps}`;
+  }
+  document.getElementById("hud-time").textContent = formatTime(engine.raceElapsed);
+
+  if (engine.playMode === "SOLO" && engine.racers[0]) {
+    const p = engine.racers[0];
+    document.getElementById("hud-speed").textContent = `${Math.round(
+      Math.abs(p.speed) * 0.24
+    )} km/h`;
+    document.getElementById("hud-boost-bar").style.width = `${
+      (p.boost / p.species.maxBoost) * 100
+    }%`;
+  } else {
+    document.getElementById("live-phase-badge").textContent =
+      engine.gameState === "LOBBY"
+        ? `LOBBY ${Math.ceil(engine.phaseTimer)}s`
+        : engine.eliminationMode
+        ? `VÒNG LOẠI #${engine.roundNumber}`
+        : engine.gameState;
+    document.getElementById("live-viewer-count").textContent = `👥 ${engine.activeViewers.size}`;
+
+    const totalGoal = engine.totalLaps * engine.trackPoints.length;
+    const topShown =
+      engine.playMode === "VIEWER_STAMPEDE" ? standings.slice(0, 5) : engine.racers;
+    const barsEl = document.getElementById("live-lane-bars");
+    if (barsEl) {
+      barsEl.innerHTML = topShown
+        .map((r, idx) => {
+          const pct = Math.min(
+            100,
+            Math.max(4, Math.round((r.totalProgress / totalGoal) * 100))
+          );
+          const title = r.ownerName
+            ? `${idx + 1}. ${r.species.emoji} ${r.ownerName.slice(0, 12)}`
+            : `#${r.species.code} ${r.species.emoji} ${r.species.name}`;
+          const statusIcons = `${r.kingTimer > 0 ? "👑" : ""}${
+            r.isBoosting ? "🔥" : ""
+          }${r.stunTimer > 0 ? "💫" : ""}`;
+          return `
+            <div>
+              <div class="flex justify-between text-[10px] font-bold">
+                <span style="color:${r.species.accent}">${title}</span>
+                <span class="font-mono text-slate-300">${pct}% ${statusIcons}</span>
+              </div>
+              <div class="w-full h-1.5 bg-black/70 rounded-full overflow-hidden mt-0.5">
+                <div class="h-full transition-all duration-100" style="width:${pct}%; background:${r.species.color}"></div>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+  }
+}
+
+function renderFinishOverlay(summary) {
+  const { standings, winner, tournamentChampion, eliminatedThisRound, topSupporters } = summary;
+
+  if (summary.playMode === "SOLO") {
+    const playerRank = standings.findIndex((r) => r.isPlayer) + 1;
+    const player = engine.racers[0];
+    document.getElementById("finish-trophy").textContent =
+      playerRank === 1 ? "🏆" : playerRank === 2 ? "🥈" : "🦖";
+    document.getElementById("finish-title").textContent =
+      playerRank === 1
+        ? "HẠNG 1 — CHÚA TỂ KHU BẢO TỒN!"
+        : `HẠNG ${playerRank} — HOÀN THÀNH CHẶNG ĐUA!`;
+    document.getElementById("finish-subtitle").textContent = `Thời gian: ${formatTime(
+      player.finishTime
+    )} · Đớp được ${player.goatsEaten} dê mồi`;
+    document.getElementById("finish-auto-countdown").classList.add("hidden");
+  } else {
+    const champName =
+      tournamentChampion?.ownerName ||
+      winner?.ownerName ||
+      `ĐỘI #${winner?.species?.code} ${winner?.species?.name}`;
+    document.getElementById("finish-trophy").textContent = "👑";
+    document.getElementById("finish-title").textContent = `${champName.toUpperCase()} VÔ ĐỊCH!`;
+    const elimInfo =
+      eliminatedThisRound.length > 0
+        ? ` · Loại ${eliminatedThisRound.length} tay đua cuối bảng`
+        : "";
+    document.getElementById("finish-subtitle").textContent = `Chặng ${formatTime(
+      summary.elapsedSec
+    )} · Khán giả tham gia: ${summary.viewerCount}${elimInfo}`;
+    document.getElementById("finish-auto-countdown").classList.remove("hidden");
+  }
+
+  document.getElementById("finish-standings").innerHTML = standings
+    .slice(0, 5)
+    .map((r, idx) => {
+      const tStr = r.finished
+        ? formatTime(r.finishTime)
+        : `+${(((winner?.totalProgress || 0) - r.totalProgress) * 0.04).toFixed(1)}s`;
+      const highlight =
+        (summary.playMode === "SOLO" && r.isPlayer) ||
+        (summary.playMode !== "SOLO" && idx === 0);
+      const label = r.ownerName
+        ? `${r.species.emoji} ${r.ownerName}`
+        : `${r.species.emoji} ${r.species.name} ${r.isPlayer ? "(Bạn)" : ""}`;
+      return `
+        <div class="flex items-center justify-between py-1.5 px-2 rounded ${
+          highlight
+            ? "bg-amber-500/20 border border-amber-400/50 font-bold text-amber-200"
+            : "text-slate-300"
+        }">
+          <span>#${idx + 1} ${label}</span>
+          <span class="font-mono">${tStr}</span>
+        </div>
+      `;
+    })
+    .join("");
+
+  const supBox = document.getElementById("finish-supporters-box");
+  if (topSupporters.length > 0) {
+    supBox.classList.remove("hidden");
+    const medals = ["🥇", "🥈", "🥉"];
+    document.getElementById("finish-supporters-list").innerHTML = topSupporters
+      .map((s, i) => {
+        const pBadge = s.platform === "youtube" ? "▶️ YT" : "🎵 TT";
+        return `
+          <div class="flex justify-between items-center text-rose-100">
+            <span>${medals[i]} <b>${s.user}</b> <span class="text-[9px] text-slate-400">(${pBadge})</span></span>
+            <span class="font-mono text-amber-300">${
+              s.coins > 0 ? `${s.coins} xu` : `${s.cheers} cổ vũ`
+            }</span>
+          </div>
+        `;
+      })
+      .join("");
+  } else {
+    supBox.classList.add("hidden");
+  }
+
+  document.getElementById("overlay-finish").classList.remove("hidden");
+}
+
+// ============================================================================
+// UI CONTROLS & DEMO MULTI-PLATFORM BOT STREAM
+// ============================================================================
+let simPlatform = "tiktok";
+let localBotTimer = null;
+
+const DEMO_VIEWERS = [
+  { name: "MinhAnh_SG", platform: "tiktok" },
+  { name: "TuanKhoi_YT", platform: "youtube" },
+  { name: "BaoNgoc_2k4", platform: "tiktok" },
+  { name: "HoangNam_Live", platform: "youtube" },
+  { name: "LinhChi_Cute", platform: "tiktok" },
+  { name: "DucPhat_Official", platform: "youtube" },
+  { name: "QuangHuy_Pro", platform: "tiktok" },
+  { name: "Kenji_Stream", platform: "youtube" },
+];
+
+function toggleLocalDemoBot(forceState) {
+  const btn = document.getElementById("btn-toggle-bot-stream");
+  const shouldEnable =
+    typeof forceState === "boolean" ? forceState : localBotTimer === null;
+
+  if (!shouldEnable) {
+    if (localBotTimer) {
+      clearInterval(localBotTimer);
+      localBotTimer = null;
+    }
+    if (btn) {
+      btn.textContent = "🤖 Demo Live: TẮT";
+      btn.classList.remove("bg-emerald-600", "text-white");
+    }
+    return;
+  }
+
+  if (localBotTimer) return;
+  if (btn) {
+    btn.textContent = "🤖 Demo Live: BẬT";
+    btn.classList.add("bg-emerald-600", "text-white");
+  }
+
+  localBotTimer = setInterval(() => {
+    if (
+      engine.gameState !== "RACING" &&
+      engine.gameState !== "LOBBY" &&
+      engine.gameState !== "COUNTDOWN"
+    ) {
+      return;
+    }
+    const v = DEMO_VIEWERS[Math.floor(Math.random() * DEMO_VIEWERS.length)];
+    const lane = Math.floor(Math.random() * 4);
+    const roll = Math.random();
+
+    if (roll < 0.64) {
+      window.TikTokBridge.ingest({
+        type: "chat",
+        platform: v.platform,
+        user: v.name,
+        comment: String(lane + 1),
+        lane,
+      });
+    } else if (roll < 0.8) {
+      window.TikTokBridge.ingest({
+        type: "gift",
+        platform: v.platform,
+        user: v.name,
+        lane,
+        giftTier: "rose",
+        coins: 1,
+      });
+    } else if (roll < 0.9) {
+      window.TikTokBridge.ingest({
+        type: "gift",
+        platform: v.platform,
+        user: v.name,
+        lane,
+        giftTier: "meat",
+        coins: 5,
+      });
+    } else if (roll < 0.955) {
+      window.TikTokBridge.ingest({
+        type: "gift",
+        platform: v.platform,
+        user: v.name,
+        lane,
+        giftTier: "banana",
+        coins: 10,
+      });
+    } else if (roll < 0.988) {
+      window.TikTokBridge.ingest({
+        type: "gift",
+        platform: v.platform,
+        user: v.name,
+        lane,
+        giftTier: "meteor",
+        coins: 20,
+      });
+    } else {
+      window.TikTokBridge.ingest({
+        type: "gift",
+        platform: v.platform,
+        user: v.name,
+        lane,
+        giftTier: "crown",
+        coins: 99,
+      });
+    }
+  }, 1150);
+}
+
+// Start Overlay Mode Tabs
+function selectStartModeUI(mode) {
+  engine.setPlayMode(mode, {
+    elimination: document.getElementById("chk-elimination")?.checked || false,
+  });
+
+  ["SOLO", "KOL_DERBY", "VIEWER_STAMPEDE"].forEach((m) => {
+    const btn = document.querySelector(`[data-mode-select="${m}"]`);
+    if (!btn) return;
+    if (m === mode) {
+      btn.className =
+        "py-2 px-2 rounded-lg font-black text-[11px] sm:text-xs bg-gradient-to-r from-amber-500 to-emerald-400 text-stone-950 shadow transition";
+    } else {
+      btn.className =
+        "py-2 px-2 rounded-lg font-bold text-[11px] sm:text-xs text-emerald-200 hover:bg-white/5 transition";
+    }
+  });
+
+  const elimRow = document.getElementById("stampede-options-row");
+  if (elimRow) {
+    elimRow.classList.toggle("hidden", mode !== "VIEWER_STAMPEDE");
+  }
+}
+
+document.querySelectorAll("[data-mode-select]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    selectStartModeUI(btn.getAttribute("data-mode-select"));
+  });
+});
+
+document.getElementById("chk-elimination")?.addEventListener("change", (e) => {
+  engine.eliminationMode = e.target.checked;
+});
+
+// Map Selector
+const mapSelectEl = document.getElementById("select-map");
+if (mapSelectEl) {
+  mapSelectEl.innerHTML = MAPS.map(
+    (m, idx) => `<option value="${idx}">${m.name}</option>`
+  ).join("");
+  mapSelectEl.addEventListener("change", (e) => {
+    engine.setMap(Number(e.target.value));
+  });
+}
+
+// Dinosaur Card Selector
+document.querySelectorAll(".dino-card").forEach((card) => {
+  card.addEventListener("click", () => {
+    document.querySelectorAll(".dino-card").forEach((c) => {
+      c.classList.remove("border-amber-400", "bg-amber-950/30");
+      c.classList.add("border-emerald-800/60", "bg-black/40");
+    });
+    card.classList.remove("border-emerald-800/60", "bg-black/40");
+    card.classList.add("border-amber-400", "bg-amber-950/30");
+    engine.selectedSpeciesIdx = parseInt(card.getAttribute("data-dino"), 10);
+  });
+});
+
+// Start Race Button (triggers Google H5 `preroll` AdBreak with 2s timeout safety!)
+document.getElementById("btn-start-race")?.addEventListener("click", () => {
+  SoundFX.init();
+  const launch = () => {
+    document.getElementById("overlay-start").classList.add("hidden");
+    if (engine.playMode === "SOLO") {
+      document.getElementById("hud-bottom").classList.remove("hidden");
+      document.getElementById("touch-controls").classList.remove("hidden");
+    } else {
+      document.getElementById("live-control-drawer").classList.remove("hidden");
+      renderer.showMinimap = false;
+    }
+    engine.startNewRound(true);
+    syncModeBadges();
+  };
+
+  if (window.Game9K?.ads) {
+    window.Game9K.ads.triggerAdBreak({
+      type: "preroll",
+      name: "dino-race-preroll",
+      onDone: launch,
+    });
+  } else {
+    launch();
+  }
+});
+
+document.getElementById("btn-restart")?.addEventListener("click", () => {
+  document.getElementById("overlay-finish").classList.add("hidden");
+  if (engine.playMode !== "SOLO") {
+    engine.startNewRound(false);
+  } else {
+    document.getElementById("overlay-start").classList.remove("hidden");
+    engine.gameState = "MENU";
+  }
+});
+
+// Top Header Quick Controls
+document.getElementById("btn-weather")?.addEventListener("click", (e) => {
+  const mode = renderer.cycleLighting();
+  e.currentTarget.textContent = mode.name.split(" ")[0];
+});
+
+document.getElementById("btn-audio")?.addEventListener("click", (e) => {
+  const on = SoundFX.toggle();
+  e.currentTarget.textContent = on ? "🔊" : "🔇";
+});
+
+document.getElementById("btn-layout-aspect")?.addEventListener("click", (e) => {
+  const wrap = document.getElementById("viewport-shell");
+  const isPortrait = wrap.classList.toggle("portrait-frame");
+  e.currentTarget.textContent = isPortrait ? "📱 9:16" : "🖥️ 16:9";
+  setTimeout(() => renderer.resize(), 40);
+});
+
+document.getElementById("btn-toggle-live-drawer")?.addEventListener("click", () => {
+  const drawer = document.getElementById("live-control-drawer");
+  const hidden = drawer.classList.toggle("hidden");
+  renderer.showMinimap = hidden;
+});
+
+document.getElementById("btn-close-drawer")?.addEventListener("click", () => {
+  document.getElementById("live-control-drawer").classList.add("hidden");
+  renderer.showMinimap = true;
+});
+
+// Drawer Live Connect Form (TikTok + YouTube)
+document.getElementById("btn-connect-streams")?.addEventListener("click", () => {
+  const tiktok = document.getElementById("inp-tiktok-user")?.value.trim() || "";
+  const youtube = document.getElementById("inp-youtube-vid")?.value.trim() || "";
+  if (!tiktok && !youtube) {
+    appendFeedLog(`<span class="text-amber-300">[Gợi ý]</span> Nhập @TikTok hoặc YouTube Video ID, hoặc bật 🤖 Demo Live!`);
+    return;
+  }
+  if (engine.playMode === "SOLO") {
+    selectStartModeUI("KOL_DERBY");
+    document.getElementById("overlay-start").classList.add("hidden");
+    engine.startNewRound(true);
+    syncModeBadges();
+  }
+  window.Game9K?.stream.connect({
+    roomId: tiktok || youtube || "sanctuary-main",
+    tiktok: tiktok || undefined,
+    youtube: youtube || undefined,
+  });
+});
+
+document.getElementById("btn-switch-derby")?.addEventListener("click", () => {
+  selectStartModeUI("KOL_DERBY");
+  document.getElementById("overlay-start").classList.add("hidden");
+  document.getElementById("overlay-finish").classList.add("hidden");
+  engine.startNewRound(true);
+  syncModeBadges();
+});
+
+document.getElementById("btn-switch-stampede")?.addEventListener("click", () => {
+  selectStartModeUI("VIEWER_STAMPEDE");
+  document.getElementById("overlay-start").classList.add("hidden");
+  document.getElementById("overlay-finish").classList.add("hidden");
+  engine.startNewRound(true);
+  syncModeBadges();
+});
+
+document.getElementById("btn-toggle-bot-stream")?.addEventListener("click", () => {
+  if (engine.playMode === "SOLO") {
+    selectStartModeUI("KOL_DERBY");
+    document.getElementById("overlay-start").classList.add("hidden");
+    engine.startNewRound(true);
+    syncModeBadges();
+  }
+  toggleLocalDemoBot();
+});
+
+document.getElementById("btn-obs-clean")?.addEventListener("click", (e) => {
+  const header = document.getElementById("top-hud");
+  const hidden = header.classList.toggle("hidden");
+  e.currentTarget.textContent = hidden ? "Hiện HUD" : "Ẩn HUD";
+  setTimeout(() => renderer.resize(), 40);
+});
+
+document.getElementById("btn-obs-chroma")?.addEventListener("click", (e) => {
+  renderer.transparentBg = !renderer.transparentBg;
+  document.body.style.backgroundColor = renderer.transparentBg ? "transparent" : "#070d0b";
+  e.currentTarget.textContent = renderer.transparentBg ? "Nền: Trong" : "Nền: Rừng";
+});
+
+// Simulator Platform Switch (`tiktok` vs `youtube`)
+document.querySelectorAll("[data-sim-platform]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    simPlatform = btn.getAttribute("data-sim-platform");
+    document.querySelectorAll("[data-sim-platform]").forEach((b) => {
+      b.classList.toggle("bg-white/15", b === btn);
+      b.classList.toggle("text-white", b === btn);
+    });
+  });
+});
+
+document.querySelectorAll(".sim-chat-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const code = btn.getAttribute("data-sim-chat");
+    const v = DEMO_VIEWERS[Math.floor(Math.random() * DEMO_VIEWERS.length)];
+    window.TikTokBridge.ingest({
+      type: "chat",
+      platform: simPlatform,
+      user: v.name,
+      comment: code,
+    });
+  });
+});
+
+document.querySelectorAll(".sim-gift-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const tier = btn.getAttribute("data-gift");
+    const coins = Number(btn.getAttribute("data-coins") || 1);
+    const lane = parseInt(document.getElementById("sim-gift-target").value, 10);
+    const v = DEMO_VIEWERS[Math.floor(Math.random() * DEMO_VIEWERS.length)];
+    window.TikTokBridge.ingest({
+      type: "gift",
+      platform: simPlatform,
+      user: v.name,
+      lane,
+      giftTier: tier,
+      coins,
+    });
+  });
+});
+
+// Rewarded Ad Button
+document.getElementById("btn-ad-reward")?.addEventListener("click", () => {
+  window.Game9K?.ads.triggerAdBreak({
+    type: "reward",
+    name: "refill-sanctuary-nitro",
+    onReward: () => {
+      engine.racers.forEach((r) => {
+        r.boost = r.species.maxBoost;
+        r.surgeTimer = Math.max(r.surgeTimer, 2.5);
+      });
+      SoundFX.playRoar();
+      appendFeedLog(
+        `<span class="text-amber-300 font-bold">[🎬 Rewarded Ad]</span> Đầy Nộ Khí toàn đường đua!`
+      );
+    },
+  });
+});
+
+// ============================================================================
+// URL QUERY PARAMETER BOOTSTRAP (OBS / TikTok LIVE Studio / YouTube Live Ready)
+// ============================================================================
+(function applyUrlParams() {
+  const params = new URLSearchParams(window.location.search || "");
+  const qMode = (params.get("mode") || "").toLowerCase();
+  const qMap = params.get("map");
+  const qLayout = params.get("layout");
+  const qObs = params.get("obs") === "1";
+  const qTransparent = params.get("bg") === "transparent";
+  const qAutobot = params.get("autobot") === "1" || params.get("demo") === "1";
+  const qElim = params.get("elim") === "1";
+  const hasStreamParam = Boolean(
+    params.get("tiktok") || params.get("id") || params.get("youtube") || params.get("room")
+  );
+
+  if (qMap !== null && !Number.isNaN(Number(qMap))) {
+    engine.setMap(Number(qMap));
+    if (mapSelectEl) mapSelectEl.value = String(engine.mapIndex);
+  }
+
+  if (qLayout === "9x16") {
+    document.getElementById("viewport-shell")?.classList.add("portrait-frame");
+    const aspectBtn = document.getElementById("btn-layout-aspect");
+    if (aspectBtn) aspectBtn.textContent = "📱 9:16";
+    setTimeout(() => renderer.resize(), 30);
+  }
+
+  if (qTransparent) {
+    renderer.transparentBg = true;
+    document.body.style.backgroundColor = "transparent";
+  }
+
+  if (qObs) {
+    document.getElementById("top-hud")?.classList.add("hidden");
+    setTimeout(() => renderer.resize(), 30);
+  }
+
+  if (qMode === "kol" || qMode === "live" || (hasStreamParam && !qMode)) {
+    selectStartModeUI("KOL_DERBY");
+    document.getElementById("overlay-start")?.classList.add("hidden");
+    engine.startNewRound(true);
+    syncModeBadges();
+  } else if (qMode === "stampede") {
+    engine.eliminationMode = qElim;
+    selectStartModeUI("VIEWER_STAMPEDE");
+    document.getElementById("overlay-start")?.classList.add("hidden");
+    engine.startNewRound(true);
+    syncModeBadges();
+  } else {
+    // Background attract preview while start modal is shown
+    engine.startNewRound(true);
+    engine.gameState = "MENU";
+  }
+
+  if (qAutobot) {
+    toggleLocalDemoBot(true);
+  }
+})();
+
+// ============================================================================
+// MAIN 60 FPS ANIMATION LOOP
+// ============================================================================
+let lastTs = performance.now();
+function frameLoop(now) {
+  const dt = Math.min((now - lastTs) / 1000, 0.05);
+  lastTs = now;
+
+  if (!window.Game9K?.isPaused) {
+    engine.step(dt, collectPlayerInput());
+    updateLiveHUD();
+
+    if (engine.gameState === "FINISHED" && engine.playMode !== "SOLO") {
+      const cdEl = document.getElementById("finish-auto-countdown");
+      if (cdEl) {
+        cdEl.textContent = `Tự động mở chặng đua mới sau ${Math.max(
+          1,
+          Math.ceil(engine.phaseTimer)
+        )}s...`;
+      }
+    }
+
+    if (engine.gameState === "RACING") {
+      window.Game9K?.broadcastTick({
+        mode: engine.playMode,
+        elapsed: Number(engine.raceElapsed.toFixed(2)),
+        leader: engine.getSortedStandings()[0]?.species?.name || "Crocodilia",
+        racers: engine.racers.slice(0, 8).map((r) => ({
+          id: r.species.id,
+          owner: r.ownerName || r.species.code,
+          lap: r.lap,
+          progress: r.totalProgress,
+        })),
+      });
+    }
+  }
+
+  renderer.render(engine, dt);
+  requestAnimationFrame(frameLoop);
+}
+
+requestAnimationFrame(frameLoop);
+
+})();
+</script>
+</body>
+</html>

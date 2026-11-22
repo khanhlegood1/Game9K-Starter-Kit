@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game9K Minimal Starter Template</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; background: #090d16; color: #f8fafc; overflow: hidden; font-family: system-ui, sans-serif; }
+    canvas { display: block; touch-action: none; }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col">
+  <header class="px-4 py-2.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-xs">
+    <div class="flex items-center gap-2">
+      <a href="/index.html" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700">← Hub</a>
+      <strong class="text-amber-400">Game9K Minimal Boilerplate</strong>
+      <span class="text-slate-400">Chạm màn hình hoặc gửi quà Live để đẩy quả cầu năng lượng!</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span id="score-label" class="font-mono text-emerald-400 font-bold">Điểm: 0</span>
+      <button id="btn-test-gift" class="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-500 font-bold">🎁 Test Gift</button>
+    </div>
+  </header>
+
+  <canvas id="game" class="flex-1 w-full h-full"></canvas>
+
+  <script src="/socket.io/socket.io.js" onerror="/* G4 standalone */"></script>
+  <script src="/sdk/game9k-sdk.js"></script>
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    let score = 0;
+    const orbs = [];
+
+    function resize() {
+      canvas.width = canvas.clientWidth;
+      canvas.height = canvas.clientHeight;
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    function spawnOrb(label, radius, color) {
+      score += Math.round(radius);
+      document.getElementById("score-label").textContent = `Điểm: ${score}`;
+      orbs.push({
+        x: canvas.width * (0.2 + Math.random() * 0.6),
+        y: canvas.height * 0.8,
+        vx: (Math.random() - 0.5) * 140,
+        vy: -180 - Math.random() * 120,
+        r: radius,
+        color,
+        label
+      });
+      window.Game9K?.submitScore({ nickname: label, score, mode: "TEMPLATE" });
+    }
+
+    window.Game9K?.init({ gameId: "starter-template", version: "1.0.0", maxTelemetryHz: 10 });
+    window.Game9K?.stream.on("chat", (e) => spawnOrb(e.user.nickname, 18, "#34d399"));
+    window.Game9K?.stream.on("gift", (e) => spawnOrb(`🎁 ${e.user.nickname}`, 32, "#fbbf24"));
+
+    canvas.addEventListener("pointerdown", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      orbs.push({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        vx: (Math.random() - 0.5) * 160,
+        vy: -160,
+        r: 20,
+        color: "#38bdf8",
+        label: "Click!"
+      });
+      score += 10;
+      document.getElementById("score-label").textContent = `Điểm: ${score}`;
+    });
+
+    document.getElementById("btn-test-gift").addEventListener("click", () => {
+      window.TikTokBridge.ingest({ type: "gift", user: "KOL_Tester", giftTier: "meat", coins: 5 });
+    });
+
+    let last = performance.now();
+    function loop(now) {
+      const dt = Math.min((now - last) / 1000, 0.05);
+      last = now;
+      if (!window.Game9K?.isPaused) {
+        ctx.fillStyle = "#090d16";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        for (let i = orbs.length - 1; i >= 0; i--) {
+          const o = orbs[i];
+          o.x += o.vx * dt;
+          o.y += o.vy * dt;
+          o.vy += 220 * dt;
+          ctx.fillStyle = o.color;
+          ctx.beginPath();
+          ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#f8fafc";
+          ctx.font = "bold 11px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(o.label, o.x, o.y - o.r - 6);
+          if (o.y > canvas.height + 80) orbs.splice(i, 1);
+        }
+        window.Game9K?.broadcastTick({ score, activeOrbs: orbs.length });
+      }
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

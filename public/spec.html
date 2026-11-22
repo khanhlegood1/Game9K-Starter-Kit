@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game9K Starter Kit — Kiến Trúc & Đặc Tả Kỹ Thuật</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Chosen Palette: Warm Stone & Slate Harmony (#fafaf9 background, #ffffff cards, #1c1917 ink, #d97706 amber & #0284c7 sky accents) -->
+  <!-- Application Structure Plan: Designed as an interactive 5-pillar Technical Architecture Explorer (1. Tổng quan & Khoảng trống Dữ liệu, 2. Lớp Trình duyệt & Engine, 3. Hạ tầng Biên Cloudflare & Supabase, 4. Kiếm tiền & Vòng đời Quảng cáo, 5. Ma trận Tuân thủ Pháp lý VN). This non-linear dashboard structure groups technical specs by engineering domain rather than linear report prose, allowing the Game9K founder/architect to interactively simulate bundle budgets, Realtime throughput limits, AdBreak lifecycles, and NĐ 147/2024 compliance triggers. -->
+  <!-- Visualization & Content Choices: 
+       1. Gap & Architecture Overview -> Interactive 3-Step Pipeline Diagram (HTML/CSS) + Filterable Data Gap Matrix -> Clarifies verified platform rules vs. missing repo specs.
+       2. Browser Layer -> Chart.js Horizontal Bar Chart comparing PixiJS vs Phaser bundle budgets (Minified vs Min+Gzip) + Interactive Sandbox/PostMessage Security Tester -> Visualizes instant-play constraints and iframe isolation rules.
+       3. Edge & Supabase Layer -> Interactive Tier & Load Simulator + Chart.js Grouped Bar Chart (Free vs Pro vs Team limits) -> Demonstrates why Broadcast is mandatory over Presence (5 calls/30s hard cap).
+       4. Monetization -> Interactive AdBreak State Machine Simulator (Preroll & Rewarded callbacks) -> Teaches exact Google H5 Ad Placement API lifecycle.
+       5. VN Legal Compliance -> Interactive Game Mode Classifier (G1-G4) & Under-18 Session Timer Simulator -> Translates NĐ 147/2024 rules into concrete engineering logic.
+       All visuals use Canvas (Chart.js) or structured HTML/Tailwind. NO SVG, NO Mermaid. -->
+  <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+  <style>
+    body {
+      background-color: #fafaf9;
+      color: #1c1917;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .chart-container {
+      position: relative;
+      width: 100%;
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto;
+      height: 290px;
+      max-height: 360px;
+    }
+    @media (min-width: 768px) {
+      .chart-container {
+        height: 330px;
+      }
+    }
+    .tab-btn.active {
+      background-color: #1c1917;
+      color: #fafaf9;
+      border-color: #1c1917;
+    }
+    .step-card.active-step {
+      border-color: #d97706;
+      background-color: #fffbeb;
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-amber-200 selection:text-stone-900">
+
+  <header class="sticky top-0 z-30 bg-stone-50/95 backdrop-blur border-b border-stone-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+              Pre-Seed Architecture Spec
+            </span>
+            <span class="text-xs text-stone-500 font-mono">game9k.com · Solana + Cloudflare + Supabase</span>
+          </div>
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-stone-900 mt-1">
+            Game9K Starter Kit — Đặc Tả Kỹ Thuật & Ràng Buộc Nền Tảng
+          </h1>
+        </div>
+        <div class="flex items-center gap-3 text-xs text-stone-600 bg-white px-3 py-2 rounded-lg border border-stone-200 shadow-sm">
+          <span class="text-amber-600 font-bold text-base">⚠</span>
+          <div>
+            <p class="font-semibold text-stone-800">Trạng thái Kho Mã Nguồn</p>
+            <p>Đã tích hợp trực tiếp vào <a href="/index.html" class="underline font-bold text-amber-700">Game9K Starter Kit Hub</a> &amp; <a href="/games/dino-race/index.html" class="underline font-bold text-emerald-700">Dino Race KOL Live</a>.</p>
+          </div>
+        </div>
+      </div>
+
+      <nav class="flex overflow-x-auto gap-2 mt-4 pb-1 no-scrollbar" aria-label="Phân khu kỹ thuật">
+        <button data-tab="overview" class="tab-btn active whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium border border-stone-300 bg-white text-stone-700 hover:bg-stone-100 transition">
+          1. Kiến Trúc & Khoảng Trống Dữ Liệu
+        </button>
+        <button data-tab="browser" class="tab-btn whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium border border-stone-300 bg-white text-stone-700 hover:bg-stone-100 transition">
+          2. Lớp Trình Duyệt & Bảo Mật Iframe
+        </button>
+        <button data-tab="infra" class="tab-btn whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium border border-stone-300 bg-white text-stone-700 hover:bg-stone-100 transition">
+          3. Cloudflare Edge & Supabase Realtime
+        </button>
+        <button data-tab="monetization" class="tab-btn whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium border border-stone-300 bg-white text-stone-700 hover:bg-stone-100 transition">
+          4. Google H5 Ads & Solana
+        </button>
+        <button data-tab="legal" class="tab-btn whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium border border-stone-300 bg-white text-stone-700 hover:bg-stone-100 transition">
+          5. Tuân Thủ NĐ 147/2024 (VN)
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- TAB 1: OVERVIEW & GAP ANALYSIS -->
+    <section id="tab-overview" class="tab-panel space-y-8">
+      <div class="bg-white rounded-xl border border-stone-200 p-6 shadow-sm">
+        <h2 class="text-lg font-bold text-stone-900">Tổng quan Kiến trúc Nền tảng & Phạm vi Dữ liệu</h2>
+        <p class="text-sm text-stone-600 mt-2 leading-relaxed">
+          Phần này tổng hợp bức tranh toàn cảnh về kiến trúc kỹ thuật của cổng <strong>Game9K</strong> dựa trên hồ sơ dự án ngày 22/11/2026 và thông số chuẩn từ các nhà cung cấp hạ tầng. Bạn có thể tương tác với sơ đồ quy trình kiểm định 3 bước bên dưới và lọc bảng đối chiếu khoảng trống dữ liệu để phân biệt rõ phần thông số nền tảng đã xác minh với các chi tiết mã nguồn cần trích xuất khi mở khóa kho GitHub.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          <div class="p-4 rounded-lg bg-stone-50 border border-stone-200">
+            <div class="text-xs font-semibold uppercase tracking-wider text-stone-500">Trụ cột Hạ tầng</div>
+            <div class="text-base font-bold text-stone-900 mt-1">Cloudflare + Supabase + Solana</div>
+            <p class="text-xs text-stone-600 mt-1">100% máy chủ đặt ngoài Việt Nam. Tách biệt tài nguyên tĩnh (R2), trạng thái người chơi (PostgreSQL) và gọi vốn token theo chặng.</p>
+          </div>
+          <div class="p-4 rounded-lg bg-stone-50 border border-stone-200">
+            <div class="text-xs font-semibold uppercase tracking-wider text-stone-500">Trải nghiệm Cốt lõi</div>
+            <div class="text-base font-bold text-stone-900 mt-1">HTML5 Instant-Play · Không Ví</div>
+            <p class="text-xs text-stone-600 mt-1">Chơi ngay trên trình duyệt không cần cài đặt hay kết nối ví Web3. Hỗ trợ cả chế độ độc lập và chế độ gọi API cổng.</p>
+          </div>
+          <div class="p-4 rounded-lg bg-stone-50 border border-stone-200">
+            <div class="text-xs font-semibold uppercase tracking-wider text-stone-500">Tách bạch Hồ sơ</div>
+            <div class="text-base font-bold text-stone-900 mt-1">Loại trừ ZoroChain (.NetCore)</div>
+            <p class="text-xs text-stone-600 mt-1">Tài liệu ZoroChain/BlaCat dùng .NetCore ApplicationEngine, hoàn toàn độc lập với kiến trúc Solana của Game9K.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive 3-Step Verification Pipeline -->
+      <div class="bg-white rounded-xl border border-stone-200 p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+          <div>
+            <h3 class="text-base font-bold text-stone-900">Quy trình Kiểm định & Phân phối Bản dựng 3 Bước</h3>
+            <p class="text-xs text-stone-600">Bấm vào từng bước để xem yêu cầu kỹ thuật bắt buộc đối với gói game đua xe mẫu.</p>
+          </div>
+          <span class="text-xs font-mono text-amber-700 bg-amber-50 px-2.5 py-1 rounded border border-amber-200">Tương tác: Chọn bước</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="pipeline-steps">
+          <button type="button" data-step="0" class="step-card active-step text-left p-4 rounded-lg border-2 border-stone-200 transition hover:border-amber-400">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold px-2 py-0.5 rounded bg-stone-900 text-white">BƯỚC 1</span>
+              <span class="text-sm font-mono text-stone-500">R2 + CI/CD</span>
+            </div>
+            <h4 class="font-bold text-stone-900 mt-2">Nạp Bản Dựng & Mã Băm Bất Biến</h4>
+            <p class="text-xs text-stone-600 mt-1">Đóng dấu SHA-256 và quét mã độc tự động trước khi hiển thị.</p>
+          </button>
+
+          <button type="button" data-step="1" class="step-card text-left p-4 rounded-lg border-2 border-stone-200 transition hover:border-amber-400">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold px-2 py-0.5 rounded bg-stone-900 text-white">BƯỚC 2</span>
+              <span class="text-sm font-mono text-stone-500">Client / API</span>
+            </div>
+            <h4 class="font-bold text-stone-900 mt-2">Vận Hành Hai Chế Độ Tách Biệt</h4>
+            <p class="text-xs text-stone-600 mt-1">Chạy thuần trình duyệt hoặc kết nối Cloud Save & Bảng xếp hạng.</p>
+          </button>
+
+          <button type="button" data-step="2" class="step-card text-left p-4 rounded-lg border-2 border-stone-200 transition hover:border-amber-400">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold px-2 py-0.5 rounded bg-stone-900 text-white">BƯỚC 3</span>
+              <span class="text-sm font-mono text-stone-500">Telemetry → Solana</span>
+            </div>
+            <h4 class="font-bold text-stone-900 mt-2">Đo Lường Thực Tế & Mở Khóa Token</h4>
+            <p class="text-xs text-stone-600 mt-1">Xác thực dữ liệu người chơi thật để mở bán chặng token tiếp theo.</p>
+          </button>
+        </div>
+
+        <div id="pipeline-detail" class="mt-4 p-4 rounded-lg bg-stone-50 border border-stone-200 text-sm text-stone-700 leading-relaxed">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Filterable Gap Analysis Matrix -->
+      <div class="bg-white rounded-xl border border-stone-200 p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <div>
+            <h3 class="text-base font-bold text-stone-900">Ma trận Phân tách Dữ liệu & Danh mục Trích xuất GitHub</h3>
+            <p class="text-xs text-stone-600">Lọc theo trạng thái xác minh để lập kế hoạch hoàn thiện mã nguồn Starter Kit.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button data-filter="all" class="gap-filter-btn px-3 py-1.5 text-xs font-semibold rounded-md bg-stone-900 text-white">Tất cả (7)</button>
+            <button data-filter="missing" class="gap-filter-btn px-3 py-1.5 text-xs font-semibold rounded-md bg-stone-100 text-stone-700 hover:bg-stone-200">Cần trích xuất Repo (3)</button>
+            <button data-filter="verified" class="gap-filter-btn px-3 py-1.5 text-xs font-semibold rounded-md bg-stone-100 text-stone-700 hover:bg-stone-200">Đã xác minh Hạ tầng (4)</button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="border-b border-stone-200 text-xs uppercase text-stone-500 bg-stone-50">
+                <th class="py-3 px-3">Thành phần Kỹ thuật</th>
+                <th class="py-3 px-3">Trạng thái</th>
+                <th class="py-3 px-3">Thông số Đã Xác Minh / Hướng Xử Lý</th>
+                <th class="py-3 px-3">Tài liệu Tham chiếu</th>
+              </tr>
+            </thead>
+            <tbody id="gap-table-body" class="divide-y divide-stone-200 text-xs sm:text-sm">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: BROWSER LAYER & IFRAME SECURITY -->
+    <section id="tab-browser" class="tab-panel hidden space-y-8">
+      <div class="bg-white rounded-xl border border-stone-200 p-6 shadow-sm">
+        <h2 class="text-lg font-bold text-stone-900">Lớp Trình Duyệt: Engine HTML5, Cô Lập Bảo Mật & WebView</h2>
+        <p class="text-sm text-stone-600 mt-2 leading-relaxed">
+          Để đạt trải nghiệm chơi tức thì (instant-play) khi người dùng bấm từ mạng xã hội vào cổng, gói game đua xe phải giữ dung lượng tải cực nhỏ, chạy mượt trên trình duyệt nhúng di động và được cô lập an toàn khỏi phiên đăng nhập của trang cha <code class="bg-stone-100 px-1.5 py-0.5 rounded">game9k.com</code>.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Chart: Engine Bundle Budget -->
+        <div class="bg-white rounded-xl border border-stone-200 p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 class="text-base font-bold text-stone-900">So sánh Ngân sách Dung lượng Engine HTML5</h3>
+            <p class="text-xs text-stone-600 mt-1 mb-4">
+              Đơn vị: Kilobytes (KB). PixiJS (kèm AssetPack từ v8) nhẹ hơn ~54% so với Phaser bản đầy đủ, tương đương bản Phaser Custom Build tối giản.
+            </p>
+          </div>
+          <div class="chart-container">
+            <canvas id="engineChart"></canvas>
+          </div>
+          <div class="mt-4 p-3 rounded bg-stone-50 border border-stone-200 text-xs text-stone-600">
+            <strong>Lưu ý kỹ thuật:</strong> Chọn <strong>PixiJS v8</strong> nếu ưu tiên gói tải siêu nhẹ và tự viết vật lý xe đua 2D; chọn <strong>Phaser Custom Build</strong> (122 KB min+gz) nếu chỉ cần module dựng hình + Loader.
+          </div>
+        </div>
+
+        <!-- Interactive Sandbox Security Simulator -->
+        <div class="bg-white rounded-xl border border-stone-200 p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between">
+              <h3 class="text-base font-bold text-stone-900">Mô phỏng Bảo mật Iframe Sandbox & PostMessage</h3>
+              <span class="text-xs font-mono bg-sky-50 text-sky-700 border border-sky-200 px-2 py-0.5 rounded">MDN Security Rule</span>
+            </div>
+            <p class="text-xs text-stone-600 mt-1">
+              Thử bật/tắt các cờ thuộc tính <code class="bg-stone-100 px-1 rounded">sandbox</code> để kiểm tra lỗ hổng tự gỡ bỏ sandbox và cách xác thực <code class="bg-stone-100 px-1 rounded">window.postMessage()</code>.
+            </p>
+
+            <div class="mt-4 space-y-3 bg-stone-50 p-4 rounded-lg border border-stone-200">
+              <label class="flex items-center justify-between cursor-pointer">
+                <span class="text-xs font-mono font-semibold text-stone-800">allow-scripts (Bắt buộc để chạy game)</span>
+                <input type="checkbox" id="flag-scripts" checked class="w-4 h-4 accent-stone-900">
+              </label>
+              <label class="flex items-center justify-between cursor-pointer">
+                <span class="text-xs font-mono font-semibold text-stone-800">allow-same-origin (Cấp quyền truy cập Origin)</span>
+                <input type="checkbox" id="flag-origin" class="w-4 h-4 accent-amber-600">
+              </label>
+              <label class="flex items-center justify-between cursor-pointer">
+                <span class="text-xs font-mono font-semibold text-stone-800">Nạp game từ Custom Domain R2 tách biệt</span>
+                <input type="checkbox" id="flag-suborigin" checked class="w-4 h-4 accent-stone-900">
+              </label>
+            </div>
+
+            <div id="sandbox-audit-result" class="mt-4 p-4 rounded-lg border text-xs leading-relaxed">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-stone-200">
+            <h4 class="text-xs font-bold uppercase text-stone-500">Ràng buộc Trình duyệt Trong Ứng dụng (TikTok / Safari)</h4>
+            <ul class="mt-2 space-y-1.5 text-xs text-stone-700">
+              <li>• <strong>Cấm thẻ &lt;video&gt; nền:</strong> TikTok WebView không hỗ trợ đầy đủ <code class="bg-stone-100 px-1">playsinline</code>, dễ gây lỗi hiển thị. Dựng toàn bộ màn hình chờ trên <code class="bg-stone-100 px-1">&lt;canvas&gt;</code>.</li>
+              <li>• <strong>Autoplay Audio:</strong> Khóa khởi tạo Web Audio API cho đến khi nhận sự kiện chạm (<code class="bg-stone-100 px-1">pointerdown</code>) đầu tiên của người chơi.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: CLOUDFLARE EDGE & SUPABASE REALTIME -->
+    <section id="tab-infra" class="tab-panel hidden space-y-8">
+      <div class="bg-white rounded-xl border border-stone-200 p-6 shadow-sm">
+        <h2 class="text-lg font-bold text-stone-900">Hạ Tầng Biên Cloudflare & Dữ Liệu Thời Gian Thực Supabase</h2>
+        <p class="text-sm text-stone-600 mt-2 leading-relaxed">
+          Phần này phân tích kiến trúc phân phối tài nguyên R2 (tránh lỗi phân giải <code class="bg-stone-100 px-1 rounded">r2.cloudflarestorage.com</code> trên một số nhà mạng di động), độ trễ 60 giây của Workers KV và bảng giới hạn tải chính thức của Supabase Realtime (cập nhật 10/2026) để tránh lỗi ngắt kết nối phòng đua.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Chart: Supabase Realtime Limits -->
+        <div class="bg-white rounded-xl border border-stone-200 p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 class="text-base font-bold text-stone-900">Giới hạn Tải Chính thức Supabase Realtime theo Gói</h3>
+            <p class="text-xs text-stone-600 mt-1 mb-4">
+              So sánh số kết nối đồng thời, tin nhắn/giây và tin nhắn Presence/giây (Tài liệu chính thức Supabase 29/10/2026).
+            </p>
+          </div>
+          <div class="chart-container">
+            <canvas id="supabaseChart"></canvas>
+          </div>
+          <div class="mt-4 p-3 rounded bg-amber-50 border border-amber-200 text-xs text-amber-900">
+            <strong>Cảnh báo kiến trúc:</strong> Mọi gói (kể cả Enterprise) đều bị giới hạn cứng tối đa <strong>5 lượt gọi Presence / 30 giây / client</strong>. Tuyệt đối dùng <strong>Broadcast</strong> (độ trễ trung vị 6ms) để đồng bộ tọa độ xe, không dùng Presence!
+          </div>
+        </div>
+
+        <!-- Interactive Realtime Room Calculator & Channel Guide -->
+        <div class="bg-white rounded-xl border border-stone-200 p-6 shadow-sm space-y-5">
+          <div>
+            <h3 class="text-base font-bold text-stone-900">Bộ Tính Tải Phòng Đua & Chọn Kênh Realtime</h3>
+            <p class="text-xs text-stone-600 mt-1">Điều chỉnh số người chơi cùng lúc và tần suất gửi gói tin để xác định gói Supabase phù hợp.</p>
+          </div>
+
+          <div class="space-y-4 bg-stone-50 p-4 rounded-lg border border-stone-200">
+            <div>
+              <div class="flex justify-between text-xs font-semibold">
+                <label for="ccu-slider">Số người chơi đồng thời (CCU):</label>
+                <span id="ccu-val" class="font-mono text-amber-700">150 người</span>
+              </div>
+              <input type="range" id="ccu-slider" min="10" max="2000" step="10" value="150" class="w-full mt-1 accent-stone-900">
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-semibold">
+                <label for="hz-slider">Tần suất cập nhật vị trí xe (Broadcast/giây/client):</label>
+                <span id="hz-val" class="font-mono text-amber-700">10 tin/giây</span>
+              </div>
+              <input type="range" id="hz-slider" min="1" max="30" step="1" value="10" class="w-full mt-1 accent-stone-900">
+            </div>
+
+            <div id="realtime-calc-output" class="p-3 rounded bg-white border border-stone-200 text-xs space-y-1">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <div class="space-y-2 text-xs">
+            <h4 class="font-bold text-stone-800 uppercase">Quy tắc Tối ưu Cloudflare Edge & R2</h4>
+            <div class="p-3 rounded bg-stone-50 border border-stone-200 space-y-1.5 text-stone-700">
+              <p><strong>1. Custom Domain R2 + Nén Zstd/Brotli:</strong> Không trỏ trình duyệt tới <code class="bg-white px-1 border">r2.cloudflarestorage.com</code> (từng ghi nhận lỗi DNS ở một số nhà mạng như Reliance Jio/Telefonica). Dùng Custom Domain để bật CDN cache và nén Zstd/Brotli.</p>
+              <p><strong>2. Độ trễ Kill-Switch (Workers KV):</strong> Khi dùng Workers KV để khóa khẩn cấp một bản game vi phạm, mô hình <em>eventual consistency</em> mất tối đa <strong>60 giây</strong> để đồng bộ toàn cầu.</p>
+              <p><strong>3. HTTP Broadcast REST API:</strong> Máy chủ cổng đẩy kết quả giải đấu qua <code class="bg-white px-1 border">POST /realtime/v1/api/broadcast</code> thay vì mở WebSocket để tiết kiệm hạn mức tin nhắn.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: MONETIZATION (GOOGLE H5 ADS & SOLANA) -->
+    <section id="tab-monetization" class="tab-panel hidden space-y-8">
+      <div class="bg-white rounded-xl border border-stone-200 p-6 shadow-sm">
+        <h2 class="text-lg font-bold text-stone-900">Kiếm Tiền: Google H5 Games Ad Placement API & Solana</h2>
+        <p class="text-sm text-stone-600 mt-2 leading-relaxed">
+          Doanh thu của Game9K kết hợp giữa chia sẻ doanh thu quảng cáo bằng USD trên lưu lượng cổng và phí giao dịch on-chain bằng SOL. Dưới đây là trình mô phỏng vòng đời gọi hàm <code class="bg-stone-100 px-1 rounded">adBreak()</code> theo đúng đặc tả của Google Developers để đảm bảo game đua xe không bị treo màn hình hoặc vi phạm chính sách chèn quảng cáo.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Interactive AdBreak State Machine -->
+        <div class="lg:col-span-7 bg-white rounded-xl border border-stone-200 p-6 shadow-sm space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-base font-bold text-stone-900">Mô phỏng Vòng đời Google H5 <code class="text-amber-700">adBreak()</code></h3>
+            <div class="flex gap-2">
+              <button type="button" id="sim-preroll-btn" class="px-3 py-1.5 rounded bg-stone-900 text-white text-xs font-semibold hover:bg-stone-700 transition">
+                Chạy Preroll (Vào Game)
+              </button>
+              <button type="button" id="sim-reward-btn" class="px-3 py-1.5 rounded bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 transition">
+                Chạy Rewarded (Hồi Sinh)
+              </button>
+            </div>
+          </div>
+
+          <div id="ad-log-console" class="p-4 rounded-lg bg-stone-900 text-stone-100 font-mono text-xs h-64 overflow-y-auto space-y-2 leading-relaxed">
+            <div class="text-stone-400">// Chọn một định dạng quảng cáo bên trên để xem chuỗi callback thực thi...</div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="p-3 rounded bg-stone-50 border border-stone-200">
+              <strong class="text-stone-900">Timeout Preroll (2 giây):</strong>
+              <p class="text-stone-600 mt-1">Nếu mạng chậm quá 2 giây, API tự bỏ qua và luôn gọi <code class="bg-white px-1">adBreakDone()</code> để người chơi vào menu ngay.</p>
+            </div>
+            <div class="p-3 rounded bg-stone-50 border border-stone-200">
+              <strong class="text-stone-900">Phê duyệt H5 Beta & CSP:</strong>
+              <p class="text-stone-600 mt-1">Tên miền <code class="bg-white px-1">game9k.com</code> phải được duyệt H5 Games Ads Beta (nếu không sẽ trả về <code class="bg-white px-1">breakStatus=other</code>).</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Solana & Policy Constraints -->
+        <div class="lg:col-span-5 bg-white rounded-xl border border-stone-200 p-6 shadow-sm flex flex-col justify-between space-y-4">
+          <div>
+            <h3 class="text-base font-bold text-stone-900">Ràng buộc Chính sách Ads & Lớp Solana</h3>
+            <div class="mt-3 space-y-3 text-xs text-stone-700">
+              <div class="p-3 rounded-lg bg-red-50 border border-red-200 text-red-900">
+                <strong>Cấm tuyệt đối trong Gameplay:</strong> Không gọi quảng cáo toàn màn hình chen ngang khi người chơi đang điều khiển xe trên đường đua hoặc ngay lúc thoát trang. Chỉ đặt tại điểm nghỉ (<code class="bg-white px-1">start</code>, <code class="bg-white px-1">pause</code>, <code class="bg-white px-1">next</code>).
+              </div>
+              <div class="p-3 rounded-lg bg-stone-50 border border-stone-200">
+                <strong>Quy tắc WebView Ứng dụng:</strong> Nếu cổng đóng gói thành ứng dụng di động riêng, chính sách Google bắt buộc chuyển sang tích hợp <strong>AdMob</strong> thay vì dùng H5 Web Ads.
+              </div>
+              <div class="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900">
+                <strong>Lớp Gọi Vốn Solana (Chờ trích xuất Repo):</strong> Kiến trúc xác nhận người chơi <em>không cần ví</em> và phí giao dịch bằng SOL, nhưng hợp đồng thông minh chia chặng mở bán token nằm trong phần tài liệu chưa truy cập được của kho <code class="bg-white px-1">GameFun</code>.
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-stone-200 text-xs text-stone-500">
+            Tỷ lệ kiểm soát: Tạm dừng vòng lặp vật lý (<code class="bg-stone-100 px-1">beforeAd</code>) và khôi phục (<code class="bg-stone-100 px-1">afterAd</code>) là bắt buộc để không tính nhầm thời gian đua.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: VN LEGAL COMPLIANCE (NĐ 147/2024) -->
+    <section id="tab-legal" class="tab-panel hidden space-y-8">
+      <div class="bg-white rounded-xl border border-stone-200 p-6 shadow-sm">
+        <h2 class="text-lg font-bold text-stone-900">Ràng Buộc Kỹ Thuật Tuân Thủ Pháp Luật Việt Nam (NĐ 147/2024/NĐ-CP)</h2>
+        <p class="text-sm text-stone-600 mt-2 leading-relaxed">
+          Nếu Game9K mở khóa thị trường Việt Nam thay vì chặn IP địa lý, kiến trúc kỹ thuật của cổng và game đua xe mẫu phải đáp ứng các điều kiện bắt buộc của <strong>Nghị định 147/2024/NĐ-CP</strong> (hiệu lực 25/12/2024) và hồ sơ đánh giá tác động chuyển dữ liệu cá nhân xuyên biên giới theo <strong>Luật 91/2025/QH15 + NĐ 356/2025/NĐ-CP</strong>.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Interactive Game Mode Classifier -->
+        <div class="bg-white rounded-xl border border-stone-200 p-6 shadow-sm space-y-4">
+          <h3 class="text-base font-bold text-stone-900">Bộ Phân Loại Nhóm Trò Chơi (G1 – G4) Theo Thiết Kế Kỹ Thuật</h3>
+          <p class="text-xs text-stone-600">Chọn kiến trúc tương tác của tựa game đua xe mẫu để xem phân nhóm pháp lý và thủ tục tương ứng:</p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" id="g-mode-buttons">
+            <button type="button" data-gmode="G1" class="g-btn text-left p-3 rounded-lg border-2 border-stone-900 bg-stone-900 text-white text-xs">
+              <div class="font-bold">Đua Online Nhiều Người (Realtime)</div>
+              <div class="opacity-80 mt-0.5">Qua Supabase Broadcast / Server</div>
+            </button>
+            <button type="button" data-gmode="G2" class="g-btn text-left p-3 rounded-lg border-2 border-stone-200 bg-white text-stone-800 text-xs hover:border-stone-400">
+              <div class="font-bold">Đua Đơn + Bảng Xếp Hạng / Cloud Save</div>
+              <div class="text-stone-500 mt-0.5">Chỉ tương tác với API máy chủ</div>
+            </button>
+            <button type="button" data-gmode="G3" class="g-btn text-left p-3 rounded-lg border-2 border-stone-200 bg-white text-stone-800 text-xs hover:border-stone-400">
+              <div class="font-bold">Đua Nhiều Người Qua LAN / P2P</div>
+              <div class="text-stone-500 mt-0.5">Không đi qua máy chủ doanh nghiệp</div>
+            </button>
+            <button type="button" data-gmode="G4" class="g-btn text-left p-3 rounded-lg border-2 border-stone-200 bg-white text-stone-800 text-xs hover:border-stone-400">
+              <div class="font-bold">Chạy Cục Bộ Trình Duyệt (Offline)</div>
+              <div class="text-stone-500 mt-0.5">Không gọi API, không tương tác</div>
+            </button>
+          </div>
+
+          <div id="g-mode-detail" class="p-4 rounded-lg bg-stone-50 border border-stone-200 text-xs space-y-2 leading-relaxed">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Mandatory Technical Controls & Under-18 Timer Simulator -->
+        <div class="bg-white rounded-xl border border-stone-200 p-6 shadow-sm space-y-4">
+          <h3 class="text-base font-bold text-stone-900">4 Yêu Cầu Kỹ Thuật Bắt Buộc Tại Tầng Cổng</h3>
+          <ul class="space-y-2 text-xs text-stone-700">
+            <li class="p-2.5 rounded bg-stone-50 border border-stone-200">
+              <strong>1. Lưu trữ Định danh & SĐT Việt Nam:</strong> Thu thập <em>Họ tên, Ngày sinh, Số điện thoại VN</em> và lưu trữ tối thiểu <strong>06 tháng</strong> sau khi người chơi ngừng sử dụng dịch vụ.
+            </li>
+            <li class="p-2.5 rounded bg-stone-50 border border-stone-200">
+              <strong>2. Chuyển Dữ Liệu Xuyên Biên Giới:</strong> Vì Supabase/Cloudflare đặt ngoài VN, phải lập hồ sơ đánh giá tác động theo Luật BVDLCN 91/2025/QH15 & NĐ 356/2025/NĐ-CP.
+            </li>
+            <li class="p-2.5 rounded bg-stone-50 border border-stone-200">
+              <strong>3. Dự phòng & An toàn thông tin:</strong> Hệ thống chính + phương án dự phòng sao lưu dữ liệu và bảo đảm an ninh mạng.
+            </li>
+          </ul>
+
+          <div class="p-4 rounded-lg bg-amber-50 border border-amber-200 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-amber-900">4. Mô phỏng Bộ đếm Giới hạn Giờ Chơi (&lt; 18 tuổi)</span>
+              <span class="text-[11px] font-mono bg-white px-2 py-0.5 rounded border border-amber-300 text-amber-800">00:00 – 24:00</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <label class="block text-amber-900 font-medium mb-1">Game đua xe hiện tại (phút):</label>
+                <input type="number" id="u18-single" value="45" min="0" max="240" class="w-full px-2.5 py-1.5 rounded border border-amber-300 bg-white font-mono">
+              </div>
+              <div>
+                <label class="block text-amber-900 font-medium mb-1">Tổng các game trên cổng (phút):</label>
+                <input type="number" id="u18-total" value="120" min="0" max="300" class="w-full px-2.5 py-1.5 rounded border border-amber-300 bg-white font-mono">
+              </div>
+            </div>
+            <div id="u18-status" class="text-xs font-medium p-2.5 rounded bg-white border border-amber-200">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // 1. Tab Navigation Logic
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-tab');
+        tabButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        tabPanels.forEach(panel => {
+          if (panel.id === `tab-${target}`) {
+            panel.classList.remove('hidden');
+          } else {
+            panel.classList.add('hidden');
+          }
+        });
+      });
+    });
+
+    // 2. Pipeline Steps Data & Interaction
+    const pipelineDetails = [
+      {
+        title: "Bước 1: Nạp Bản Dựng Lên R2 & Kiểm Định Tĩnh Tự Động",
+        body: "Khi studio tải gói HTML5 lên hệ thống lưu trữ Cloudflare R2, pipeline tự động tính toán mã băm bất biến (immutable hash) cho từng phiên bản và quét mã độc trước khi cấp quyền hiển thị thử nghiệm. Mọi tệp tĩnh phải đi qua Custom Domain để hưởng nén Zstd/Brotli và tránh lỗi DNS ở một số nhà mạng."
+      },
+      {
+        title: "Bước 2: Vận Hành Hai Chế Độ Tách Biệt API",
+        body: "Cổng hỗ trợ hai chế độ: (a) Game chạy hoàn toàn phía trình duyệt, không gọi API cổng, không lưu dữ liệu; hoặc (b) Game nhúng trong iframe sandbox giao tiếp qua window.postMessage() để dùng tài khoản cổng, lưu tiến trình đám mây (cloud save), bảng xếp hạng và thu thập sự kiện hành vi."
+      },
+      {
+        title: "Bước 3: Đo Lường Dữ Liệu Người Chơi Thật & Mở Khóa Token",
+        body: "Phiên bản game đua xe mới phải vượt qua bước đo lường bằng dữ liệu người chơi thật trên cổng trước khi được đẩy lên trang chủ chính thức và kích hoạt quyền mở bán chặng token tiếp theo của studio trên mạng Solana."
+      }
+    ];
+
+    const stepCards = document.querySelectorAll('.step-card');
+    const pipelineDetailBox = document.getElementById('pipeline-detail');
+
+    function renderPipelineStep(idx) {
+      const item = pipelineDetails[idx];
+      pipelineDetailBox.innerHTML = `<strong class="text-stone-900 block mb-1">${item.title}</strong><span>${item.body}</span>`;
+      stepCards.forEach((c, i) => {
+        if (i === idx) c.classList.add('active-step');
+        else c.classList.remove('active-step');
+      });
+    }
+
+    stepCards.forEach(card => {
+      card.addEventListener('click', () => {
+        renderPipelineStep(parseInt(card.getAttribute('data-step'), 10));
+      });
+    });
+    renderPipelineStep(0);
+
+    // 3. Gap Analysis Table Data & Filter
+    const gapData = [
+      {
+        component: "SDK Bridge, Cấu trúc Thư mục & Manifest",
+        status: "missing",
+        badge: "Cần trích xuất Repo",
+        detail: "Nằm trong docs/PRD.md và docs/05-c4-architecture-and-nfr.md (kho GameFun chưa truy cập được). Đã xác nhận hỗ trợ 2 chế độ: thuần trình duyệt và tích hợp cloud save/BXH.",
+        ref: "Hồ sơ Game9K 22/11/2026"
+      },
+      {
+        component: "Vật lý Xe Đua, Điều khiển & Bản đồ Mẫu",
+        status: "missing",
+        badge: "Cần trích xuất Repo",
+        detail: "Chưa có thông số gia tốc, ma sát, va chạm, FPS mục tiêu và cơ chế chống gian lận của game đua xe mẫu.",
+        ref: "Kho khanhlegood1/GameFun"
+      },
+      {
+        component: "Hợp đồng Thông minh Solana & Chia Chặng Token",
+        status: "missing",
+        badge: "Cần trích xuất Repo",
+        detail: "Đã xác nhận phí giao dịch SOL và người chơi không cần ví, nhưng đặc tả contract nằm trong docs/WHITEPAPER.md §6.1b, §9.",
+        ref: "docs/WHITEPAPER.md"
+      },
+      {
+        component: "Engine Đồ Họa HTML5 & Ngân Sách Gói",
+        status: "verified",
+        badge: "Đã xác minh Chuẩn",
+        detail: "PixiJS ~450–478,6 KB minified (125,4–126,1 KB min+gzip); Phaser 1–1,2 MB minified (~274,1 KB min+gzip); Phaser Custom Build đạt 122 KB min+gz.",
+        ref: "PixiJS v8 / Bundlephobia"
+      },
+      {
+        component: "Lưu trữ R2, CDN & Kiểm Soát Địa Lý",
+        status: "verified",
+        badge: "Đã xác minh Hạ tầng",
+        detail: "Gắn Custom Domain R2 qua CDN, nén Zstd/Brotli/Gzip, WAF/Worker lọc theo mã quốc gia, Workers KV đồng bộ tối đa 60 giây.",
+        ref: "Cloudflare Docs"
+      },
+      {
+        component: "Supabase PostgreSQL, Realtime & Auth",
+        status: "verified",
+        badge: "Đã xác minh Hạ tầng",
+        detail: "Realtime 200–10.000+ CCU; Broadcast độ trễ trung vị 6ms; Presence giới hạn cứng 5 lần/30s; Auth mặc định 2 email/giờ và 30 SMS/giờ.",
+        ref: "Supabase Docs (10/2026)"
+      },
+      {
+        component: "Kiếm tiền Quảng cáo H5 & Tuân thủ VN",
+        status: "verified",
+        badge: "Đã xác minh Chuẩn",
+        detail: "Google H5 Ad Placement API (adConfig/adBreak, timeout preroll 2s). Nếu mở tại VN: lưu SĐT 6 tháng, giới hạn <18 tuổi 60p/game và 180p/ngày.",
+        ref: "Google Dev & NĐ 147/2024"
+      }
+    ];
+
+    const gapTableBody = document.getElementById('gap-table-body');
+    const gapFilterBtns = document.querySelectorAll('.gap-filter-btn');
+
+    function renderGapTable(filter) {
+      const rows = gapData.filter(d => filter === 'all' || d.status === filter);
+      gapTableBody.innerHTML = rows.map(r => `
+        <tr class="hover:bg-stone-50">
+          <td class="py-3 px-3 font-semibold text-stone-900">${r.component}</td>
+          <td class="py-3 px-3 whitespace-nowrap">
+            <span class="px-2 py-0.5 rounded text-xs font-semibold ${r.status === 'missing' ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'}">
+              ${r.badge}
+            </span>
+          </td>
+          <td class="py-3 px-3 text-stone-700">${r.detail}</td>
+          <td class="py-3 px-3 font-mono text-xs text-stone-500 whitespace-nowrap">${r.ref}</td>
+        </tr>
+      `).join('');
+    }
+
+    gapFilterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        gapFilterBtns.forEach(b => {
+          b.classList.remove('bg-stone-900', 'text-white');
+          b.classList.add('bg-stone-100', 'text-stone-700');
+        });
+        btn.classList.remove('bg-stone-100', 'text-stone-700');
+        btn.classList.add('bg-stone-900', 'text-white');
+        renderGapTable(btn.getAttribute('data-filter'));
+      });
+    });
+    renderGapTable('all');
+
+    // 4. Sandbox Security Interactive Simulator
+    const flagScripts = document.getElementById('flag-scripts');
+    const flagOrigin = document.getElementById('flag-origin');
+    const flagSuborigin = document.getElementById('flag-suborigin');
+    const sandboxResult = document.getElementById('sandbox-audit-result');
+
+    function updateSandboxAudit() {
+      const s = flagScripts.checked;
+      const o = flagOrigin.checked;
+      const sub = flagSuborigin.checked;
+
+      if (!s) {
+        sandboxResult.className = "mt-4 p-4 rounded-lg border text-xs leading-relaxed bg-stone-100 border-stone-300 text-stone-800";
+        sandboxResult.innerHTML = "<strong>Trạng thái: Game bị chặn thực thi.</strong> Thiếu cờ <code>allow-scripts</code> nên mã JavaScript của game đua xe không thể chạy.";
+      } else if (s && o && !sub) {
+        sandboxResult.className = "mt-4 p-4 rounded-lg border text-xs leading-relaxed bg-red-50 border-red-300 text-red-900";
+        sandboxResult.innerHTML = "<strong>CẢNH BÁO LỖ HỔNG NGHIÊM TRỌNG (Sandbox Escape):</strong> Bật đồng thời <code>allow-scripts</code> và <code>allow-same-origin</code> trên cùng origin (hoặc qua <code>blob:</code> URL) cho phép mã game bên thứ ba tự xóa thuộc tính <code>sandbox</code> và đánh cắp phiên đăng nhập của cổng Game9K!";
+      } else if (s && !o) {
+        sandboxResult.className = "mt-4 p-4 rounded-lg border text-xs leading-relaxed bg-emerald-50 border-emerald-300 text-emerald-900";
+        sandboxResult.innerHTML = "<strong>CẤU HÌNH AN TOÀN CHUẨN (Opaque Origin):</strong> Trình duyệt cấp origin mờ <code>\"null\"</code> cho iframe. Mã game không thể chạm vào DOM hay Cookie của trang cha. Khi nhận <code>postMessage</code>, cổng Game9K phải xác thực bằng <code>event.source === iframe.contentWindow</code> thay vì <code>event.origin</code>.";
+      } else {
+        sandboxResult.className = "mt-4 p-4 rounded-lg border text-xs leading-relaxed bg-amber-50 border-amber-300 text-amber-900";
+        sandboxResult.innerHTML = "<strong>Cấu hình Chấp nhận được (Cross-Origin R2):</strong> Vì gói game tải từ tên miền R2 tách biệt hoàn toàn với <code>game9k.com</code>, trình duyệt vẫn cô lập origin, nhưng nên lược bỏ <code>allow-same-origin</code> nếu game không cần dùng <code>localStorage</code> cục bộ.";
+      }
+    }
+
+    [flagScripts, flagOrigin, flagSuborigin].forEach(el => el.addEventListener('change', updateSandboxAudit));
+    updateSandboxAudit();
+
+    // 5. Realtime Load Calculator
+    const ccuSlider = document.getElementById('ccu-slider');
+    const hzSlider = document.getElementById('hz-slider');
+    const ccuVal = document.getElementById('ccu-val');
+    const hzVal = document.getElementById('hz-val');
+    const realtimeOutput = document.getElementById('realtime-calc-output');
+
+    function updateRealtimeCalc() {
+      const ccu = parseInt(ccuSlider.value, 10);
+      const hz = parseInt(hzSlider.value, 10);
+      ccuVal.textContent = `${ccu.toLocaleString('vi-VN')} người`;
+      hzVal.textContent = `${hz} tin/giây`;
+
+      // Assume rooms of up to 10 players; each message sent is received by (roomSize - 1) peers
+      const avgRoomSize = Math.min(ccu, 10);
+      const inboundMsgPerSec = ccu * hz;
+      const outboundDeliveredPerSec = inboundMsgPerSec * Math.max(1, avgRoomSize - 1);
+
+      let tier = "Gói Free (Trần 200 CCU, 100 tin/giây)";
+      let statusColor = "text-emerald-700";
+      if (ccu > 10000 || outboundDeliveredPerSec > 2500) {
+        tier = "Cần Enterprise hoặc giảm tần suất gửi (Vượt trần 2.500 tin/giây của gói Team)";
+        statusColor = "text-red-700";
+      } else if (ccu > 500 || outboundDeliveredPerSec > 500) {
+        tier = "Gói Pro (không giới hạn chi tiêu) / Team (Tối đa 10.000 CCU, 2.500 tin/giây)";
+        statusColor = "text-amber-700";
+      } else if (ccu > 200 || outboundDeliveredPerSec > 100) {
+        tier = "Gói Pro tiêu chuẩn (Tối đa 500 CCU, 500 tin/giây)";
+        statusColor = "text-sky-700";
+      }
+
+      realtimeOutput.innerHTML = `
+        <div class="flex justify-between"><span>Lưu lượng gửi lên (Inbound):</span><strong class="font-mono">${inboundMsgPerSec.toLocaleString('vi-VN')} tin/giây</strong></div>
+        <div class="flex justify-between"><span>Tổng tin phân phối (phòng ~${avgRoomSize} xe):</span><strong class="font-mono">${outboundDeliveredPerSec.toLocaleString('vi-VN')} tin/giây</strong></div>
+        <div class="pt-1.5 mt-1.5 border-t border-stone-200">
+          <span class="text-stone-500">Khuyến nghị hạ tầng: </span><strong class="${statusColor}">${tier}</strong>
+        </div>
+      `;
+    }
+
+    ccuSlider.addEventListener('input', updateRealtimeCalc);
+    hzSlider.addEventListener('input', updateRealtimeCalc);
+    updateRealtimeCalc();
+
+    // 6. Google H5 AdBreak State Machine Simulator
+    const adConsole = document.getElementById('ad-log-console');
+    const simPrerollBtn = document.getElementById('sim-preroll-btn');
+    const simRewardBtn = document.getElementById('sim-reward-btn');
+
+    function appendLog(msg, colorClass = "text-stone-200") {
+      const line = document.createElement('div');
+      const time = new Date().toLocaleTimeString('vi-VN', { hour12: false });
+      line.className = colorClass;
+      line.textContent = `[${time}] ${msg}`;
+      adConsole.appendChild(line);
+      adConsole.scrollTop = adConsole.scrollHeight;
+    }
+
+    simPrerollBtn.addEventListener('click', () => {
+      adConsole.innerHTML = '';
+      appendLog("adBreak({ type: 'preroll', name: 'game9k-car-boot' }) được gọi...", "text-sky-400");
+      appendLog("Đang chờ nạp quảng cáo tối đa 2.000ms (timeout mặc định của Google)...", "text-stone-400");
+      setTimeout(() => {
+        appendLog("beforeAd() -> Tạm dừng khung hình canvas và tắt âm thanh.", "text-amber-300");
+      }, 600);
+      setTimeout(() => {
+        appendLog("afterAd() -> Khôi phục âm thanh và hiển thị nút 'Bắt đầu đua'.", "text-emerald-300");
+        appendLog("adBreakDone({ breakStatus: 'viewed' }) -> Hoàn tất phiên preroll.", "text-sky-300");
+      }, 1500);
+    });
+
+    simRewardBtn.addEventListener('click', () => {
+      adConsole.innerHTML = '';
+      appendLog("adBreak({ type: 'reward', name: 'revive-car' }) kiểm tra kho quảng cáo...", "text-sky-400");
+      setTimeout(() => {
+        appendLog("beforeReward(showAdFn) -> Có quảng cáo! Hiển thị nút 'Xem quảng cáo để hồi sinh xe'.", "text-amber-300");
+      }, 500);
+      setTimeout(() => {
+        appendLog("Người chơi bấm nút -> Thực thi showAdFn()", "text-stone-200");
+        appendLog("beforeAd() -> Đóng băng bộ đếm thời gian vòng đua & tắt tiếng.", "text-amber-300");
+      }, 1100);
+      setTimeout(() => {
+        appendLog("adViewed() -> Người chơi xem hết! Cấp quyền hồi sinh xe trên đường đua.", "text-emerald-400");
+        appendLog("afterAd() -> Mở lại âm thanh & tiếp tục vòng lặp game.", "text-emerald-300");
+        appendLog("adBreakDone({ breakStatus: 'viewed' }) -> Ghi nhận telemetry.", "text-sky-300");
+      }, 2100);
+    });
+
+    // 7. VN Legal Classifier & Under-18 Timer
+    const gModeDetails = {
+      G1: {
+        title: "Phân loại G1 — Trò chơi tương tác nhiều người qua máy chủ doanh nghiệp",
+        desc: "Áp dụng nếu game đua xe dùng Supabase Realtime (Broadcast) hoặc máy chủ cổng để các người chơi đua trực tiếp với nhau trong cùng thời điểm.",
+        req: "Thủ tục nặng nhất: Phải có Giấy phép cung cấp dịch vụ G1 và Quyết định phê duyệt nội dung, kịch bản cho từng trò chơi theo Nghị định 147/2024/NĐ-CP."
+      },
+      G2: {
+        title: "Phân loại G2 — Người chơi chỉ tương tác với hệ thống máy chủ doanh nghiệp",
+        desc: "Áp dụng cho game đua xe chơi đơn (tính giờ / đấu AI) nhưng có kết nối API cổng để lưu tiến trình (cloud save), xác thực tài khoản hoặc gửi điểm lên bảng xếp hạng.",
+        req: "Cần Giấy chứng nhận cung cấp dịch vụ G2, G3, G4 và thực hiện thủ tục Giấy xác nhận thông báo phát hành trò chơi."
+      },
+      G3: {
+        title: "Phân loại G3 — Nhiều người chơi tương tác nhưng không qua máy chủ doanh nghiệp",
+        desc: "Áp dụng nếu chế độ đua nhiều người kết nối trực tiếp ngang hàng (P2P / mạng nội bộ) mà không đi qua hạ tầng máy chủ của doanh nghiệp.",
+        req: "Thuộc phạm vi Giấy chứng nhận cung cấp dịch vụ G2, G3, G4 và thủ tục thông báo phát hành."
+      },
+      G4: {
+        title: "Phân loại G4 — Không tương tác giữa người chơi và không tương tác máy chủ",
+        desc: "Áp dụng cho bản game tải về trình duyệt và chạy 100% cục bộ phía client, không gọi bất kỳ API lưu điểm hay tài khoản nào của Game9K.",
+        req: "Vẫn thuộc phạm vi điều chỉnh của NĐ 147/2024/NĐ-CP (câu hỏi miễn Giấy xác nhận thông báo phát hành theo Điều 37 đang được đội dự án xin ý kiến tư vấn pháp lý)."
+      }
+    };
+
+    const gBtns = document.querySelectorAll('.g-btn');
+    const gDetailBox = document.getElementById('g-mode-detail');
+
+    function renderGMode(code) {
+      const item = gModeDetails[code];
+      gDetailBox.innerHTML = `
+        <div class="font-bold text-stone-900 text-sm">${item.title}</div>
+        <p class="text-stone-700">${item.desc}</p>
+        <div class="p-2.5 rounded bg-white border border-stone-200 text-stone-800">
+          <strong>Hệ quả pháp lý:</strong> ${item.req}
+        </div>
+      `;
+      gBtns.forEach(b => {
+        if (b.getAttribute('data-gmode') === code) {
+          b.className = "g-btn text-left p-3 rounded-lg border-2 border-stone-900 bg-stone-900 text-white text-xs";
+          b.querySelector('div:last-child').className = "opacity-80 mt-0.5";
+        } else {
+          b.className = "g-btn text-left p-3 rounded-lg border-2 border-stone-200 bg-white text-stone-800 text-xs hover:border-stone-400";
+          b.querySelector('div:last-child').className = "text-stone-500 mt-0.5";
+        }
+      });
+    }
+
+    gBtns.forEach(btn => {
+      btn.addEventListener('click', () => renderGMode(btn.getAttribute('data-gmode')));
+    });
+    renderGMode('G1');
+
+    const u18Single = document.getElementById('u18-single');
+    const u18Total = document.getElementById('u18-total');
+    const u18Status = document.getElementById('u18-status');
+
+    function evaluateU18Timer() {
+      const single = parseInt(u18Single.value || '0', 10);
+      const total = parseInt(u18Total.value || '0', 10);
+
+      if (single > 60) {
+        u18Status.className = "text-xs font-medium p-2.5 rounded bg-red-50 border border-red-300 text-red-800";
+        u18Status.innerHTML = `<strong>NGẮT KẾT NỐI GAME HIỆN TẠI:</strong> Đã vượt trần <strong>60 phút/ngày</strong> cho một trò chơi (${single}/60 phút). Lớp vỏ cổng phải khóa iframe game đua xe đến 00:00 ngày hôm sau.`;
+      } else if (total > 180) {
+        u18Status.className = "text-xs font-medium p-2.5 rounded bg-red-50 border border-red-300 text-red-800";
+        u18Status.innerHTML = `<strong>NGẮT TOÀN BỘ CỔNG GAME:</strong> Đã vượt trần <strong>180 phút/ngày</strong> cho tất cả trò chơi của doanh nghiệp (${total}/180 phút).`;
+      } else {
+        u18Status.className = "text-xs font-medium p-2.5 rounded bg-emerald-50 border border-emerald-300 text-emerald-800";
+        u18Status.innerHTML = `<strong>HỢP LỆ:</strong> Còn <strong>${60 - single} phút</strong> cho game đua xe này và <strong>${180 - total} phút</strong> tổng thời gian chơi trong ngày.`;
+      }
+    }
+
+    u18Single.addEventListener('input', evaluateU18Timer);
+    u18Total.addEventListener('input', evaluateU18Timer);
+    evaluateU18Timer();
+
+    // 8. Initialize Chart.js Visualizations (Canvas only, responsive, label wrapping)
+    function wrapLabel(str) {
+      if (str.length <= 16) return str;
+      const words = str.split(' ');
+      const lines = [];
+      let current = '';
+      words.forEach(w => {
+        if ((current + ' ' + w).trim().length <= 16) {
+          current = (current + ' ' + w).trim();
+        } else {
+          if (current) lines.push(current);
+          current = w;
+        }
+      });
+      if (current) lines.push(current);
+      return lines;
+    }
+
+    const engineCtx = document.getElementById('engineChart').getContext('2d');
+    new Chart(engineCtx, {
+      type: 'bar',
+      data: {
+        labels: [
+          wrapLabel('PixiJS Chuẩn (v6/v8)'),
+          wrapLabel('Phaser Custom Build'),
+          wrapLabel('Phaser Đầy Đủ')
+        ],
+        datasets: [
+          {
+            label: 'Minified (KB)',
+            data: [472.3, 450.0, 1100.0],
+            backgroundColor: '#d6d3d1',
+            borderRadius: 4
+          },
+          {
+            label: 'Min + Gzip (KB)',
+            data: [126.1, 122.0, 274.1],
+            backgroundColor: '#d97706',
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.x} KB`
+            }
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            title: { display: true, text: 'Dung lượng gói tải (KB)', font: { size: 11 } },
+            grid: { color: '#f5f5f4' }
+          },
+          y: {
+            grid: { display: false }
+          }
+        }
+      }
+    });
+
+    const supabaseCtx = document.getElementById('supabaseChart').getContext('2d');
+    new Chart(supabaseCtx, {
+      type: 'bar',
+      data: {
+        labels: [
+          wrapLabel('Gói Free'),
+          wrapLabel('Gói Pro'),
+          wrapLabel('Gói Pro Không Giới Hạn / Team')
+        ],
+        datasets: [
+          {
+            label: 'Kết nối đồng thời (CCU)',
+            data: [200, 500, 10000],
+            backgroundColor: '#1c1917',
+            borderRadius: 4
+          },
+          {
+            label: 'Tin nhắn Broadcast / giây',
+            data: [100, 500, 2500],
+            backgroundColor: '#0284c7',
+            borderRadius: 4
+          },
+          {
+            label: 'Tin nhắn Presence / giây',
+            data: [20, 50, 1000],
+            backgroundColor: '#d97706',
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('vi-VN')}`
+            }
+          }
+        },
+        scales: {
+          y: {
+            type: 'logarithmic',
+            title: { display: true, text: 'Hạn mức (Thang logarit)', font: { size: 11 } },
+            grid: { color: '#f5f5f4' }
+          },
+          x: {
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

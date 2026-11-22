@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game9K Starter Kit — KOL TikTok Live, YouTube Live & Instant-Play Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #060c0a;
+      color: #ecfdf5;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .glass-card {
+      background: rgba(11, 25, 20, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(52, 211, 153, 0.22);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-amber-400 selection:text-stone-950">
+
+  <!-- TOP NAVIGATION -->
+  <header class="sticky top-0 z-30 bg-emerald-950/90 backdrop-blur border-b border-emerald-800/60">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-emerald-500 flex items-center justify-center text-xl shadow-lg shadow-amber-500/20">
+          🦖
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-black text-base sm:text-lg tracking-tight text-white">GAME9K STARTER KIT</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40">v1.0.0</span>
+          </div>
+          <p class="text-[11px] text-emerald-300/80">
+            HTML5 Instant-Play SDK · KOL TikTok Live & YouTube Live Gateway · Cloudflare R2 + Supabase + Solana
+          </p>
+        </div>
+      </div>
+
+      <nav class="flex flex-wrap items-center gap-2 text-xs font-bold">
+        <a href="/games/dino-race/index.html" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-emerald-400 text-stone-950 hover:brightness-110 transition">
+          🎮 Chơi Ngay Dino Race
+        </a>
+        <a href="/portal.html" class="px-3 py-1.5 rounded-lg bg-emerald-900/70 hover:bg-emerald-800 border border-emerald-700/60 text-emerald-200 transition">
+          🛡️ Cổng Sandbox (G2/NĐ147)
+        </a>
+        <a href="/debug.html" class="px-3 py-1.5 rounded-lg bg-emerald-900/70 hover:bg-emerald-800 border border-emerald-700/60 text-rose-300 transition">
+          📡 Stream Debugger
+        </a>
+        <a href="/spec.html" class="px-3 py-1.5 rounded-lg bg-emerald-900/70 hover:bg-emerald-800 border border-emerald-700/60 text-amber-300 transition">
+          📐 Đặc Tả Kiến Trúc
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto w-full px-4 sm:px-6 py-8 space-y-8 flex-1">
+
+    <!-- HERO BANNER: FLAGSHIP DINOSAUR RACING -->
+    <section class="glass-card rounded-3xl p-6 sm:p-8 border border-amber-400/35 shadow-2xl relative overflow-hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+        <div class="lg:col-span-7 space-y-4">
+          <div class="flex flex-wrap gap-2">
+            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-400/40">
+              🔴 Hỗ trợ KOL TikTok Live + YouTube Live 24/7
+            </span>
+            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
+              ⚡ Gói nén ~32 KB Gzip · Zero &lt;video&gt; WebView Safe
+            </span>
+          </div>
+
+          <h1 class="text-2xl sm:text-4xl font-black text-white leading-tight">
+            Jurassic Sanctuary Sprint — Đua Khủng Long Tương Tác Livestream
+          </h1>
+
+          <p class="text-sm text-emerald-100/80 leading-relaxed">
+            Tựa game mẫu đầu tiên của bộ <strong>Game9K Starter Kit</strong>: kết hợp đua khủng long 60 FPS tại Khu Bảo Tồn Bờ Biển Crocodilia với tương tác thời gian thực từ bình luận <code class="text-amber-300">1–4</code>, quà tặng <strong>TikTok Live</strong> và <strong>YouTube SuperChat</strong>. Tự động chạy vòng lặp 24/7 trên OBS / TikTok LIVE Studio!
+          </p>
+
+          <div class="flex flex-wrap gap-3 pt-1">
+            <a href="/games/dino-race/index.html?mode=kol&autobot=1" class="px-5 py-3 rounded-xl bg-gradient-to-r from-rose-600 via-amber-500 to-amber-400 text-stone-950 font-black text-sm shadow-lg shadow-rose-500/20 hover:brightness-110 transition">
+              🚀 Thử Ngay Đấu Trường KOL Live (Auto Demo)
+            </a>
+            <a href="/games/dino-race/index.html?mode=stampede&autobot=1" class="px-4 py-3 rounded-xl bg-purple-700/80 hover:bg-purple-600 border border-purple-400/50 text-white font-bold text-sm transition">
+              👥 Đại Chiến 24 Avatar Khán Giả
+            </a>
+            <a href="/games/dino-race/index.html" class="px-4 py-3 rounded-xl bg-emerald-900/70 hover:bg-emerald-800 border border-emerald-600/50 text-emerald-100 font-bold text-sm transition">
+              🎮 Chế Độ Tự Lái Solo
+            </a>
+          </div>
+        </div>
+
+        <!-- Quick Feature Highlights -->
+        <div class="lg:col-span-5 grid grid-cols-2 gap-3 text-xs">
+          <div class="p-3.5 rounded-2xl bg-black/45 border border-emerald-800/60 space-y-1">
+            <div class="text-lg">🎵 + ▶️</div>
+            <div class="font-bold text-amber-300">Đa Nền Tảng Cùng Lúc</div>
+            <p class="text-slate-300 text-[11px]">Gộp luồng bình luận & quà từ cả TikTok Live lẫn YouTube Live vào chung 1 chặng đua.</p>
+          </div>
+          <div class="p-3.5 rounded-2xl bg-black/45 border border-emerald-800/60 space-y-1">
+            <div class="text-lg">🍌 ☄️ 👑</div>
+            <div class="font-bold text-emerald-300">5 Tầng Quà & Phá Đám</div>
+            <p class="text-slate-300 text-[11px]">Bơm Nitro, rải Bẫy Chuối chặn đầu Top 1, thả Thiên Thạch choáng và Mưa Dê Vàng.</p>
+          </div>
+          <div class="p-3.5 rounded-2xl bg-black/45 border border-emerald-800/60 space-y-1">
+            <div class="text-lg">📱 9:16 & 16:9</div>
+            <div class="font-bold text-teal-300">Chuẩn OBS & LIVE Studio</div>
+            <p class="text-slate-300 text-[11px]">Hỗ trợ khung dọc 1080×1920, khung ngang YouTube và chế độ nền trong suốt đè lên Webcam.</p>
+          </div>
+          <div class="p-3.5 rounded-2xl bg-black/45 border border-emerald-800/60 space-y-1">
+            <div class="text-lg">🛡️ SHA-256</div>
+            <div class="font-bold text-rose-300">Chuẩn Cổng Game9K</div>
+            <p class="text-slate-300 text-[11px]">Iframe Sandbox cô lập, tiết lưu Broadcast ≤15Hz, Google H5 Ads 2s timeout & bản lẻ 1 file.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- KOL OBS / TIKTOK LIVE STUDIO / YOUTUBE LIVE OVERLAY URL GENERATOR -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div class="lg:col-span-7 glass-card rounded-2xl p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-black text-white flex items-center gap-2">
+              <span>🎥</span> Trình Tạo Link OBS / TikTok LIVE Studio Cho KOL
+            </h2>
+            <p class="text-xs text-emerald-300/80 mt-0.5">
+              Điền tài khoản đang phát trực tiếp để sinh đường dẫn <strong>Browser Source</strong> chạy tự động 24/7.
+            </p>
+          </div>
+          <span class="px-2.5 py-1 rounded bg-emerald-950 border border-emerald-700 text-[10px] font-mono text-emerald-300">Multi-Tenant Room</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">🎵 TikTok Username (tuỳ chọn):</label>
+            <input id="gen-tiktok" type="text" placeholder="Ví dụ: @kol_gaming_vn" class="w-full px-3 py-2 rounded-lg bg-stone-950 border border-emerald-800 text-white placeholder-slate-500">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">▶️ YouTube Live URL / Video ID (tuỳ chọn):</label>
+            <input id="gen-youtube" type="text" placeholder="https://youtube.com/watch?v=..." class="w-full px-3 py-2 rounded-lg bg-stone-950 border border-emerald-800 text-white placeholder-slate-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">Chế độ Đua Live:</label>
+            <select id="gen-mode" class="w-full px-3 py-2 rounded-lg bg-stone-950 border border-emerald-800 text-amber-300 font-bold">
+              <option value="kol">🏇 4 Đội Khủng Long (Chat 1-4)</option>
+              <option value="stampede">👥 24 Avatar Khán Giả</option>
+              <option value="stampede-elim">🏆 24 Avatar (Đấu Loại Trực Tiếp)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">Bản Đồ Khu Bảo Tồn:</label>
+            <select id="gen-map" class="w-full px-3 py-2 rounded-lg bg-stone-950 border border-emerald-800 text-emerald-300 font-bold">
+              <option value="0">🏝️ Bờ Biển Crocodilia</option>
+              <option value="1">🌋 Hẻm Núi Hổ Phách</option>
+              <option value="2">🌌 Đầm Lầy Phát Quang</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">Tỷ Lệ Khung Hình Stream:</label>
+            <select id="gen-layout" class="w-full px-3 py-2 rounded-lg bg-stone-950 border border-emerald-800 text-teal-300 font-bold">
+              <option value="16x9">🖥️ 16:9 Ngang (YouTube / OBS)</option>
+              <option value="9x16">📱 9:16 Dọc (TikTok / Shorts)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-4 pt-1 text-xs text-slate-300">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input id="gen-obs-clean" type="checkbox" checked class="w-4 h-4 accent-amber-400">
+            <span>Ẩn thanh tiêu đề (OBS Clean)</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input id="gen-transparent" type="checkbox" class="w-4 h-4 accent-amber-400">
+            <span>Nền trong suốt (Đè lên Camera KOL)</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input id="gen-autobot" type="checkbox" class="w-4 h-4 accent-amber-400">
+            <span>Bật sẵn Bot giả lập tương tác</span>
+          </label>
+        </div>
+
+        <!-- Generated URL Box -->
+        <div class="p-3 rounded-xl bg-black/60 border border-amber-500/40 space-y-2.5">
+          <div class="text-[11px] font-bold text-amber-300 uppercase tracking-wider">Đường dẫn Browser Source cho OBS / TikTok LIVE Studio:</div>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input id="generated-url" type="text" readonly class="flex-1 px-3 py-2 rounded-lg bg-stone-900 border border-stone-700 font-mono text-xs text-emerald-300 select-all">
+            <button id="btn-copy-url" class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs whitespace-nowrap transition">
+              📋 Sao Chép Link
+            </button>
+            <a id="btn-open-overlay" href="/games/dino-race/index.html?mode=kol&obs=1" target="_blank" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs text-center whitespace-nowrap transition">
+              ↗ Mở Overlay
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Verified Starter Kit Game Packages Registry -->
+      <div class="lg:col-span-5 glass-card rounded-2xl p-6 flex flex-col justify-between space-y-4">
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-black text-white">📦 Danh Mục Gói Game Đã Kiểm Định</h2>
+            <span id="gateway-health-pill" class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              Gateway: ONLINE
+            </span>
+          </div>
+          <p class="text-xs text-slate-300">
+            Tự động quét <code class="text-amber-300">game9k.manifest.json</code>, ngân sách nén Gzip và mã băm bất biến SHA-256 sẵn sàng đẩy lên Cloudflare R2.
+          </p>
+
+          <div id="games-registry-list" class="space-y-3">
+            <div class="text-xs text-slate-400 font-mono">Đang tải danh sách gói game...</div>
+          </div>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-black/45 border border-emerald-900/70 text-xs space-y-1.5">
+          <div class="font-bold text-amber-300">🛠️ Lệnh CLI Dành Cho Studio (Tương tự Chainplot):</div>
+          <code class="block font-mono text-[11px] text-emerald-300 bg-stone-950 px-2.5 py-1.5 rounded border border-stone-800">
+            npm run validate &amp;&amp; npm run build &amp;&amp; npm run verify
+          </code>
+          <p class="text-[11px] text-slate-400">
+            Cũng xuất sẵn bản 1 tệp độc lập <a href="/games/dino-race/standalone.html" class="text-amber-300 underline hover:text-amber-200">standalone.html (~35 KB gzip)</a> chạy không cần máy chủ!
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="border-t border-emerald-900/60 py-4 text-center text-xs text-slate-400">
+    Game9K Starter Kit · Kiến trúc Cloudflare R2 + Supabase Realtime Broadcast + Solana Milestone Telemetry
+  </footer>
+
+  <script>
+    const inputs = [
+      "gen-tiktok",
+      "gen-youtube",
+      "gen-mode",
+      "gen-map",
+      "gen-layout",
+      "gen-obs-clean",
+      "gen-transparent",
+      "gen-autobot",
+    ];
+
+    function buildOverlayUrl() {
+      const base = `${window.location.origin}/games/dino-race/index.html`;
+      const params = new URLSearchParams();
+
+      const modeVal = document.getElementById("gen-mode").value;
+      if (modeVal === "stampede-elim") {
+        params.set("mode", "stampede");
+        params.set("elim", "1");
+      } else {
+        params.set("mode", modeVal);
+      }
+
+      const mapVal = document.getElementById("gen-map").value;
+      if (mapVal !== "0") params.set("map", mapVal);
+
+      const layoutVal = document.getElementById("gen-layout").value;
+      if (layoutVal === "9x16") params.set("layout", "9x16");
+
+      const tt = document.getElementById("gen-tiktok").value.trim().replace(/^@+/, "");
+      const yt = document.getElementById("gen-youtube").value.trim();
+      if (tt) params.set("tiktok", tt);
+      if (yt) params.set("youtube", yt);
+      if (tt && yt) params.set("room", `${tt}-live`);
+
+      if (document.getElementById("gen-obs-clean").checked) params.set("obs", "1");
+      if (document.getElementById("gen-transparent").checked) params.set("bg", "transparent");
+      if (document.getElementById("gen-autobot").checked) params.set("autobot", "1");
+
+      const fullUrl = `${base}?${params.toString()}`;
+      document.getElementById("generated-url").value = fullUrl;
+      document.getElementById("btn-open-overlay").href = fullUrl;
+    }
+
+    inputs.forEach((id) => {
+      document.getElementById(id).addEventListener("input", buildOverlayUrl);
+      document.getElementById(id).addEventListener("change", buildOverlayUrl);
+    });
+    buildOverlayUrl();
+
+    document.getElementById("btn-copy-url").addEventListener("click", async (e) => {
+      const url = document.getElementById("generated-url").value;
+      try {
+        await navigator.clipboard.writeText(url);
+        e.target.textContent = "✅ Đã Chép!";
+        setTimeout(() => {
+          e.target.textContent = "📋 Sao Chép Link";
+        }, 1600);
+      } catch {
+        document.getElementById("generated-url").select();
+      }
+    });
+
+    // Load verified games registry from `/api/games`
+    async function loadGamesRegistry() {
+      const listEl = document.getElementById("games-registry-list");
+      try {
+        const res = await fetch("/api/games");
+        const data = await res.json();
+        listEl.innerHTML = (data.games || [])
+          .map((g) => {
+            const pct = Math.min(
+              100,
+              Math.round((g.metrics.gzipKb / g.metrics.maxGzipKb) * 100)
+            );
+            return `
+              <div class="p-3.5 rounded-xl bg-black/50 border border-emerald-800/60 space-y-2">
+                <div class="flex items-start justify-between gap-2">
+                  <div>
+                    <a href="${g.entryUrl}" class="font-bold text-sm text-amber-300 hover:underline">${g.manifest.title}</a>
+                    <div class="text-[11px] text-slate-400 mt-0.5">${g.manifest.description}</div>
+                  </div>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                    ${g.manifest.legal_classification} · v${g.manifest.version}
+                  </span>
+                </div>
+                <div class="space-y-1">
+                  <div class="flex justify-between text-[10px] font-mono text-slate-300">
+                    <span>Ngân sách Gzip: ${g.metrics.gzipKb} / ${g.metrics.maxGzipKb} KB (${pct}%)</span>
+                    <span class="text-emerald-400">SHA256: ${g.releaseSha256.slice(0, 12)}…</span>
+                  </div>
+                  <div class="w-full h-1.5 bg-stone-900 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-emerald-400 to-amber-400" style="width:${pct}%"></div>
+                  </div>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+      } catch {
+        listEl.innerHTML = `<div class="text-xs text-amber-300">Đang chạy chế độ tĩnh (không có API).</div>`;
+      }
+    }
+    loadGamesRegistry();
+  </script>
+</body>
+</html>
