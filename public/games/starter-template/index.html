@@ -19,6 +19,7 @@
     </div>
     <div class="flex items-center gap-2">
       <span id="score-label" class="font-mono text-emerald-400 font-bold">Điểm: 0</span>
+      <button id="btn-test-store" class="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-stone-950 font-black">🛒 Xsolla Store</button>
       <button id="btn-test-gift" class="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-500 font-bold">🎁 Test Gift</button>
     </div>
   </header>
@@ -55,11 +56,15 @@
       window.Game9K?.submitScore({ nickname: label, score, mode: "TEMPLATE" });
     }
 
-    window.Game9K?.init({ gameId: "starter-template", version: "1.0.0", maxTelemetryHz: 10 });
+    window.Game9K?.init({ gameId: "starter-template", version: "2.0.0", maxTelemetryHz: 10 });
+    window.PokiSDK?.gameLoadingFinished();
+    window.PokiSDK?.movePill(0, 48);
+    window.XsollaSDK?.onPurchase(() => spawnOrb("💎 Xsolla VIP!", 42, "#f59e0b"));
     window.Game9K?.stream.on("chat", (e) => spawnOrb(e.user.nickname, 18, "#34d399"));
     window.Game9K?.stream.on("gift", (e) => spawnOrb(`🎁 ${e.user.nickname}`, 32, "#fbbf24"));
 
     canvas.addEventListener("pointerdown", (e) => {
+      window.PokiSDK?.gameplayStart();
       const rect = canvas.getBoundingClientRect();
       orbs.push({
         x: e.clientX - rect.left,
@@ -72,6 +77,10 @@
       });
       score += 10;
       document.getElementById("score-label").textContent = `Điểm: ${score}`;
+    });
+
+    document.getElementById("btn-test-store").addEventListener("click", () => {
+      window.XsollaSDK?.openStoreModal({ gameId: "all" });
     });
 
     document.getElementById("btn-test-gift").addEventListener("click", () => {

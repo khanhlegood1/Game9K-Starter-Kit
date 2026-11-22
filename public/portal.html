@@ -3,13 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game9K Portal Sandbox Simulator — Iframe Isolation, Realtime Hz & NĐ 147/2024</title>
+  <title>Game9K Portal Host — Poki Portal SDK + Xsolla SDK 3 Pay Station + Sandbox NĐ 147/2024</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
       background-color: #090d12;
       color: #f1f5f9;
       font-family: system-ui, -apple-system, sans-serif;
+    }
+    @keyframes pillPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+    .happy-pulse {
+      animation: pillPulse 0.45s ease-in-out 3;
     }
   </style>
 </head>
@@ -20,19 +27,28 @@
     <div class="flex items-center gap-3">
       <a href="/index.html" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200">← Hub</a>
       <div>
-        <div class="flex items-center gap-2">
-          <h1 class="font-black text-sm sm:text-base text-amber-400">GAME9K.COM — TRÌNH MÔ PHỎNG VỎ CỔNG SANDBOX</h1>
+        <div class="flex items-center flex-wrap gap-2">
+          <h1 class="font-black text-sm sm:text-base text-amber-400">GAME9K PORTAL SHELL — POKI SDK × XSOLLA SDK 3</h1>
           <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
             sandbox="allow-scripts" (Opaque Origin)
           </span>
         </div>
         <p class="text-[11px] text-slate-400">
-          Kiểm định thực tế <code class="text-sky-300">event.source === iframe.contentWindow</code>, tiết lưu Broadcast ≤20Hz, Google H5 Ads & Giới hạn giờ chơi U18 (NĐ 147/2024).
+          Trung gian bảo mật Poki Lifecycle (<code class="text-sky-300">gameplayStart / commercialBreak / movePill</code>) &amp; Xsolla Pay Station 4 qua <code class="text-emerald-300">event.source === iframe.contentWindow</code>.
         </p>
       </div>
     </div>
 
-    <div class="flex items-center gap-2 text-xs">
+    <div class="flex flex-wrap items-center gap-2 text-xs">
+      <a href="/sdk-demo.html" class="px-3 py-1.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold">
+        💳 Mở SDK Explorer
+      </a>
+      <select id="portal-country-picker" class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 font-bold text-sky-300" title="Vùng thanh toán Xsolla">
+        <option value="VN">🇻🇳 VN · VND (10% VAT)</option>
+        <option value="US">🇺🇸 US · USD (8.25% Tax)</option>
+        <option value="DE">🇩🇪 DE · EUR (19% MwSt)</option>
+        <option value="JP">🇯🇵 JP · JPY (10% JCT)</option>
+      </select>
       <select id="portal-game-picker" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 font-bold text-amber-300">
         <option value="/games/dino-race/index.html">🦖 Jurassic Sanctuary Sprint (dino-race)</option>
         <option value="/games/dino-race/index.html?mode=kol&autobot=1">🔴 Dino Race — KOL Live Auto-Demo</option>
@@ -45,29 +61,124 @@
   <!-- MAIN WORKSPACE -->
   <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">
 
-    <!-- SANDBOXED GAME IFRAME (8 Cols) -->
-    <div class="lg:col-span-8 flex flex-col bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl min-h-[540px] relative">
-      <div class="px-3 py-2 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-[11px] font-mono">
-        <span class="text-emerald-400">🔒 &lt;iframe sandbox="allow-scripts"&gt; (Không cấp allow-same-origin → Chống đánh cắp Cookie cổng)</span>
+    <!-- SANDBOXED GAME IFRAME + FLOATING POKI PILL + PORTAL AD / PAY STATION OVERLAYS (8 Cols) -->
+    <div class="lg:col-span-8 flex flex-col bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl min-h-[560px] relative">
+      <div class="px-3 py-2 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
+        <span class="text-emerald-400">🔒 &lt;iframe sandbox="allow-scripts"&gt; · Poki State: <strong id="poki-state-badge" class="text-amber-300">BOOTING</strong></span>
         <span id="hz-meter" class="text-sky-300 font-bold">Broadcast: 0 msg/s (≤ 20 Hz OK)</span>
       </div>
 
-      <!-- STRICT OPAQUE-ORIGIN SANDBOX PER MDN & GAME9K SPEC -->
-      <iframe
-        id="game-sandbox-iframe"
-        src="/games/dino-race/index.html"
-        sandbox="allow-scripts"
-        class="flex-1 w-full h-full border-0 bg-black"
-        title="Game9K Sandboxed Game Frame"
-      ></iframe>
+      <div class="relative flex-1 w-full h-full">
+        <!-- FLOATING POKI PORTAL PILL (Movable by game via PokiSDK.movePill(topPercent, topPx)) -->
+        <div
+          id="portal-poki-pill"
+          style="top: calc(0% + 14px); left: 14px;"
+          class="absolute z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-950/90 border border-amber-400/50 shadow-xl backdrop-blur transition-all duration-300 text-xs"
+        >
+          <span class="font-black text-amber-400">🦖 GAME9K</span>
+          <span class="text-slate-600">|</span>
+          <span id="pill-user-id" class="font-mono text-[11px] text-sky-300">Guest</span>
+          <span id="pill-gems" class="font-mono text-[11px] font-bold text-emerald-300">💎 50</span>
+          <span id="pill-vip" class="hidden px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-black">👑 VIP</span>
+          <button id="btn-pill-store" class="ml-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-emerald-400 text-stone-950 font-black text-[10px] hover:brightness-110">
+            + Nạp Xsolla
+          </button>
+        </div>
+
+        <!-- HAPPY TIME TOAST BANNER -->
+        <div id="happy-time-banner" class="hidden absolute top-14 left-1/2 -translate-x-1/2 z-20 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-emerald-400 text-stone-950 font-black text-xs shadow-lg">
+          🎉 POKI HAPPY TIME! Chiến tích xuất sắc!
+        </div>
+
+        <!-- PORTAL-MEDIATED POKI AD BREAK OVERLAY -->
+        <div id="portal-ad-overlay" class="hidden absolute inset-0 z-30 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div class="max-w-sm w-full bg-slate-900 border border-sky-500/50 rounded-2xl p-5 text-center space-y-3 shadow-2xl">
+            <div id="portal-ad-badge" class="text-[11px] font-black uppercase tracking-wider text-sky-300">
+              POKI PORTAL COMMERCIAL BREAK
+            </div>
+            <div id="portal-ad-icon" class="text-4xl">📺</div>
+            <p id="portal-ad-desc" class="text-xs text-slate-300">
+              Cổng Game9K đã tạm dừng vòng lặp game &amp; tắt âm thanh an toàn bên ngoài sandbox iframe.
+            </p>
+            <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div id="portal-ad-progress" class="h-full bg-gradient-to-r from-sky-400 to-emerald-400 transition-all duration-100" style="width:0%"></div>
+            </div>
+            <div class="flex items-center justify-center gap-2 pt-1">
+              <button id="btn-portal-ad-skip" class="hidden px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-300">
+                Bỏ qua (Không nhận thưởng)
+              </button>
+              <span id="portal-ad-countdown" class="px-3 py-1.5 rounded-lg bg-slate-950 font-mono text-xs font-bold text-emerald-400">1.5s</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PORTAL-MEDIATED XSOLLA PAY STATION 4 CHECKOUT OVERLAY -->
+        <div id="portal-paystation-overlay" class="hidden absolute inset-0 z-40 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div class="max-w-md w-full bg-slate-900 border border-emerald-500/50 rounded-2xl overflow-hidden shadow-2xl">
+            <div class="px-4 py-3 bg-gradient-to-r from-emerald-950 to-slate-900 border-b border-slate-800 flex items-center justify-between">
+              <div>
+                <div class="text-[10px] font-black uppercase tracking-wider text-emerald-400">
+                  TRUSTED PORTAL HOST · XSOLLA PAY STATION 4
+                </div>
+                <div id="ps-header-sub" class="text-xs font-bold text-white">Thanh toán bảo mật ngoài Iframe Game</div>
+              </div>
+              <button id="btn-ps-cancel-top" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold">✕</button>
+            </div>
+            <div class="p-4 space-y-3 text-xs">
+              <div class="flex items-center gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800">
+                <span id="ps-item-icon" class="text-3xl">💎</span>
+                <div class="flex-1">
+                  <div id="ps-item-name" class="font-black text-amber-300 text-sm">100 Hổ Phách</div>
+                  <div id="ps-item-meta" class="text-[11px] font-mono text-slate-400">SKU: amber_gems_100</div>
+                </div>
+              </div>
+
+              <div>
+                <div class="text-[10px] font-bold uppercase text-slate-400 mb-1.5">Phương thức thanh toán Xsolla:</div>
+                <div id="ps-methods-list" class="space-y-1.5"></div>
+              </div>
+
+              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                <div class="flex justify-between text-slate-300">
+                  <span>Giá gốc:</span><span id="ps-subtotal" class="font-mono">0 ₫</span>
+                </div>
+                <div class="flex justify-between text-slate-400">
+                  <span id="ps-tax-label">Thuế VAT:</span><span id="ps-tax" class="font-mono">0 ₫</span>
+                </div>
+                <div class="flex justify-between text-emerald-400 font-black text-sm pt-1 border-t border-slate-800">
+                  <span>Tổng thanh toán:</span><span id="ps-total" class="font-mono">0 ₫</span>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-3 gap-2 pt-1">
+                <button id="btn-ps-cancel" class="col-span-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-slate-300">
+                  Hủy
+                </button>
+                <button id="btn-ps-confirm" class="col-span-2 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-400 text-stone-950 font-black hover:brightness-110">
+                  ✓ Xác Nhận Thanh Toán
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STRICT OPAQUE-ORIGIN SANDBOX PER MDN & GAME9K SPEC -->
+        <iframe
+          id="game-sandbox-iframe"
+          src="/games/dino-race/index.html"
+          sandbox="allow-scripts"
+          class="w-full h-full min-h-[510px] border-0 bg-black"
+          title="Game9K Sandboxed Game Frame"
+        ></iframe>
+      </div>
     </div>
 
     <!-- RIGHT AUDITOR & PORTAL CONTROLS (4 Cols) -->
     <aside class="lg:col-span-4 flex flex-col gap-3 text-xs">
 
-      <!-- 1. Portal -> Iframe Command Controls -->
+      <!-- 1. Poki Portal & Xsolla Quick Controls -->
       <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 space-y-3">
-        <h2 class="font-black text-amber-300 uppercase tracking-wider text-xs">1. Điều Khiển Cổng → Iframe (PostMessage)</h2>
+        <h2 class="font-black text-amber-300 uppercase tracking-wider text-xs">1. Điều Khiển Cổng Poki × Xsolla → Iframe</h2>
 
         <div class="grid grid-cols-2 gap-2 font-bold">
           <button id="btn-portal-pause" class="py-2 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-200">
@@ -75,6 +186,12 @@
           </button>
           <button id="btn-portal-resume" class="py-2 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-300">
             ▶ Tiếp tục (afterAd)
+          </button>
+          <button id="btn-open-xsolla-vip" class="py-2 px-2.5 rounded-lg bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300">
+            👑 Mua Vé VIP (Xsolla)
+          </button>
+          <button id="btn-open-game-store" class="py-2 px-2.5 rounded-lg bg-amber-950/60 hover:bg-amber-900/70 border border-amber-500/40 text-amber-200">
+            🛒 Mở Store Trong Game
           </button>
           <button id="btn-push-tt-gift" class="py-2 px-2.5 rounded-lg bg-pink-950/60 hover:bg-pink-900/70 border border-pink-500/40 text-pink-200">
             🎵 Đẩy Quà TikTok (20xu)
@@ -91,9 +208,6 @@
           <h2 class="font-black text-rose-300 uppercase tracking-wider text-xs">2. Giám Sát Giờ Chơi U18 (NĐ 147/2024)</h2>
           <span class="text-[10px] font-mono text-slate-400">60p/game · 180p/cổng</span>
         </div>
-        <p class="text-[11px] text-slate-400">
-          Mô phỏng người chơi dưới 18 tuổi chạm ngưỡng 60 phút/ngày để kiểm tra cơ chế khóa cứng iframe từ lớp vỏ cổng:
-        </p>
         <div class="grid grid-cols-2 gap-2 font-bold">
           <button id="btn-nd147-lock" class="py-2 px-2.5 rounded-lg bg-red-600/80 hover:bg-red-500 text-white">
             🔒 Kích Hoạt Khóa 60p U18
@@ -104,32 +218,36 @@
         </div>
       </div>
 
-      <!-- 3. Solana Studio Milestone Unlock Progress -->
+      <!-- 3. Poki Conversion + Xsolla Revenue + Solana Milestone Progress -->
       <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 space-y-2">
         <div class="flex items-center justify-between">
-          <h2 class="font-black text-emerald-300 uppercase tracking-wider text-xs">3. Đo Lường Mở Khóa Chặng Token Solana</h2>
+          <h2 class="font-black text-emerald-300 uppercase tracking-wider text-xs">3. KPI Poki · Xsolla · Solana Milestone</h2>
           <span id="solana-status" class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px]">ĐANG ĐO LƯỜNG</span>
         </div>
-        <div class="grid grid-cols-3 gap-2 text-center bg-slate-950 p-2 rounded-xl border border-slate-800">
+        <div class="grid grid-cols-4 gap-1.5 text-center bg-slate-950 p-2 rounded-xl border border-slate-800">
           <div>
-            <div class="text-[10px] text-slate-400">Game Ready</div>
+            <div class="text-[10px] text-slate-400">Loaded</div>
             <div id="metric-ready" class="font-mono font-bold text-sm text-white">0</div>
           </div>
           <div>
-            <div class="text-[10px] text-slate-400">Chặng Đua</div>
+            <div class="text-[10px] text-slate-400">Gameplay</div>
             <div id="metric-starts" class="font-mono font-bold text-sm text-amber-300">0</div>
           </div>
           <div>
-            <div class="text-[10px] text-slate-400">Hoàn Thành</div>
+            <div class="text-[10px] text-slate-400">Finishes</div>
             <div id="metric-finishes" class="font-mono font-bold text-sm text-emerald-400">0</div>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-400">Xsolla IAP</div>
+            <div id="metric-orders" class="font-mono font-bold text-sm text-sky-400">0</div>
           </div>
         </div>
       </div>
 
-      <!-- 4. Verified PostMessage Inspector Log -->
+      <!-- 4. Verified PostMessage & RPC Inspector Log -->
       <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 flex-1 flex flex-col min-h-[190px]">
         <div class="flex items-center justify-between mb-2">
-          <h2 class="font-black text-sky-300 uppercase tracking-wider text-xs">4. Nhật Ký Xác Thực PostMessage</h2>
+          <h2 class="font-black text-sky-300 uppercase tracking-wider text-xs">4. Nhật Ký Xác Thực PostMessage &amp; RPC</h2>
           <button id="btn-clear-log" class="text-[10px] text-slate-400 hover:text-white">Xóa</button>
         </div>
         <div id="postmessage-log" class="flex-1 bg-slate-950 rounded-xl p-2.5 border border-slate-800 font-mono text-[10px] space-y-1 overflow-y-auto max-h-56">
@@ -144,11 +262,16 @@
     const iframe = document.getElementById("game-sandbox-iframe");
     const logBox = document.getElementById("postmessage-log");
     const hzMeter = document.getElementById("hz-meter");
+    const pokiBadge = document.getElementById("poki-state-badge");
+    const pillEl = document.getElementById("portal-poki-pill");
+    const countrySelect = document.getElementById("portal-country-picker");
 
     let broadcastCountThisSec = 0;
     let readyCount = 0;
     let startCount = 0;
     let finishCount = 0;
+    let iapCount = 0;
+    let portalSessionUser = null;
 
     setInterval(() => {
       const ok = broadcastCountThisSec <= 20;
@@ -163,38 +286,310 @@
       div.className = color;
       div.textContent = `[${ts}] ${text}`;
       logBox.prepend(div);
-      while (logBox.children.length > 50) logBox.removeChild(logBox.lastChild);
+      while (logBox.children.length > 60) logBox.removeChild(logBox.lastChild);
+    }
+
+    function sendToIframe(message) {
+      iframe.contentWindow?.postMessage(message, "*");
+    }
+
+    function updatePillUI(user, inv) {
+      if (user?.explorerId) {
+        document.getElementById("pill-user-id").textContent = user.explorerId;
+      }
+      if (inv) {
+        document.getElementById("pill-gems").textContent = `💎 ${inv.amberGems ?? 50}`;
+        const vipEl = document.getElementById("pill-vip");
+        if (inv.adFreeVip || (inv.entitlements || []).includes("sanctuary_vip_pass")) {
+          vipEl.classList.remove("hidden");
+        }
+      }
+    }
+
+    // Portal-Mediated Poki Ad Break UI
+    function runPortalAdBreak({ kind = "commercial", size = "medium" }) {
+      return new Promise((resolve) => {
+        const overlay = document.getElementById("portal-ad-overlay");
+        const badge = document.getElementById("portal-ad-badge");
+        const icon = document.getElementById("portal-ad-icon");
+        const progress = document.getElementById("portal-ad-progress");
+        const countdown = document.getElementById("portal-ad-countdown");
+        const skipBtn = document.getElementById("btn-portal-ad-skip");
+
+        const isRewarded = kind === "rewarded";
+        const durationMs = isRewarded ? 1600 : 1200;
+        badge.textContent = isRewarded
+          ? `POKI REWARDED BREAK (${size.toUpperCase()})`
+          : "POKI COMMERCIAL BREAK";
+        icon.textContent = isRewarded ? "🎁" : "📺";
+        skipBtn.classList.toggle("hidden", !isRewarded);
+        progress.style.width = "0%";
+        overlay.classList.remove("hidden");
+
+        const started = Date.now();
+        let finished = false;
+        const close = (rewarded) => {
+          if (finished) return;
+          finished = true;
+          clearInterval(iv);
+          overlay.classList.add("hidden");
+          resolve({ rewarded });
+        };
+
+        skipBtn.onclick = () => close(false);
+
+        const iv = setInterval(() => {
+          const elapsed = Date.now() - started;
+          const pct = Math.min(100, Math.round((elapsed / durationMs) * 100));
+          progress.style.width = `${pct}%`;
+          countdown.textContent = `${Math.max(0, (durationMs - elapsed) / 1000).toFixed(1)}s`;
+          if (elapsed >= durationMs) close(true);
+        }, 70);
+      });
+    }
+
+    // Portal-Mediated Xsolla Pay Station 4 Checkout UI
+    async function runPortalPayStation(payload = {}) {
+      const country = payload.country || countrySelect.value || "VN";
+      if (!portalSessionUser) {
+        const authRes = await fetch("/api/xsolla/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            method: "portal_sso",
+            deviceId: payload.userId || "portal_player",
+            country,
+          }),
+        }).then((r) => r.json());
+        portalSessionUser = authRes.user;
+        updatePillUI(authRes.user, authRes.inventorySummary);
+      }
+
+      const orderRes = await fetch("/api/xsolla/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sku: payload.sku,
+          userId: portalSessionUser.userId,
+          country,
+          sandbox: payload.sandbox !== false,
+          webhookMode: Boolean(payload.webhookMode),
+        }),
+      }).then((r) => r.json());
+
+      if (!orderRes.ok) return orderRes;
+      const order = orderRes.order;
+
+      return new Promise((resolve) => {
+        const overlay = document.getElementById("portal-paystation-overlay");
+        document.getElementById("ps-header-sub").textContent = `Pay Station · ${order.country} (${order.currency})`;
+        document.getElementById("ps-item-icon").textContent = order.icon || "💎";
+        document.getElementById("ps-item-name").textContent = order.productName;
+        document.getElementById("ps-item-meta").textContent = `User: ${order.explorerId} · SKU: ${order.sku}`;
+        document.getElementById("ps-subtotal").textContent = order.subtotalFormatted;
+        document.getElementById("ps-tax-label").textContent = `Thuế (${order.taxLabel}):`;
+        document.getElementById("ps-tax").textContent = order.taxFormatted;
+        document.getElementById("ps-total").textContent = order.totalFormatted;
+
+        const methodsBox = document.getElementById("ps-methods-list");
+        let selectedMethod = order.paymentMethods?.[0]?.id || "card_4242";
+
+        const renderMethods = () => {
+          methodsBox.innerHTML = (order.paymentMethods || [])
+            .map(
+              (m) => `
+              <button type="button" data-m="${m.id}" class="w-full px-3 py-2 rounded-xl border text-left flex items-center justify-between font-bold ${
+                selectedMethod === m.id
+                  ? "bg-emerald-950/60 border-emerald-400 text-white"
+                  : "bg-slate-950 border-slate-800 text-slate-300"
+              }">
+                <span>${m.label}</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-emerald-300">${m.badge}</span>
+              </button>`
+            )
+            .join("");
+          methodsBox.querySelectorAll("[data-m]").forEach((b) => {
+            b.onclick = () => {
+              selectedMethod = b.getAttribute("data-m");
+              renderMethods();
+            };
+          });
+        };
+        renderMethods();
+        overlay.classList.remove("hidden");
+
+        const cancel = async () => {
+          overlay.classList.add("hidden");
+          await fetch(`/api/xsolla/orders/${encodeURIComponent(order.orderId)}/pay`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "cancel" }),
+          });
+          order.status = "cancelled";
+          resolve({ ok: false, cancelled: true, order });
+        };
+
+        document.getElementById("btn-ps-cancel").onclick = cancel;
+        document.getElementById("btn-ps-cancel-top").onclick = cancel;
+
+        document.getElementById("btn-ps-confirm").onclick = async () => {
+          overlay.classList.add("hidden");
+          const paidRes = await fetch(
+            `/api/xsolla/orders/${encodeURIComponent(order.orderId)}/pay`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "pay", paymentMethod: selectedMethod }),
+            }
+          ).then((r) => r.json());
+
+          if (payload.autoFinalize) {
+            const finRes = await fetch("/api/xsolla/finalize", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                orderId: paidRes.order.orderId,
+                receiptToken: paidRes.order.receiptToken,
+              }),
+            }).then((r) => r.json());
+            iapCount++;
+            document.getElementById("metric-orders").textContent = String(iapCount);
+            updatePillUI(portalSessionUser, finRes.inventory);
+            resolve({ ...finRes, finalized: true });
+            return;
+          }
+          resolve(paidRes);
+        };
+      });
     }
 
     // STRICT GAME9K PORTAL LISTENER: Validate `event.source === iframe.contentWindow`
-    // because sandboxed iframe without `allow-same-origin` has `event.origin === "null"`!
     window.addEventListener("message", async (event) => {
       if (event.source !== iframe.contentWindow) return;
       const msg = event.data;
       if (!msg || typeof msg !== "object" || !msg.type) return;
 
-      if (msg.type === "realtime_broadcast_tick") {
-        broadcastCountThisSec += 1;
-        return; // Don't spam text log with 15Hz position ticks
+      // 1. Portal Handshake (Opaque-Origin Safe)
+      if (msg.type === "PORTAL_HANDSHAKE_SYN") {
+        const urlParams = Object.fromEntries(new URLSearchParams(window.location.search));
+        sendToIframe({
+          type: "PORTAL_HANDSHAKE_ACK",
+          params: urlParams,
+          language: "vi",
+          country: countrySelect.value,
+        });
+        addLog(`🤝 Handshake ACK gửi vào sandbox (SDK v${msg.sdkVersion})`, "text-sky-300");
+        return;
       }
 
-      addLog(`✔ [${msg.type}] origin=${event.origin} payload=${JSON.stringify(msg.payload)}`, "text-emerald-300");
+      // 2. Portal RPC Handler (Poki Breaks + Xsolla SDK 3 4-Step Flow)
+      if (msg.type === "PORTAL_RPC_REQUEST" && msg.reqId) {
+        addLog(`⇄ [RPC] ${msg.action} (${msg.reqId})`, "text-amber-300");
+        try {
+          let data = null;
+          if (msg.action === "poki_commercial_break") {
+            data = await runPortalAdBreak({ kind: "commercial", size: msg.payload?.size });
+          } else if (msg.action === "poki_rewarded_break") {
+            data = await runPortalAdBreak({ kind: "rewarded", size: msg.payload?.size || "medium" });
+          } else if (msg.action === "poki_shareable_url") {
+            const qs = new URLSearchParams();
+            for (const [k, v] of Object.entries(msg.payload?.params || {})) {
+              qs.set(k.startsWith("gd") ? k : `gd${k}`, String(v));
+            }
+            data = { url: `${window.location.origin}/portal.html?${qs.toString()}` };
+          } else if (msg.action === "xsolla_authenticate") {
+            data = await fetch("/api/xsolla/auth", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                ...msg.payload,
+                country: msg.payload?.country || countrySelect.value,
+              }),
+            }).then((r) => r.json());
+            portalSessionUser = data.user;
+            updatePillUI(data.user, data.inventorySummary);
+          } else if (msg.action === "xsolla_load_catalog") {
+            const qs = new URLSearchParams({
+              country: msg.payload?.country || countrySelect.value,
+              gameId: msg.payload?.gameId || "dino-race",
+            });
+            data = await fetch(`/api/xsolla/catalog?${qs.toString()}`).then((r) => r.json());
+          } else if (msg.action === "xsolla_open_paystation") {
+            data = await runPortalPayStation(msg.payload);
+          } else if (msg.action === "xsolla_finalize_purchase") {
+            data = await fetch("/api/xsolla/finalize", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(msg.payload || {}),
+            }).then((r) => r.json());
+            if (data.ok) {
+              iapCount++;
+              document.getElementById("metric-orders").textContent = String(iapCount);
+              updatePillUI(portalSessionUser, data.inventory);
+            }
+          }
+
+          sendToIframe({
+            type: "PORTAL_RPC_RESPONSE",
+            reqId: msg.reqId,
+            ok: true,
+            data,
+          });
+        } catch (err) {
+          sendToIframe({
+            type: "PORTAL_RPC_RESPONSE",
+            reqId: msg.reqId,
+            ok: false,
+            error: err?.message || "Portal RPC error",
+          });
+        }
+        return;
+      }
+
+      if (msg.type === "realtime_broadcast_tick") {
+        broadcastCountThisSec += 1;
+        return;
+      }
+
+      // 3. Poki Lifecycle Visual Feedback on Portal Shell
+      if (msg.type === "poki_loading_finished") {
+        pokiBadge.textContent = "LOADED";
+        pokiBadge.className = "text-sky-300";
+      } else if (msg.type === "poki_gameplay_start") {
+        pokiBadge.textContent = "PLAYING 🎮";
+        pokiBadge.className = "text-emerald-400";
+        startCount++;
+      } else if (msg.type === "poki_gameplay_stop") {
+        pokiBadge.textContent = "PAUSED / MENU";
+        pokiBadge.className = "text-amber-300";
+      } else if (msg.type === "poki_move_pill" && msg.payload) {
+        pillEl.style.top = `calc(${Number(msg.payload.topPercent) || 0}% + ${Number(msg.payload.topPx) || 14}px)`;
+      } else if (msg.type === "poki_happy_time") {
+        const banner = document.getElementById("happy-time-banner");
+        banner.classList.remove("hidden");
+        pillEl.classList.add("happy-pulse");
+        setTimeout(() => {
+          banner.classList.add("hidden");
+          pillEl.classList.remove("happy-pulse");
+        }, 2600);
+      }
+
+      addLog(`✔ [${msg.type}] payload=${JSON.stringify(msg.payload)}`, "text-emerald-300");
 
       if (msg.type === "game_ready") readyCount++;
-      if (msg.type === "race_started") startCount++;
+      if (msg.type === "race_started" && startCount === 0) startCount++;
       if (msg.type === "race_finished") finishCount++;
 
       document.getElementById("metric-ready").textContent = String(readyCount);
       document.getElementById("metric-starts").textContent = String(startCount);
       document.getElementById("metric-finishes").textContent = String(finishCount);
 
-      if (finishCount >= 1) {
+      if (finishCount >= 1 || iapCount >= 1) {
         const badge = document.getElementById("solana-status");
         badge.textContent = "ĐỦ ĐIỀU KIỆN MỞ CHẶNG TOKEN";
         badge.className = "px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px]";
       }
 
-      // Persist verified telemetry to Gateway API
       try {
         await fetch("/api/portal/telemetry", {
           method: "POST",
@@ -204,23 +599,53 @@
       } catch {}
     });
 
-    function sendToIframe(message) {
-      iframe.contentWindow?.postMessage(message, "*");
-      addLog(`→ Gửi tới Iframe: ${message.type}`, "text-amber-300");
-    }
-
     document.getElementById("portal-game-picker").addEventListener("change", (e) => {
       iframe.src = e.target.value;
     });
     document.getElementById("btn-reload-iframe").addEventListener("click", () => {
       iframe.src = iframe.src;
     });
+    countrySelect.addEventListener("change", () => {
+      sendToIframe({
+        type: "PORTAL_HANDSHAKE_ACK",
+        params: {},
+        language: "vi",
+        country: countrySelect.value,
+      });
+      addLog(`🌍 Đổi vùng Xsolla Pay Station → ${countrySelect.value}`, "text-sky-300");
+    });
 
     document.getElementById("btn-portal-pause").addEventListener("click", () => {
       sendToIframe({ type: "PAUSE_GAME" });
+      addLog("→ Gửi PAUSE_GAME", "text-amber-300");
     });
     document.getElementById("btn-portal-resume").addEventListener("click", () => {
       sendToIframe({ type: "RESUME_GAME" });
+      addLog("→ Gửi RESUME_GAME", "text-amber-300");
+    });
+    document.getElementById("btn-open-game-store").addEventListener("click", () => {
+      sendToIframe({
+        type: "PORTAL_OPEN_STORE",
+        payload: { country: countrySelect.value },
+      });
+    });
+    document.getElementById("btn-pill-store").addEventListener("click", () => {
+      sendToIframe({
+        type: "PORTAL_OPEN_STORE",
+        payload: { country: countrySelect.value },
+      });
+    });
+    document.getElementById("btn-open-xsolla-vip").addEventListener("click", async () => {
+      sendToIframe({ type: "PAUSE_GAME" });
+      const res = await runPortalPayStation({
+        sku: "sanctuary_vip_pass",
+        country: countrySelect.value,
+        autoFinalize: true,
+      });
+      sendToIframe({ type: "RESUME_GAME" });
+      if (res?.ok) {
+        addLog(`👑 Đã mua & kích hoạt Vé VIP Miễn Quảng Cáo (${res.order.totalFormatted})!`, "text-emerald-300");
+      }
     });
     document.getElementById("btn-push-tt-gift").addEventListener("click", () => {
       sendToIframe({
@@ -248,7 +673,6 @@
         },
       });
     });
-
     document.getElementById("btn-nd147-lock").addEventListener("click", () => {
       sendToIframe({ type: "UNDER18_LIMIT_LOCK" });
     });

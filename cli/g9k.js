@@ -154,13 +154,24 @@ function runCapabilities(opts) {
     command: "capabilities",
     data: {
       cli: "g9k",
-      version: "1.0.0",
+      version: "2.0.0",
       commands: ["capabilities", "validate", "build", "verify", "doctor", "decide"],
+      sdk: {
+        version: "2.0.0",
+        standards: ["poki-portal-sdk", "xsolla-sdk-3", "game9k-sandbox-bridge"],
+        xsolla_steps: [
+          "01_authenticate",
+          "02_load_catalog",
+          "03_purchase_product",
+          "04_finalize_purchase",
+        ],
+      },
       infrastructure: [
         "cloudflare-r2",
         "supabase-realtime-broadcast",
         "solana-milestones",
         "gemini-decisions-governance",
+        "xsolla-paystation-4",
       ],
       live_platforms: ["tiktok-live", "youtube-live"],
       legal_modes: ["G1", "G2", "G3", "G4"],

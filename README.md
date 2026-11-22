@@ -60,7 +60,8 @@ Sau khi chạy `npm start`, mở trình duyệt tại:
 | :--- | :--- |
 | **`http://localhost:3000/`** | **KOL Live Launcher Hub** — Tạo link OBS / TikTok LIVE Studio / YouTube Live & xem danh mục gói game |
 | **`http://localhost:3000/games/dino-race/index.html`** | **Jurassic Sanctuary Sprint** — Bản đầy đủ (Tự lái Solo + 4 Đội KOL + 24 Avatar Khán Giả) |
-| **`http://localhost:3000/games/dino-race/standalone.html`** | **Bản 1 File Độc Lập (~35 KB Gzip)** — Mở trực tiếp không cần máy chủ hoặc tải thẳng lên Cloudflare R2 |
+| **`http://localhost:3000/games/dino-race/standalone.html`** | **Bản 1 File Độc Lập (~42 KB Gzip)** — Mở trực tiếp không cần máy chủ hoặc tải thẳng lên Cloudflare R2 |
+| **`http://localhost:3000/sdk-demo.html`** | **Poki × Xsolla SDK Explorer** — Trải nghiệm trực tiếp 4 bước thanh toán Xsolla SDK 3 (`Authenticate → Catalog → Pay Station → Finalize`) & vòng đời `PokiSDK` |
 | **`http://localhost:3000/decisions.html`** | **Dev Decisions Studio (`Gemini Decisions API`)** — Cổng duyệt phát hành R2, phân loại NĐ 147, duyệt PR, Sprint Backlog & Playground đa phương thức |
 | **`http://localhost:3000/portal.html`** | **Game9K Sandbox Portal Host** — Kiểm tra `<iframe sandbox="allow-scripts">`, đo Hz Realtime & khóa giờ chơi U18 |
 | **`http://localhost:3000/debug.html`** | **Live Stream Debugger** — Theo dõi sự kiện TikTok Live / YouTube Live và bắn chuỗi 9 sự kiện mẫu |
@@ -92,6 +93,7 @@ Bạn có thể tạo tự động tại trang chủ `/` hoặc gắn trực ti�
 
 ### Đối Chiếu Tinh Hoa Từ Các Kho Mã Nguồn Mở Tham Chiếu
 
+- [`xsolla.com/sdk`](https://xsolla.com/sdk) & [`developers.xsolla.com/sdk/demo/`](https://developers.xsolla.com/sdk/demo/) + **Poki Portal SDK** → Hợp nhất vòng đời cổng `window.PokiSDK` (`gameplayStart/Stop`, `commercialBreak`, `rewardedBreak`, `movePill`, `shareableURL`) với luồng 4 lệnh thương mại hóa `window.XsollaSDK` (`Authenticate → Load Catalog → Purchase Product → Finalize Purchase`) chạy an toàn xuyên qua `<iframe sandbox="allow-scripts">` (`/sdk-demo.html` & `/portal.html`).
 - [`khanhlegood1/Gemini-Decisions-API-Playground`](https://github.com/khanhlegood1/Gemini-Decisions-API-Playground) → Bộ khung đánh giá quyết định xác suất định kiểu (`Boolean / Choice / Score`, `0 output tokens`, đa phương thức) cho quản lý dự án Dev Game9K (`/decisions.html` & `npm run decide`).
 - [`lexuankhanh1612/chainplot`](https://github.com/lexuankhanh1612/chainplot) → Kiến trúc CLI tất định (`g9k validate/build/verify --json`) & đóng dấu SHA-256 bất biến cho bản phát hành tĩnh.
 - [`lexuankhanh1612/watchtower`](https://github.com/lexuankhanh1612/watchtower) → Phân tách rõ tầng dịch vụ, giám sát sức khỏe (`/api/health`, `/api/stats`) & quy ước kiểm thử sạch.

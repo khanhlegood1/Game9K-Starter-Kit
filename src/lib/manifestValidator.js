@@ -149,6 +149,25 @@ export function validateGamePackage(gameDir) {
     );
   }
 
+  // Optional Xsolla SDK 3 monetization block validation
+  if (manifest.monetization && typeof manifest.monetization === "object") {
+    if (
+      manifest.monetization.provider &&
+      manifest.monetization.provider !== "xsolla-sdk-3"
+    ) {
+      errors.push(
+        `manifest.monetization.provider must be "xsolla-sdk-3" (got "${manifest.monetization.provider}")`
+      );
+    }
+    if (Array.isArray(manifest.monetization.products)) {
+      for (const sku of manifest.monetization.products) {
+        if (typeof sku !== "string" || !/^[a-z0-9_.-]+$/.test(sku)) {
+          errors.push(`Invalid Xsolla SKU slug "${sku}" in manifest.monetization.products`);
+        }
+      }
+    }
+  }
+
   // 2. Scan all files, compute sizes & SHA-256, and run static security / WebView checks
   const relFiles = listFilesDeterministic(gameDir);
   const fileRecords = [];

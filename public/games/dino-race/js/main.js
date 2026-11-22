@@ -46,9 +46,14 @@ const engine = new DinoRaceEngine({
   onFeedLog: appendFeedLog,
   onRaceStart(info) {
     document.getElementById("overlay-finish").classList.add("hidden");
+    window.PokiSDK?.gameplayStart();
+    if (window.XsollaSDK?.hasEntitlement("golden_croc_skin") && engine.racers[0]) {
+      engine.racers[0].kingTimer = Math.max(engine.racers[0].kingTimer || 0, 6.0);
+    }
     window.Game9K?.emitPortalEvent("race_started", info);
   },
   onRaceFinish(summary) {
+    window.PokiSDK?.gameplayStop("race_finished");
     renderFinishOverlay(summary);
     window.Game9K?.emitPortalEvent("race_finished", {
       mode: summary.playMode,
@@ -61,6 +66,9 @@ const engine = new DinoRaceEngine({
     if (summary.playMode === "SOLO" && engine.racers[0]) {
       const player = engine.racers[0];
       const rank = summary.standings.findIndex((r) => r.isPlayer) + 1;
+      if (rank === 1) {
+        window.PokiSDK?.happyTime(0.95);
+      }
       const score = Math.max(
         100,
         Math.round(3000 - summary.elapsedSec * 22 + (4 - rank) * 450 + player.goatsEaten * 80)
@@ -77,16 +85,29 @@ const engine = new DinoRaceEngine({
         lastSpeciesIdx: engine.selectedSpeciesIdx,
         bestScore: score,
       });
+    } else if (summary.winner) {
+      window.PokiSDK?.happyTime(0.6);
     }
   },
 });
 
-// Initialize Game9K SDK Bridge & Google H5 Ad Placement hooks
+// Initialize Game9K Unified SDK (Poki Portal Lifecycle + Xsolla SDK 3 Commerce + KOL Stream Bridge)
 if (window.Game9K) {
   window.Game9K.init({
     gameId: "dino-race",
-    version: "1.0.0",
+    version: "2.0.0",
     maxTelemetryHz: 15,
+    xsolla: {
+      projectId: 249001,
+      sandbox: true,
+      products: [
+        "amber_gems_100",
+        "revive_turbo_surge",
+        "kol_meteor_pack_5",
+        "golden_croc_skin",
+        "sanctuary_vip_pass",
+      ],
+    },
     onPauseChange(paused, reason) {
       SoundFX.setAdMute(paused);
       const legalBanner = document.getElementById("nd147-lock-overlay");
@@ -98,6 +119,51 @@ if (window.Game9K) {
         appendFeedLog(`<span class="text-red-400 font-bold">[NĐ 147/2024]</span> Đã chạm trần giờ chơi U18!`);
       }
     },
+  });
+
+  // Signal Poki conversion-to-play loading completion & position Portal Pill below top HUD
+  window.PokiSDK?.gameLoadingFinished();
+  window.PokiSDK?.movePill(0, 54);
+
+  // Apply finalized Xsolla SDK 3 purchases directly into live Dinosaur Race gameplay!
+  window.XsollaSDK?.onPurchase((res) => {
+    const sku = res?.order?.sku || "";
+    SoundFX.playGiftFanfare(true);
+    if (sku === "amber_gems_100" || sku === "revive_turbo_surge") {
+      engine.racers.forEach((r) => {
+        if (r.isPlayer || engine.playMode !== "SOLO") {
+          r.boost = r.species.maxBoost;
+          r.surgeTimer = Math.max(r.surgeTimer || 0, 3.8);
+          r.stunTimer = 0;
+        }
+      });
+      appendFeedLog(
+        `<span class="text-emerald-300 font-bold">[💳 Xsolla IAP]</span> Đã nạp <b>${sku}</b> → Full Nộ Khí & Bứt Tốc!`
+      );
+    } else if (sku === "kol_meteor_pack_5") {
+      engine.applyStreamEvent({
+        type: "gift",
+        platform: "xsolla",
+        user: { uniqueId: "xsolla_vip", nickname: "Xsolla Meteor Pack" },
+        giftTier: "meteor",
+        giftValue: 20,
+        lane: 0,
+      });
+      appendFeedLog(
+        `<span class="text-purple-300 font-bold">[💳 Xsolla IAP]</span> Kích hoạt Gói Thiên Thạch giáng thẳng Top 1!`
+      );
+    } else if (sku === "golden_croc_skin") {
+      if (engine.racers[0]) {
+        engine.racers[0].kingTimer = Math.max(engine.racers[0].kingTimer || 0, 8.0);
+      }
+      appendFeedLog(
+        `<span class="text-amber-300 font-bold">[💳 Xsolla IAP]</span> Đã mở khóa vĩnh viễn <b>Skin Cá Sấu Hoàng Kim</b>!`
+      );
+    } else if (sku === "sanctuary_vip_pass") {
+      appendFeedLog(
+        `<span class="text-yellow-300 font-bold">[👑 Xsolla VIP]</span> Đã kích hoạt Vé VIP Miễn Quảng Cáo Poki trên toàn cổng!`
+      );
+    }
   });
 
   // Connect incoming TikTok Live & YouTube Live events from SDK StreamBridge -> Engine
@@ -501,42 +567,46 @@ document.querySelectorAll(".dino-card").forEach((card) => {
   });
 });
 
-// Start Race Button (triggers Google H5 `preroll` AdBreak with 2s timeout safety!)
-document.getElementById("btn-start-race")?.addEventListener("click", () => {
+// Start Race Button (Poki commercialBreak before gameplayStart — auto-skipped for Xsolla VIP!)
+document.getElementById("btn-start-race")?.addEventListener("click", async () => {
   SoundFX.init();
-  const launch = () => {
-    document.getElementById("overlay-start").classList.add("hidden");
-    if (engine.playMode === "SOLO") {
-      document.getElementById("hud-bottom").classList.remove("hidden");
-      document.getElementById("touch-controls").classList.remove("hidden");
-    } else {
-      document.getElementById("live-control-drawer").classList.remove("hidden");
-      renderer.showMinimap = false;
-    }
-    engine.startNewRound(true);
-    syncModeBadges();
-  };
-
-  if (window.Game9K?.ads) {
-    window.Game9K.ads.triggerAdBreak({
-      type: "preroll",
-      name: "dino-race-preroll",
-      onDone: launch,
-    });
-  } else {
-    launch();
+  if (window.PokiSDK) {
+    await window.PokiSDK.commercialBreak(() => SoundFX.setAdMute(true));
+    SoundFX.setAdMute(false);
   }
+  document.getElementById("overlay-start").classList.add("hidden");
+  if (engine.playMode === "SOLO") {
+    document.getElementById("hud-bottom").classList.remove("hidden");
+    document.getElementById("touch-controls").classList.remove("hidden");
+  } else {
+    document.getElementById("live-control-drawer").classList.remove("hidden");
+    renderer.showMinimap = false;
+  }
+  engine.startNewRound(true);
+  syncModeBadges();
 });
 
-document.getElementById("btn-restart")?.addEventListener("click", () => {
+document.getElementById("btn-restart")?.addEventListener("click", async () => {
   document.getElementById("overlay-finish").classList.add("hidden");
   if (engine.playMode !== "SOLO") {
     engine.startNewRound(false);
   } else {
+    if (window.PokiSDK) {
+      await window.PokiSDK.commercialBreak(() => SoundFX.setAdMute(true));
+      SoundFX.setAdMute(false);
+    }
     document.getElementById("overlay-start").classList.remove("hidden");
     engine.gameState = "MENU";
   }
 });
+
+// In-Game Xsolla SDK 3 Storefront Launchers
+function openDinoXsollaStore() {
+  SoundFX.init();
+  window.XsollaSDK?.openStoreModal({ gameId: "dino-race" });
+}
+document.getElementById("btn-xsolla-store")?.addEventListener("click", openDinoXsollaStore);
+document.getElementById("btn-start-store")?.addEventListener("click", openDinoXsollaStore);
 
 // Top Header Quick Controls
 document.getElementById("btn-weather")?.addEventListener("click", (e) => {
@@ -668,22 +738,28 @@ document.querySelectorAll(".sim-gift-btn").forEach((btn) => {
   });
 });
 
-// Rewarded Ad Button
-document.getElementById("btn-ad-reward")?.addEventListener("click", () => {
-  window.Game9K?.ads.triggerAdBreak({
-    type: "reward",
-    name: "refill-sanctuary-nitro",
-    onReward: () => {
-      engine.racers.forEach((r) => {
-        r.boost = r.species.maxBoost;
-        r.surgeTimer = Math.max(r.surgeTimer, 2.5);
-      });
-      SoundFX.playRoar();
-      appendFeedLog(
-        `<span class="text-amber-300 font-bold">[🎬 Rewarded Ad]</span> Đầy Nộ Khí toàn đường đua!`
-      );
-    },
+// Poki Rewarded Break Button (`PokiSDK.rewardedBreak` -> `shouldReward`)
+document.getElementById("btn-ad-reward")?.addEventListener("click", async () => {
+  const rewarded = await window.PokiSDK?.rewardedBreak({
+    size: "medium",
+    interactive: true,
+    onStart: () => SoundFX.setAdMute(true),
   });
+  SoundFX.setAdMute(false);
+  if (rewarded) {
+    engine.racers.forEach((r) => {
+      r.boost = r.species.maxBoost;
+      r.surgeTimer = Math.max(r.surgeTimer, 2.5);
+    });
+    SoundFX.playRoar();
+    appendFeedLog(
+      `<span class="text-amber-300 font-bold">[🎬 Poki Rewarded]</span> Đầy Nộ Khí toàn đường đua!`
+    );
+  } else {
+    appendFeedLog(
+      `<span class="text-slate-400">[🎬 Poki Rewarded]</span> Đã bỏ qua quảng cáo — chưa nhận thưởng.`
+    );
+  }
 });
 
 // ============================================================================
