@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "id": "starter-template",
+  "title": "Game9K Minimal Canvas & Live Stream Boilerplate",
+  "version": "1.0.0",
+  "description": "Clean <10KB HTML5 Canvas boilerplate wired to Game9K SDK, Google H5 Ad Placement API, and TikTok/YouTube Live StreamBridge.",
+  "author": "Game9K Studio",
+  "entry": "index.html",
+  "legal_classification": "G4",
+  "supported_modes": ["G4", "G2", "G1"],
+  "budgets": {
+    "max_gzip_kb": 60,
+    "target_fps": 60
+  },
+  "bridge": {
+    "sandbox_compatible": true,
+    "requires_same_origin": false,
+    "max_telemetry_hz": 10,
+    "events_emitted": ["game_ready", "realtime_broadcast_tick", "leaderboard_submit"]
+  },
+  "ads": {
+    "provider": "google-h5-ad-placement",
+    "placements": ["preroll", "reward"],
+    "preroll_timeout_ms": 2000
+  },
+  "stream": {
+    "platforms": ["tiktok-live", "youtube-live"],
+    "play_modes": ["SOLO", "KOL_LIVE"]
+  }
+}

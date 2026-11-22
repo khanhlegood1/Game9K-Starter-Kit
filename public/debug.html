@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game9K Stream Event Debugger — TikTok Live & YouTube Live</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col">
+
+  <header class="px-4 sm:px-6 py-3.5 bg-slate-900 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <a href="/index.html" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-bold">← Hub</a>
+      <div>
+        <h1 class="font-black text-sm sm:text-base text-rose-400">📡 TRÌNH GỠ LỖI SỰ KIỆN TIKTOK LIVE & YOUTUBE LIVE</h1>
+        <p class="text-[11px] text-slate-400">Theo dõi payload chuẩn hóa thời gian thực, kiểm tra mã quà tặng (<code class="text-amber-300">giftId</code> / SuperChat) và bắn chuỗi sự kiện thử nghiệm.</p>
+      </div>
+    </div>
+    <span id="conn-pill" class="px-3 py-1 rounded-full text-xs font-mono bg-slate-800 text-slate-300">CHƯA KẾT NỐI PHÒNG</span>
+  </header>
+
+  <main class="max-w-7xl mx-auto w-full p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+
+    <!-- Left Configuration & Webhook Injector -->
+    <section class="lg:col-span-5 space-y-4 text-xs">
+      <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 space-y-3">
+        <h2 class="font-black text-sm text-white">1. Kết Nối Phòng Stream Đa Nền Tảng</h2>
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Mã Phòng KOL (`roomId`):</label>
+          <input id="dbg-room" type="text" value="sanctuary-main" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 font-mono text-emerald-300">
+        </div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-slate-400 mb-1 font-semibold">🎵 TikTok Username:</label>
+            <input id="dbg-tiktok" type="text" placeholder="@username" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1 font-semibold">▶️ YouTube Video ID/URL:</label>
+            <input id="dbg-youtube" type="text" placeholder="watch?v=..." class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700">
+          </div>
+        </div>
+        <div class="flex gap-2 pt-1">
+          <button id="btn-join-room" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">
+            🔗 Tham Gia & Lắng Nghe Phòng
+          </button>
+          <button id="btn-burst-room" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-500 text-stone-950 font-black">
+            🔥 Bắn Chuỗi 9 Sự Kiện
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 space-y-3">
+        <h2 class="font-black text-sm text-amber-300">2. Bắn Webhook Sự Kiện Tùy Chỉnh</h2>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-slate-400 mb-1">Nền tảng:</label>
+            <select id="inj-platform" class="w-full px-2.5 py-2 rounded-lg bg-slate-950 border border-slate-700">
+              <option value="tiktok">🎵 TikTok Live</option>
+              <option value="youtube">▶️ YouTube Live</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Loại sự kiện:</label>
+            <select id="inj-type" class="w-full px-2.5 py-2 rounded-lg bg-slate-950 border border-slate-700">
+              <option value="gift">🎁 Gift / SuperChat</option>
+              <option value="chat">💬 Chat Bình Luận</option>
+              <option value="like">❤️ Thả Tim / Like</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <input id="inj-user" type="text" value="KOL_Supporter" placeholder="Tên viewer" class="px-2.5 py-2 rounded-lg bg-slate-950 border border-slate-700">
+          <input id="inj-comment" type="text" value="1" placeholder="Nội dung / Làn 1-4" class="px-2.5 py-2 rounded-lg bg-slate-950 border border-slate-700">
+          <input id="inj-coins" type="number" value="20" min="1" placeholder="Số xu" class="px-2.5 py-2 rounded-lg bg-slate-950 border border-slate-700 font-mono">
+        </div>
+        <button id="btn-send-webhook" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black">
+          🚀 Đẩy Vào Phòng (`POST /api/rooms/:roomId/events`)
+        </button>
+      </div>
+    </section>
+
+    <!-- Right Live JSON Stream Inspector -->
+    <section class="lg:col-span-7 bg-slate-900 rounded-2xl border border-slate-800 p-5 flex flex-col">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-black text-sm text-emerald-300">Luồng Sự Kiện Chuẩn Hóa (`stream_event` + `tiktok_*`)</h2>
+        <button id="btn-clear-events" class="text-xs text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800">Xóa</button>
+      </div>
+      <div id="events-stream" class="flex-1 bg-slate-950 rounded-xl p-3 border border-slate-800 font-mono text-xs space-y-2 overflow-y-auto max-h-[540px]">
+        <div class="text-slate-500">// Bấm "Tham Gia & Lắng Nghe Phòng" hoặc "Bắn Chuỗi 9 Sự Kiện" để xem dữ liệu trực tiếp...</div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/sdk/game9k-sdk.js"></script>
+  <script>
+    const streamBox = document.getElementById("events-stream");
+    const connPill = document.getElementById("conn-pill");
+
+    function prependJson(badge, color, obj) {
+      const card = document.createElement("div");
+      card.className = "p-2.5 rounded-lg bg-slate-900/90 border border-slate-800";
+      card.innerHTML = `
+        <div class="flex justify-between text-[11px] mb-1">
+          <span class="font-bold ${color}">${badge}</span>
+          <span class="text-slate-500">${new Date().toLocaleTimeString("vi-VN", { hour12: false })}</span>
+        </div>
+        <pre class="text-[11px] text-slate-200 whitespace-pre-wrap break-all">${JSON.stringify(obj, null, 2)}</pre>
+      `;
+      streamBox.prepend(card);
+      while (streamBox.children.length > 60) streamBox.removeChild(streamBox.lastChild);
+    }
+
+    window.Game9K.stream.on("connected", (info) => {
+      connPill.textContent = `ĐÃ KẾT NỐI: ${window.Game9K.stream.roomId}`;
+      connPill.className = "px-3 py-1 rounded-full text-xs font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+      prependJson("CONNECTED", "text-emerald-400", info);
+    });
+
+    window.Game9K.stream.on("status", (st) => {
+      prependJson(`STATUS (${st.platform})`, "text-sky-400", st);
+    });
+
+    window.Game9K.stream.on("event", (evt) => {
+      const color = evt.type === "gift" ? "text-amber-300" : evt.type === "chat" ? "text-emerald-300" : "text-pink-300";
+      prependJson(`${evt.platform.toUpperCase()} → ${evt.type.toUpperCase()}`, color, evt);
+    });
+
+    function joinCurrentRoom() {
+      const roomId = document.getElementById("dbg-room").value.trim() || "sanctuary-main";
+      const tiktok = document.getElementById("dbg-tiktok").value.trim();
+      const youtube = document.getElementById("dbg-youtube").value.trim();
+      window.Game9K.stream.connect({
+        roomId,
+        tiktok: tiktok || undefined,
+        youtube: youtube || undefined,
+      });
+    }
+
+    document.getElementById("btn-join-room").addEventListener("click", joinCurrentRoom);
+
+    document.getElementById("btn-burst-room").addEventListener("click", async () => {
+      joinCurrentRoom();
+      const roomId = document.getElementById("dbg-room").value.trim() || "sanctuary-main";
+      await fetch(`/api/rooms/${encodeURIComponent(roomId)}/burst`, { method: "POST" });
+    });
+
+    document.getElementById("btn-send-webhook").addEventListener("click", async () => {
+      joinCurrentRoom();
+      const roomId = document.getElementById("dbg-room").value.trim() || "sanctuary-main";
+      const payload = {
+        platform: document.getElementById("inj-platform").value,
+        type: document.getElementById("inj-type").value,
+        user: document.getElementById("inj-user").value.trim() || "Tester",
+        comment: document.getElementById("inj-comment").value.trim(),
+        coins: Number(document.getElementById("inj-coins").value || 1),
+      };
+      await fetch(`/api/rooms/${encodeURIComponent(roomId)}/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    });
+
+    document.getElementById("btn-clear-events").addEventListener("click", () => {
+      streamBox.innerHTML = "";
+    });
+
+    // Auto-join default room on open
+    joinCurrentRoom();
+  </script>
+</body>
+</html>

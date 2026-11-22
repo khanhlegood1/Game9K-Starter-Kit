@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "id": "dino-race",
+  "title": "Jurassic Sanctuary Sprint — Đua Khủng Long KOL Live",
+  "version": "1.0.0",
+  "description": "Flagship Game9K HTML5 Dinosaur Racing game built for instant browser play (G4/G2) and 24/7 interactive KOL livestreams on TikTok Live & YouTube Live.",
+  "author": "Game9K Studio",
+  "entry": "index.html",
+  "standalone_entry": "standalone.html",
+  "legal_classification": "G2",
+  "supported_modes": ["G4", "G2", "G1"],
+  "budgets": {
+    "max_gzip_kb": 125,
+    "target_fps": 60
+  },
+  "bridge": {
+    "sandbox_compatible": true,
+    "requires_same_origin": false,
+    "max_telemetry_hz": 15,
+    "events_emitted": [
+      "game_ready",
+      "race_started",
+      "realtime_broadcast_tick",
+      "race_finished",
+      "leaderboard_submit",
+      "cloud_save",
+      "ad_break_requested",
+      "ad_break_done"
+    ]
+  },
+  "ads": {
+    "provider": "google-h5-ad-placement",
+    "placements": ["preroll", "next", "reward"],
+    "preroll_timeout_ms": 2000
+  },
+  "stream": {
+    "platforms": ["tiktok-live", "youtube-live"],
+    "play_modes": ["SOLO", "KOL_DERBY", "VIEWER_STAMPEDE"],
+    "layouts": ["16x9", "9x16", "obs-transparent"],
+    "powerup_tiers": {
+      "rose": { "min_coins": 1, "effect": "Nitro Boost (+45 Rage, 2.0s surge)" },
+      "meat": { "min_coins": 5, "effect": "Primal Frenzy (Full Rage, 3.0s surge, swamp immunity)" },
+      "banana": { "min_coins": 10, "effect": "Drop Slippery Tar/Banana Trap ahead of #1 Leader" },
+      "meteor": { "min_coins": 20, "effect": "Meteor Shell Strike stunning #1 Leader + screen shake" },
+      "crown": { "min_coins": 99, "effect": "Jurassic Chaos + Golden Goat Rain + 4.5s King Aura" }
+    }
+  }
+}
