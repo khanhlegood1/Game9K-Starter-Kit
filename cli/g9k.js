@@ -32,6 +32,7 @@ import {
   computeTreeSha256,
   listFilesDeterministic,
 } from "../src/lib/manifestValidator.js";
+import ProjectDecisionsService from "../src/services/ProjectDecisionsService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -154,8 +155,13 @@ function runCapabilities(opts) {
     data: {
       cli: "g9k",
       version: "1.0.0",
-      commands: ["capabilities", "validate", "build", "verify", "doctor"],
-      infrastructure: ["cloudflare-r2", "supabase-realtime-broadcast", "solana-milestones"],
+      commands: ["capabilities", "validate", "build", "verify", "doctor", "decide"],
+      infrastructure: [
+        "cloudflare-r2",
+        "supabase-realtime-broadcast",
+        "solana-milestones",
+        "gemini-decisions-governance",
+      ],
       live_platforms: ["tiktok-live", "youtube-live"],
       legal_modes: ["G1", "G2", "G3", "G4"],
       max_telemetry_hz: 20,
@@ -429,12 +435,37 @@ async function runDoctor(opts) {
   });
 }
 
+async function runDecide(opts) {
+  const service = new ProjectDecisionsService();
+  const report = await service.runFullProjectAudit({
+    apiKey: process.env.GEMINI_API_KEY || "",
+  });
+  const ok = report.overallStatus === "GO_FOR_LAUNCH";
+  const warnings = [];
+  if (!process.env.GEMINI_API_KEY) {
+    warnings.push(
+      "GEMINI_API_KEY not set — evaluated using built-in Game9K Calibrated Decisions Engine (set GEMINI_API_KEY for live gemini-decision-1)."
+    );
+  }
+  emitResult({
+    json: opts.json,
+    ok,
+    command: "decide",
+    data: report,
+    warnings,
+    error: ok
+      ? null
+      : { code: "governance_hold", message: "One or more Game9K project governance gates require attention" },
+  });
+}
+
 const opts = parseArgs(process.argv);
 if (opts.command === "capabilities") runCapabilities(opts);
 else if (opts.command === "validate") runValidate(opts);
 else if (opts.command === "build") runBuild(opts);
 else if (opts.command === "verify") runVerify(opts);
 else if (opts.command === "doctor") await runDoctor(opts);
+else if (opts.command === "decide") await runDecide(opts);
 else {
   console.log(`Game9K Starter Kit CLI (g9k)
 Usage:
@@ -442,5 +473,6 @@ Usage:
   npm run g9k -- validate [--game dino-race] [--json]
   npm run g9k -- build [--game dino-race] [--json]
   npm run g9k -- verify [--json]
-  npm run g9k -- doctor [--json]`);
+  npm run g9k -- doctor [--json]
+  npm run g9k -- decide [--json]`);
 }

@@ -61,6 +61,7 @@ Sau khi chạy `npm start`, mở trình duyệt tại:
 | **`http://localhost:3000/`** | **KOL Live Launcher Hub** — Tạo link OBS / TikTok LIVE Studio / YouTube Live & xem danh mục gói game |
 | **`http://localhost:3000/games/dino-race/index.html`** | **Jurassic Sanctuary Sprint** — Bản đầy đủ (Tự lái Solo + 4 Đội KOL + 24 Avatar Khán Giả) |
 | **`http://localhost:3000/games/dino-race/standalone.html`** | **Bản 1 File Độc Lập (~35 KB Gzip)** — Mở trực tiếp không cần máy chủ hoặc tải thẳng lên Cloudflare R2 |
+| **`http://localhost:3000/decisions.html`** | **Dev Decisions Studio (`Gemini Decisions API`)** — Cổng duyệt phát hành R2, phân loại NĐ 147, duyệt PR, Sprint Backlog & Playground đa phương thức |
 | **`http://localhost:3000/portal.html`** | **Game9K Sandbox Portal Host** — Kiểm tra `<iframe sandbox="allow-scripts">`, đo Hz Realtime & khóa giờ chơi U18 |
 | **`http://localhost:3000/debug.html`** | **Live Stream Debugger** — Theo dõi sự kiện TikTok Live / YouTube Live và bắn chuỗi 9 sự kiện mẫu |
 | **`http://localhost:3000/spec.html`** | **Đặc Tả Kỹ Thuật Tương Tác** — Dashboard 5 trụ cột hạ tầng Cloudflare, Supabase, Ads, Solana & NĐ 147 |
@@ -85,11 +86,13 @@ Bạn có thể tạo tự động tại trang chủ `/` hoặc gắn trực ti�
 ## 📚 Tài Liệu Chi Tiết & Nguồn Tham Khảo
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — Kiến trúc kỹ thuật 5 trụ cột của Game9K Starter Kit.
+- [`docs/DECISIONS-GOVERNANCE.md`](docs/DECISIONS-GOVERNANCE.md) — Quản trị dự án Dev Game9K bằng **Gemini Decisions API (`gemini-decision-1`)**.
 - [`docs/KOL-STREAMING-GUIDE.md`](docs/KOL-STREAMING-GUIDE.md) — Hướng dẫn thiết lập OBS, TikTok LIVE Studio & YouTube Live 24/7 cho KOL.
 - [`docs/SDK-PROTOCOL.md`](docs/SDK-PROTOCOL.md) — Đặc tả giao thức `window.Game9K`, `window.TikTokBridge`, `postMessage` và `game9k.manifest.json`.
 
 ### Đối Chiếu Tinh Hoa Từ Các Kho Mã Nguồn Mở Tham Chiếu
 
+- [`khanhlegood1/Gemini-Decisions-API-Playground`](https://github.com/khanhlegood1/Gemini-Decisions-API-Playground) → Bộ khung đánh giá quyết định xác suất định kiểu (`Boolean / Choice / Score`, `0 output tokens`, đa phương thức) cho quản lý dự án Dev Game9K (`/decisions.html` & `npm run decide`).
 - [`lexuankhanh1612/chainplot`](https://github.com/lexuankhanh1612/chainplot) → Kiến trúc CLI tất định (`g9k validate/build/verify --json`) & đóng dấu SHA-256 bất biến cho bản phát hành tĩnh.
 - [`lexuankhanh1612/watchtower`](https://github.com/lexuankhanh1612/watchtower) → Phân tách rõ tầng dịch vụ, giám sát sức khỏe (`/api/health`, `/api/stats`) & quy ước kiểm thử sạch.
 - [`vamnguyen/tiktok-live-games`](https://github.com/vamnguyen/tiktok-live-games) → Vòng đời tự động 24/7, cô lập phòng Multi-tenant theo từng streamer, chuẩn hóa sự kiện & Top 3 Mạnh Thường Quân.

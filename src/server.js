@@ -20,6 +20,9 @@ import { readdirSync, existsSync } from "node:fs";
 
 import liveRoomHub from "./services/LiveRoomHub.js";
 import avatarProxy from "./services/AvatarProxyService.js";
+import ProjectDecisionsService, {
+  GAME9K_DECISION_PRESETS,
+} from "./services/ProjectDecisionsService.js";
 import { IpRateLimiter } from "./lib/rateLimiter.js";
 import { validateGamePackage } from "./lib/manifestValidator.js";
 
@@ -35,6 +38,7 @@ export function createGame9KServer(options = {}) {
     maxSocketsPerIp: options.maxSocketsPerIp ?? 40,
     maxRequestsPerMinute: options.maxRequestsPerMinute ?? 240,
   });
+  const decisionsService = new ProjectDecisionsService({ liveRoomHub });
 
   const io = new Server(httpServer, {
     cors: {
@@ -47,6 +51,7 @@ export function createGame9KServer(options = {}) {
 
   // Middleware: allow cross-origin & iframe preview embedding without host/frame blocks
   app.use(cors({ origin: true }));
+  app.use("/api/decisions", express.json({ limit: "28mb" }));
   app.use(express.json({ limit: "256kb" }));
   app.use((req, res, next) => {
     res.removeHeader("X-Frame-Options");
@@ -66,6 +71,21 @@ export function createGame9KServer(options = {}) {
       service: "game9k-starter-kit",
       timestamp: new Date().toISOString(),
       uptimeSec: Math.round(process.uptime()),
+      decisionsEngine: process.env.GEMINI_API_KEY
+        ? "gemini-decision-1"
+        : "game9k-calibrated-decisions",
+      models: [
+        {
+          id: "gemini-decision-1",
+          label: process.env.GEMINI_API_KEY
+            ? "Gemini Decisions (Live)"
+            : "Gemini Decisions · Game9K DevOps",
+          family: "decisions",
+          summary:
+            "Evaluates Boolean, Choice & Rubric Score project gates in one forward pass with calibrated probabilities.",
+          default: true,
+        },
+      ],
       stats: liveRoomHub.getStats(),
     });
   });
@@ -257,6 +277,53 @@ export function createGame9KServer(options = {}) {
   });
 
   // ==========================================================================
+  // REST API: GEMINI DECISIONS API — GAME9K DEV PROJECT MANAGEMENT & GOVERNANCE
+  // ==========================================================================
+
+  app.get("/api/decisions/presets", (_req, res) => {
+    res.json({ ok: true, presets: GAME9K_DECISION_PRESETS });
+  });
+
+  app.get("/api/decisions/board", (_req, res) => {
+    res.json({ ok: true, ...decisionsService.getBoardState() });
+  });
+
+  app.get("/api/decisions/live-context", (req, res) => {
+    const target = String(req.query.target || "dino-race");
+    res.json({ ok: true, context: decisionsService.buildLiveRepoContext(target) });
+  });
+
+  app.post("/api/decisions/audit-all", async (req, res) => {
+    const headerKey = req.headers["x-goog-api-key"] || req.body?.apiKey || "";
+    const report = await decisionsService.runFullProjectAudit({ apiKey: headerKey });
+    res.json({ ok: true, report });
+  });
+
+  app.post("/api/decisions/tasks", async (req, res) => {
+    if (!req.body?.title || !String(req.body.title).trim()) {
+      return res.status(400).json({ ok: false, error: "Task `title` is required." });
+    }
+    const headerKey = req.headers["x-goog-api-key"] || req.body?.apiKey || "";
+    const task = await decisionsService.createAndTriageTask({
+      title: req.body.title,
+      description: req.body.description,
+      owner: req.body.owner,
+      category: req.body.category,
+      apiKey: headerKey,
+    });
+    return res.json({ ok: true, task });
+  });
+
+  app.post("/api/decisions", async (req, res) => {
+    const headerKey = req.headers["x-goog-api-key"] || "";
+    const result = await decisionsService.evaluateDecisionRequest(req.body || {}, {
+      apiKey: headerKey,
+      gateId: req.headers["x-g9k-gate"] || undefined,
+    });
+    return res.status(result.status).json(result.payload);
+  });
+
+  // ==========================================================================
   // SOCKET.IO REAL-TIME MULTI-TENANT BRIDGE
   // ==========================================================================
 
@@ -359,7 +426,7 @@ export function createGame9KServer(options = {}) {
     });
   });
 
-  return { app, httpServer, io, liveRoomHub };
+  return { app, httpServer, io, liveRoomHub, decisionsService };
 }
 
 // Start server automatically when executed directly (`node src/server.js`)
@@ -378,6 +445,7 @@ if (isDirectRun) {
   Listening on: http://${HOST}:${PORT}
   • KOL Launcher Hub:    /index.html
   • Dino Race Flagship:  /games/dino-race/index.html
+  • Dev Decisions Board: /decisions.html
   • Portal Sandbox Host: /portal.html
   • Stream Debugger:     /debug.html
   • Architecture Spec:   /spec.html

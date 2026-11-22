@@ -42,6 +42,9 @@
         <a href="/games/dino-race/index.html" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-emerald-400 text-stone-950 hover:brightness-110 transition">
           🎮 Chơi Ngay Dino Race
         </a>
+        <a href="/decisions.html" class="px-3 py-1.5 rounded-lg bg-sky-900/80 hover:bg-sky-800 border border-sky-400/50 text-sky-200 transition">
+          🧠 Quản Trị Dự Án (Decisions API)
+        </a>
         <a href="/portal.html" class="px-3 py-1.5 rounded-lg bg-emerald-900/70 hover:bg-emerald-800 border border-emerald-700/60 text-emerald-200 transition">
           🛡️ Cổng Sandbox (G2/NĐ147)
         </a>
@@ -220,12 +223,38 @@
         <div class="p-3.5 rounded-xl bg-black/45 border border-emerald-900/70 text-xs space-y-1.5">
           <div class="font-bold text-amber-300">🛠️ Lệnh CLI Dành Cho Studio (Tương tự Chainplot):</div>
           <code class="block font-mono text-[11px] text-emerald-300 bg-stone-950 px-2.5 py-1.5 rounded border border-stone-800">
-            npm run validate &amp;&amp; npm run build &amp;&amp; npm run verify
+            npm run validate &amp;&amp; npm run build &amp;&amp; npm run verify &amp;&amp; npm run decide
           </code>
           <p class="text-[11px] text-slate-400">
             Cũng xuất sẵn bản 1 tệp độc lập <a href="/games/dino-race/standalone.html" class="text-amber-300 underline hover:text-amber-200">standalone.html (~35 KB gzip)</a> chạy không cần máy chủ!
           </p>
         </div>
+      </div>
+    </section>
+
+    <!-- GEMINI DECISIONS API — DEV PROJECT GOVERNANCE PANEL -->
+    <section class="glass-card rounded-2xl p-6 border border-sky-400/35 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 class="text-lg font-black text-white">🧠 Quản Trị Dự Án Dev Game9K Bằng Gemini Decisions API</h2>
+            <span id="hub-decisions-verdict" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              Đang chấm điểm cổng...
+            </span>
+          </div>
+          <p class="text-xs text-slate-300 mt-1">
+            Áp dụng kiến trúc <code class="text-sky-300">gemini-decision-1</code> (<code class="text-amber-300">Boolean / Choice / Rubric Score</code>, xác suất hiệu chuẩn trong 1 lượt gọi) để kiểm duyệt tự động: Phát hành R2, Pháp lý NĐ 147/2024, Duyệt PR bảo mật, KOL Live 24/7 &amp; Mở khóa chặng Token Solana.
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2 text-xs font-bold">
+          <a href="/decisions.html" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-emerald-400 text-stone-950 font-black hover:brightness-110 transition">
+            🚀 Mở Studio Quản Trị &amp; Playground
+          </a>
+        </div>
+      </div>
+
+      <div id="hub-decisions-gates" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+        <div class="text-slate-400 font-mono">Đang tải báo cáo kiểm định tự động...</div>
       </div>
     </section>
 
@@ -340,6 +369,46 @@
       }
     }
     loadGamesRegistry();
+
+    // Load live Project Governance scorecard from `/api/decisions/audit-all`
+    async function loadHubDecisionsAudit() {
+      const verdictEl = document.getElementById("hub-decisions-verdict");
+      const gridEl = document.getElementById("hub-decisions-gates");
+      try {
+        const res = await fetch("/api/decisions/audit-all", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        const data = await res.json();
+        if (!data.ok || !data.report) return;
+        const rep = data.report;
+        verdictEl.textContent = `${rep.overallStatus} · ${(rep.calibratedReadiness * 100).toFixed(1)}% Ready`;
+        gridEl.innerHTML = rep.gates
+          .map((g) => {
+            const pct = Math.round((g.booleanProbability || 0) * 100);
+            return `
+              <a href="/decisions.html" class="p-3.5 rounded-xl bg-black/50 border border-sky-800/50 hover:border-sky-400/60 transition block space-y-2">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="font-bold text-white">${g.name}</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300">${pct}%</span>
+                </div>
+                <div class="w-full h-1.5 bg-stone-900 rounded-full overflow-hidden">
+                  <div class="h-full bg-gradient-to-r from-sky-400 to-emerald-400" style="width:${pct}%"></div>
+                </div>
+                <div class="flex justify-between text-[11px] font-mono text-slate-300">
+                  <span class="truncate text-amber-300">${g.recommendedChoice}</span>
+                  <span>${g.rubricScore?.toFixed(2)}/${g.rubricMax}</span>
+                </div>
+              </a>
+            `;
+          })
+          .join("");
+      } catch {
+        verdictEl.textContent = "Chế độ tĩnh";
+      }
+    }
+    loadHubDecisionsAudit();
   </script>
 </body>
 </html>
