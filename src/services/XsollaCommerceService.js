@@ -208,6 +208,7 @@ export default class XsollaCommerceService {
     this.orders = new Map(); // orderId -> order record
     this.inventories = new Map(); // userId -> { amberGems, consumables, entitlements, transactions }
     this.webhookEvents = [];
+    this.posEconomy = options.posEconomy || null;
   }
 
   resolveRegion(countryCode = "VN") {
@@ -333,17 +334,30 @@ export default class XsollaCommerceService {
         ? new Set(query.skus)
         : null;
 
+    const stockBySku = new Map(
+      (this.posEconomy ? this.posEconomy.getStockCatalog() : []).map((s) => [s.sku, s])
+    );
+
     const items = DEFAULT_PRODUCTS.filter((item) => {
       if (skuFilter && !skuFilter.has(item.sku)) return false;
       if (gameFilter && item.gameId !== "all" && item.gameId !== gameFilter) return false;
       return true;
     }).map((item) => {
-      const subtotalObj = formatPrice(item.priceUsd * region.usdRate, region);
+      const hhRule = this.posEconomy ? this.posEconomy.scheduledRuleForSku(item.sku) : null;
+      const baseSubtotalObj = formatPrice(item.priceUsd * region.usdRate, region);
+      const effectiveUsd = hhRule
+        ? hhRule.kind === "percent"
+          ? item.priceUsd * (1 - hhRule.value / 100)
+          : Math.max(0, item.priceUsd - hhRule.value / 100)
+        : item.priceUsd;
+
+      const subtotalObj = formatPrice(effectiveUsd * region.usdRate, region);
       const taxObj = formatPrice(subtotalObj.amount * region.taxRate, region);
       const totalObj = formatPrice(subtotalObj.amount + taxObj.amount, region);
       // Xsolla SDK 3 pricing model: flat 5% per transaction, 0 monthly fees
       const xsollaFeeObj = formatPrice(subtotalObj.amount * 0.05, region);
       const studioNetObj = formatPrice(subtotalObj.amount * 0.95, region);
+      const stockMeta = stockBySku.get(item.sku) || null;
 
       return {
         sku: item.sku,
@@ -356,9 +370,27 @@ export default class XsollaCommerceService {
         type: item.type,
         category: item.category,
         grant: item.grant,
+        stock: stockMeta
+          ? {
+              trackStock: stockMeta.trackStock,
+              stockOnHand: stockMeta.stockOnHand,
+              lowStockAt: stockMeta.lowStockAt,
+              status: stockMeta.status,
+              autoEightySixed: stockMeta.autoEightySixed,
+            }
+          : { trackStock: false, stockOnHand: 999, status: "untracked", autoEightySixed: false },
+        happyHour: hhRule
+          ? {
+              id: hhRule.id,
+              name: hhRule.name,
+              percent: hhRule.value,
+              originalSubtotalFormatted: baseSubtotalObj.formatted,
+            }
+          : null,
         pricing: {
           currency: region.currency,
           country: region.country,
+          originalSubtotalFormatted: baseSubtotalObj.formatted,
           subtotal: subtotalObj.amount,
           subtotalFormatted: subtotalObj.formatted,
           taxRate: region.taxRate,
@@ -419,7 +451,36 @@ export default class XsollaCommerceService {
       }).user;
 
     const region = this.resolveRegion(payload.country || resolvedAuth.country || "VN");
-    const subtotalObj = formatPrice(product.priceUsd * region.usdRate, region);
+    const couponCode = payload.couponCode ? String(payload.couponCode).trim().toUpperCase() : "";
+    let posQuote = null;
+    if (this.posEconomy) {
+      posQuote = this.posEconomy.quoteOrder({
+        sku: product.sku,
+        quantity: 1,
+        couponCode,
+        managerApproved: Boolean(payload.managerApproved),
+      });
+      if (!posQuote.ok) {
+        return {
+          ok: false,
+          status: posQuote.status || 409,
+          error: posQuote.error,
+          stockCheck: posQuote.stockCheck,
+        };
+      }
+      if (couponCode && posQuote.couponError) {
+        return {
+          ok: false,
+          status: 400,
+          error: posQuote.couponError,
+        };
+      }
+    }
+
+    const netUsd = posQuote ? posQuote.totals.netCents / 100 : product.priceUsd;
+    const discountUsd = posQuote ? posQuote.totals.discountCents / 100 : 0;
+    const subtotalObj = formatPrice(netUsd * region.usdRate, region);
+    const discountObj = formatPrice(discountUsd * region.usdRate, region);
     const taxObj = formatPrice(subtotalObj.amount * region.taxRate, region);
     const totalObj = formatPrice(subtotalObj.amount + taxObj.amount, region);
     const sandbox = payload.sandbox !== false;
@@ -487,6 +548,10 @@ export default class XsollaCommerceService {
       grant: product.grant,
       country: region.country,
       currency: region.currency,
+      couponCode: posQuote?.appliedCoupon || null,
+      happyHourRule: posQuote?.happyHourRule || null,
+      discountAmount: discountObj.amount,
+      discountFormatted: discountObj.formatted,
       subtotalAmount: subtotalObj.amount,
       subtotalFormatted: subtotalObj.formatted,
       taxAmount: taxObj.amount,
@@ -610,6 +675,31 @@ export default class XsollaCommerceService {
     order.finalized = true;
     order.finalizedAt = new Date().toISOString();
 
+    let posFulfillment = null;
+    if (this.posEconomy) {
+      const posRes = this.posEconomy.createPosOrder({
+        sku: order.sku,
+        quantity: 1,
+        customerName: order.nickname || order.userId,
+        source: "xsolla_iap",
+        paymentMethod: "card_demo",
+        couponCode: order.couponCode || "",
+        managerApproved: true,
+        prepNote: `Xsolla #${order.transactionId || order.orderId}`,
+        autoClosePayment: true,
+      });
+      if (posRes.ok) {
+        posFulfillment = {
+          posOrderNumber: posRes.order.orderNumber,
+          kdsTicketId: posRes.ticketId,
+          stockStatus: posRes.stockStatus,
+          stockRemaining: posRes.stockRemaining,
+        };
+        order.posOrderNumber = posRes.order.orderNumber;
+        order.kdsTicketId = posRes.ticketId;
+      }
+    }
+
     const grant = order.grant || {};
     if (typeof grant.amberGems === "number") {
       inv.amberGems += grant.amberGems;
@@ -645,6 +735,7 @@ export default class XsollaCommerceService {
         antiFraud: "PASS",
         receiptToken: expectedReceipt,
       },
+      posFulfillment,
       order,
       inventory: inv,
     };

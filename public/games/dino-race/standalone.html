@@ -407,32 +407,39 @@
   <script>
 /**
  * game9k-sdk.js
- * Official Unified Browser SDK for Game9K Starter Kit (v2.0.0)
+ * Official Unified Browser SDK for Game9K Starter Kit (v3.0.0)
  *
- * Unifies three production standards in a single zero-dependency browser bundle:
+ * Unifies five production pillars in a single zero-dependency browser bundle:
  *   1. Poki Portal SDK (`window.PokiSDK` + `window.Game9K.poki`)
- *      - Lifecycle: `init`, `gameLoadingStart`, `gameLoadingProgress`, `gameLoadingFinished`,
- *        `gameplayStart`, `gameplayStop`, `happyTime`
- *      - Breaks: `commercialBreak`, `rewardedBreak`, `displayAd`, `destroyAd`, `isAdBlocked`
- *      - Portal Utilities: `shareableURL`, `getURLParam`, `movePill`, `openExternalLink`,
- *        `getLanguage`, `getDeviceInfo`, `measure`, `captureError`, `login`, `getUser`, `getToken`
+ *      - Lifecycle, Breaks, Shareable URLs, Pill Safe-Zone & SSO Identity
  *   2. Xsolla SDK 3 — 4-Step Game Monetization (`window.XsollaSDK` + `window.Game9K.xsolla`)
- *      - `01 Authenticate`: Silent Device ID (`AA1DXE`-style), Portal SSO, or Server Token
- *      - `02 Load Catalog`: Localized multi-currency SKUs (`VND`, `USD`, `EUR`, `JPY`), VAT & 5% fee
- *      - `03 Purchase Product`: Pay Station 4 checkout (Portal-mediated in sandbox or built-in modal)
- *      - `04 Finalize Purchase`: Cryptographic receipt verification, idempotent grant & restore
- *   3. Game9K Core Instant-Play & Multi-Platform KOL Stream Bridge (`window.Game9K` + `window.TikTokBridge`)
- *      - Strict `<iframe sandbox="allow-scripts">` opaque-origin `SafeStorage` + `postMessage` RPC
- *      - Throttled Realtime Broadcast (`<= 20 Hz`) + NĐ 147/2024 Under-18 session lock
- *      - Unified `TikTok Live` + `YouTube Live` event normalization
+ *      - Authenticate -> Load Catalog -> Pay Station 4 Checkout -> Finalize Receipt
+ *   3. Splice Spec-to-SDK & Mock Gateway (`window.SpliceSDK` + `window.Game9K.splice`)
+ *      - OpenAPI 3.1 Spec Explorer, `sk_live_...` Mock Server Manager, HTTP Interceptors & TS SDK Codegen
+ *   4. Counter POS & KDS Live-Ops Economy (`window.Game9KPOS` + `window.Game9K.pos` + `PokiSDK.economy`)
+ *      - Limited Stock & Auto-86'd Scarcity, Happy Hour & Coupons, KDS Fulfillment Queue, Shifts & Z-Reports
+ *   5. Game9K Core Instant-Play & Multi-Platform KOL Stream Bridge (`window.Game9K` + `window.TikTokBridge`)
+ *      - Strict `<iframe sandbox="allow-scripts">` Quota-Safe `SafeStorage` + `postMessage` RPC
  */
 (function initGame9KGlobal(global) {
   "use strict";
 
   // ==========================================================================
-  // 0. OPAQUE-ORIGIN SAFE STORAGE (`<iframe sandbox="allow-scripts">` SAFE)
+  // 0. QUOTA-SAFE VERSIONED STORAGE (`<iframe sandbox="allow-scripts">` SAFE)
   // ==========================================================================
   const memoryStore = new Map();
+  const quotaHandlers = [];
+
+  function isQuotaError(err) {
+    if (!err) return false;
+    return (
+      err.name === "QuotaExceededError" ||
+      err.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+      err.code === 22 ||
+      err.code === 1014
+    );
+  }
+
   const SafeStorage = {
     get(key) {
       try {
@@ -446,8 +453,18 @@
       memoryStore.set(key, str);
       try {
         global.localStorage.setItem(key, str);
-      } catch {
-        // Expected inside sandboxed iframe without allow-same-origin
+        return true;
+      } catch (err) {
+        if (isQuotaError(err)) {
+          for (const fn of quotaHandlers) {
+            try {
+              fn(key, err);
+            } catch {
+              // Ignore listener errors
+            }
+          }
+        }
+        return false;
       }
     },
     remove(key) {
@@ -457,6 +474,50 @@
       } catch {
         // Ignore in opaque origin
       }
+    },
+    getJson(key, fallback = null) {
+      const raw = this.get(key);
+      if (!raw) return fallback;
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return fallback;
+      }
+    },
+    setJson(key, obj) {
+      return this.set(key, JSON.stringify(obj));
+    },
+    onQuotaExceeded(fn) {
+      if (typeof fn === "function") quotaHandlers.push(fn);
+    },
+    getBytesUsed() {
+      const merged = new Map(memoryStore);
+      try {
+        for (let i = 0; i < global.localStorage.length; i++) {
+          const k = global.localStorage.key(i);
+          if (!k) continue;
+          merged.set(k, global.localStorage.getItem(k) || "");
+        }
+      } catch {
+        // Opaque origin fallback uses memoryStore entries in `merged`
+      }
+      let totalChars = 0;
+      for (const [k, v] of merged.entries()) {
+        totalChars += String(k).length + String(v).length;
+      }
+      return totalChars * 2;
+    },
+    migrateVersion(prefix, fromSuffix, toSuffix) {
+      const oldKey = `${prefix}_${fromSuffix}`;
+      const newKey = `${prefix}_${toSuffix}`;
+      const existingNew = this.get(newKey);
+      if (existingNew !== null) return false;
+      const legacy = this.get(oldKey);
+      if (legacy !== null) {
+        this.set(newKey, legacy);
+        return true;
+      }
+      return false;
     },
   };
 
@@ -1644,6 +1705,8 @@
               userId: this.user.userId,
               accessToken: this.accessToken,
               country: options.country || this.settings.country,
+              couponCode: options.couponCode || "",
+              managerApproved: Boolean(options.managerApproved),
               sandbox: this.settings.sandbox,
               webhookMode: this.settings.webhookMode,
               autoFinalize: Boolean(options.autoFinalize),
@@ -1678,13 +1741,19 @@
                 userId: this.user.userId,
                 accessToken: this.accessToken,
                 country: options.country || this.settings.country,
+                couponCode: options.couponCode || "",
+                managerApproved: Boolean(options.managerApproved),
                 sandbox: this.settings.sandbox,
                 webhookMode: this.settings.webhookMode,
                 autoPay: Boolean(options.headless),
                 paymentMethod: options.paymentMethod,
               }),
             });
-            if (res.ok) created = await res.json();
+            const bodyJson = await res.json();
+            if (!res.ok && (res.status === 400 || res.status === 409)) {
+              return { ok: false, status: res.status, error: bodyJson?.error || "Order rejected" };
+            }
+            if (res.ok) created = bodyJson;
           } catch {
             created = null;
           }
@@ -1969,6 +2038,8 @@
       this.sdk._setPaused(true, "xsolla_storefront");
 
       return new Promise((resolve) => {
+        let activeCoupon = String(options.couponCode || "").trim().toUpperCase();
+        let storeBannerMsg = "";
         const modal = document.createElement("div");
         modal.style.cssText =
           "position:fixed;inset:0;z-index:99995;background:rgba(4,9,16,0.85);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:14px;font-family:system-ui,-apple-system,sans-serif;color:#f8fafc;";
@@ -1979,9 +2050,27 @@
             .map((item) => {
               const owned =
                 item.type === "non_consumable" && this.hasEntitlement(item.sku);
+              const soldOut = Boolean(
+                item.stock?.autoEightySixed || item.stock?.status === "out"
+              );
+              const lowStock = item.stock?.status === "low";
+              const stockBadge = item.stock?.trackStock
+                ? soldOut
+                  ? `<span style="margin-left:6px;font-size:10px;padding:2px 6px;border-radius:999px;background:rgba(244,63,94,0.2);color:#fb7185;">86'd · HẾT HÀNG</span>`
+                  : `<span style="margin-left:6px;font-size:10px;padding:2px 6px;border-radius:999px;background:${
+                      lowStock ? "rgba(245,158,11,0.2)" : "rgba(56,189,248,0.16)"
+                    };color:${lowStock ? "#fbbf24" : "#38bdf8"};">Còn ${
+                      item.stock.stockOnHand
+                    } gói</span>`
+                : "";
+              const hhBadge = item.happyHour
+                ? `<span style="margin-left:6px;font-size:10px;padding:2px 6px;border-radius:999px;background:rgba(232,121,249,0.2);color:#f0abfc;">⚡ HAPPY HOUR -${item.happyHour.percent}%</span>`
+                : "";
+              const disabled = owned || soldOut;
+
               return `
                 <div style="background:#0f172a;border:1px solid ${
-                  owned ? "#10b981" : "#1e293b"
+                  owned ? "#10b981" : soldOut ? "#4c0519" : "#1e293b"
                 };border-radius:14px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
                   <div style="display:flex;align-items:center;gap:10px;">
                     <span style="font-size:26px;">${item.icon || "💎"}</span>
@@ -1993,6 +2082,8 @@
                             ? `<span style="margin-left:6px;font-size:10px;padding:2px 6px;border-radius:999px;background:rgba(16,185,129,0.2);color:#34d399;">ĐÃ SỞ HỮU</span>`
                             : ""
                         }
+                        ${hhBadge}
+                        ${stockBadge}
                       </div>
                       <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${
                         item.description
@@ -2000,13 +2091,19 @@
                     </div>
                   </div>
                   <button type="button" data-buy-sku="${item.sku}" ${
-                owned ? "disabled" : ""
+                disabled ? "disabled" : ""
               } style="shrink:0;white-space:nowrap;padding:9px 14px;border-radius:11px;border:0;font-size:12px;font-weight:900;cursor:${
-                owned ? "default" : "pointer"
+                disabled ? "default" : "pointer"
               };background:${
-                owned ? "#1e293b" : "linear-gradient(90deg,#f59e0b,#10b981)"
-              };color:${owned ? "#64748b" : "#090d16"};">
-                    ${owned ? "Đã Mở Khóa" : item.pricing.totalFormatted}
+                disabled ? "#1e293b" : "linear-gradient(90deg,#f59e0b,#10b981)"
+              };color:${disabled ? "#64748b" : "#090d16"};">
+                    ${
+                      owned
+                        ? "Đã Mở Khóa"
+                        : soldOut
+                        ? "86'd Hết Hàng"
+                        : item.pricing.totalFormatted
+                    }
                   </button>
                 </div>
               `;
@@ -2014,11 +2111,11 @@
             .join("");
 
           modal.innerHTML = `
-            <div style="max-width:540px;width:100%;max-height:90vh;display:flex;flex-direction:column;background:#090e1a;border:1px solid rgba(251,191,36,0.4);border-radius:22px;overflow:hidden;box-shadow:0 28px 75px rgba(0,0,0,0.8);">
+            <div style="max-width:560px;width:100%;max-height:92vh;display:flex;flex-direction:column;background:#090e1a;border:1px solid rgba(251,191,36,0.4);border-radius:22px;overflow:hidden;box-shadow:0 28px 75px rgba(0,0,0,0.8);">
               <div style="padding:14px 18px;background:linear-gradient(90deg,#064e3b,#0f172a);border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;gap:8px;">
                 <div>
                   <div style="font-size:10px;font-weight:800;color:#fbbf24;letter-spacing:0.08em;text-transform:uppercase;">
-                    CỬA HÀNG TRONG GAME · XSOLLA SDK 3 × POKI PORTAL
+                    CỬA HÀNG TRONG GAME · XSOLLA × POS LIVE-OPS × POKI PORTAL
                   </div>
                   <div style="font-size:14px;font-weight:900;color:#fff;margin-top:2px;">
                     💎 Ví Hổ Phách: <span style="color:#34d399;">${inv.amberGems}</span>
@@ -2043,6 +2140,11 @@
                   <button type="button" id="g9k-store-close" style="background:#1e293b;border:0;color:#e2e8f0;width:30px;height:30px;border-radius:9px;cursor:pointer;font-weight:800;">✕</button>
                 </div>
               </div>
+              <div style="padding:10px 18px;background:#050811;border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span style="font-size:11px;font-weight:800;color:#cbd5e1;">🎟️ Coupon POS:</span>
+                <input id="g9k-store-coupon" value="${activeCoupon}" placeholder="VD: GAMER9K hoặc KOL20" style="flex:1;min-width:140px;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:5px 10px;font-size:11px;color:#fbbf24;font-weight:700;text-transform:uppercase;" />
+                <span style="font-size:10px;color:#34d399;">${storeBannerMsg}</span>
+              </div>
               <div style="padding:14px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;">
                 ${cardsHtml}
               </div>
@@ -2056,6 +2158,10 @@
               </div>
             </div>
           `;
+
+          modal.querySelector("#g9k-store-coupon")?.addEventListener("input", (ev) => {
+            activeCoupon = String(ev.target.value || "").trim().toUpperCase();
+          });
 
           modal.querySelector("#g9k-store-close")?.addEventListener("click", () => {
             modal.remove();
@@ -2083,8 +2189,18 @@
           modal.querySelectorAll("[data-buy-sku]").forEach((btn) => {
             btn.addEventListener("click", async () => {
               const sku = btn.getAttribute("data-buy-sku");
-              const res = await this.buyAndFinalize(sku);
-              // Keep store paused until user closes storefront
+              const res = await this.buyAndFinalize(sku, { couponCode: activeCoupon });
+              if (!res?.ok && res?.error) {
+                storeBannerMsg = `⚠️ ${res.error}`;
+              } else if (res?.ok) {
+                storeBannerMsg = res.posFulfillment?.posOrderNumber
+                  ? `✅ KDS #${res.posFulfillment.posOrderNumber}`
+                  : "✅ Đã thanh toán!";
+                await this.loadCatalog({
+                  country: this.settings.country,
+                  gameId: options.gameId || this.sdk.gameId,
+                });
+              }
               this.sdk._setPaused(true, "xsolla_storefront");
               renderStore();
               if (res?.ok && typeof options.onPurchased === "function") {
@@ -2483,6 +2599,311 @@
       }
       return this.sdk.xsolla.accessToken;
     }
+
+    get splice() {
+      return this.sdk.splice;
+    }
+
+    get economy() {
+      return this.sdk.pos;
+    }
+  }
+
+  // ==========================================================================
+  // 4B. SPLICE SPEC-TO-SDK & INTERCEPTOR GATEWAY (`window.SpliceSDK`)
+  // ==========================================================================
+  class Game9KSpliceAdapter {
+    constructor(sdk) {
+      this.sdk = sdk;
+      this.apiKey = SafeStorage.get("g9k_splice_api_key") || "";
+      this.maxRetries = 2;
+      this.requestInterceptors = [];
+      this.responseInterceptors = [];
+
+      // Built-in Splice Auth Auto-Injector (`sk_live_...` + `xl3.*`)
+      this.useRequestInterceptor((url, init) => {
+        const headers = { ...(init.headers || {}) };
+        if (this.apiKey) headers["x-g9k-api-key"] = this.apiKey;
+        if (this.sdk.xsolla?.accessToken && !headers.Authorization) {
+          headers.Authorization = `Bearer ${this.sdk.xsolla.accessToken}`;
+        }
+        return [url, { ...init, headers }];
+      });
+    }
+
+    isValidApiKeyFormat(key) {
+      return /^sk_live_[A-Za-z0-9_-]{32}$/.test(String(key || ""));
+    }
+
+    maskApiKey(key) {
+      const s = String(key ?? this.apiKey ?? "");
+      if (s.length < 16) return "****";
+      return `${s.slice(0, 12)}...${s.slice(-4)}`;
+    }
+
+    setApiKey(key) {
+      this.apiKey = String(key || "").trim();
+      if (this.apiKey) SafeStorage.set("g9k_splice_api_key", this.apiKey);
+      else SafeStorage.remove("g9k_splice_api_key");
+      return this.maskApiKey(this.apiKey);
+    }
+
+    useRequestInterceptor(fn) {
+      if (typeof fn === "function") this.requestInterceptors.push(fn);
+    }
+
+    useResponseInterceptor(fn) {
+      if (typeof fn === "function") this.responseInterceptors.push(fn);
+    }
+
+    async request(path, init = {}) {
+      if (this.sdk.isEmbedded && this.sdk.portalHostConnected) {
+        try {
+          return await this.sdk._portalRpc("splice_http_proxy", {
+            path,
+            method: init.method || "GET",
+            body: init.body ? JSON.parse(init.body) : null,
+            apiKey: this.apiKey,
+          });
+        } catch {
+          // Fallback to direct fetch if available
+        }
+      }
+
+      if (!hasHttpOrigin()) {
+        return { ok: false, offline: true, error: "Offline sandbox — use Portal Host RPC." };
+      }
+
+      let targetUrl = path;
+      let reqInit = {
+        ...init,
+        headers: { "Content-Type": "application/json", ...(init.headers || {}) },
+      };
+
+      for (const fn of this.requestInterceptors) {
+        const out = await fn(targetUrl, reqInit);
+        if (Array.isArray(out)) {
+          targetUrl = out[0];
+          reqInit = out[1];
+        }
+      }
+
+      let attempt = 0;
+      while (true) {
+        try {
+          let res = await fetch(targetUrl, reqInit);
+          for (const rFn of this.responseInterceptors) {
+            res = (await rFn(res)) || res;
+          }
+          if (res.status >= 500 && attempt < this.maxRetries) {
+            attempt++;
+            await new Promise((r) => setTimeout(r, 140 * Math.pow(2, attempt)));
+            continue;
+          }
+          return await res.json();
+        } catch (err) {
+          if (attempt < this.maxRetries) {
+            attempt++;
+            await new Promise((r) => setTimeout(r, 140 * Math.pow(2, attempt)));
+            continue;
+          }
+          return { ok: false, error: err?.message || "Network request failed" };
+        }
+      }
+    }
+
+    getOpenAPISpec() {
+      return this.request("/api/openapi.json", { method: "GET" });
+    }
+
+    parseSpec(spec = null) {
+      return this.request("/api/splice/parse", {
+        method: "POST",
+        body: JSON.stringify({ spec }),
+      });
+    }
+
+    async startMockServer(specId = "game9k-portal", spec = null) {
+      const res = await this.request("/api/splice/mock-servers", {
+        method: "POST",
+        body: JSON.stringify({ specId, spec }),
+      });
+      if (res?.mock?.apiKey) {
+        this.setApiKey(res.mock.apiKey);
+      }
+      this.sdk.emitPortalEvent("splice_mock_started", {
+        specId,
+        maskedKey: res?.mock?.maskedApiKey || null,
+      });
+      return res;
+    }
+
+    async stopMockServer(specId = "game9k-portal") {
+      const res = await this.request(
+        `/api/splice/mock-servers/${encodeURIComponent(specId)}`,
+        { method: "DELETE" }
+      );
+      if (res?.stopped) this.setApiKey("");
+      this.sdk.emitPortalEvent("splice_mock_stopped", { specId });
+      return res;
+    }
+
+    executeMockRequest(specId = "game9k-portal", req = {}) {
+      return this.request("/api/splice/mock-request", {
+        method: "POST",
+        body: JSON.stringify({
+          specId,
+          method: req.method || "GET",
+          path: req.path || "/api/health",
+          headers: {
+            ...(this.apiKey ? { "x-g9k-api-key": this.apiKey } : {}),
+            ...(req.headers || {}),
+          },
+          body: req.body || null,
+        }),
+      });
+    }
+
+    async generateTypedSDK(config = {}) {
+      const res = await this.request("/api/splice/generate-sdk", {
+        method: "POST",
+        body: JSON.stringify({
+          gameId: config.gameId || this.sdk.gameId,
+          config,
+        }),
+      });
+      if (res?.ok) {
+        this.sdk.emitPortalEvent("splice_sdk_generated", {
+          generationId: res.generationId,
+          packageName: res.config?.packageName,
+          endpointCount: res.endpointCount,
+        });
+      }
+      return res;
+    }
+  }
+
+  // ==========================================================================
+  // 4C. COUNTER POS, STOCK/86, HAPPY HOUR, KDS & Z-REPORT (`window.Game9KPOS`)
+  // ==========================================================================
+  class Game9KPosEconomyAdapter {
+    constructor(sdk) {
+      this.sdk = sdk;
+    }
+
+    _call(rpcAction, method, path, body = null) {
+      if (this.sdk.isEmbedded && this.sdk.portalHostConnected) {
+        return this.sdk._portalRpc(rpcAction, body || {}).catch(() =>
+          this.sdk.splice.request(path, {
+            method,
+            ...(body ? { body: JSON.stringify(body) } : {}),
+          })
+        );
+      }
+      return this.sdk.splice.request(path, {
+        method,
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+    }
+
+    getStockCatalog() {
+      return this._call("pos_get_stock", "GET", "/api/pos/stock");
+    }
+
+    adjustStock(sku, delta, reason = "adjustment", note = "") {
+      return this._call("pos_adjust_stock", "POST", "/api/pos/stock/adjust", {
+        sku,
+        delta,
+        reason,
+        note,
+      });
+    }
+
+    getDiscounts() {
+      return this._call("pos_get_discounts", "GET", "/api/pos/discounts");
+    }
+
+    async toggleHappyHour(active = true) {
+      const res = await this._call("pos_toggle_happy_hour", "POST", "/api/pos/happy-hour", {
+        active,
+      });
+      if (res?.happyHourActive) {
+        this.sdk.poki.happyTime(0.85);
+      }
+      return res;
+    }
+
+    validateCoupon(couponCode, subtotalCents = 299, managerApproved = false) {
+      return this._call("pos_validate_coupon", "POST", "/api/pos/validate-coupon", {
+        couponCode,
+        subtotalCents,
+        managerApproved,
+      });
+    }
+
+    quoteOrder(payload = {}) {
+      return this._call("pos_quote_order", "POST", "/api/pos/quote", payload);
+    }
+
+    getKdsQueue() {
+      return this._call("pos_get_kds", "GET", "/api/pos/kds");
+    }
+
+    async bumpTicket(ticketId) {
+      const res = await this._call("pos_bump_ticket", "POST", "/api/pos/kds/bump", {
+        ticketId,
+      });
+      if (res?.ok) {
+        this.sdk.emitPortalEvent("pos_kds_bumped", { ticketId });
+      }
+      return res;
+    }
+
+    recallTicket(ticketId) {
+      return this._call("pos_recall_ticket", "POST", "/api/pos/kds/recall", { ticketId });
+    }
+
+    enqueueStreamGift(gift = {}) {
+      return this._call("pos_stream_gift", "POST", "/api/pos/kds/stream-gift", gift);
+    }
+
+    getShifts() {
+      return this._call("pos_get_shifts", "GET", "/api/pos/shifts");
+    }
+
+    openShift(opts = {}) {
+      return this._call("pos_open_shift", "POST", "/api/pos/shifts/open", opts);
+    }
+
+    closeShift(opts = {}) {
+      return this._call("pos_close_shift", "POST", "/api/pos/shifts/close", opts);
+    }
+
+    getZReport(params = {}) {
+      const parts = [];
+      if (params.from) parts.push(`from=${encodeURIComponent(params.from)}`);
+      if (params.to) parts.push(`to=${encodeURIComponent(params.to)}`);
+      const suffix = parts.length > 0 ? `?${parts.join("&")}` : "";
+      return this._call("pos_get_z_report", "GET", `/api/pos/z-report${suffix}`);
+    }
+
+    downloadCSV(kind = "orders") {
+      const safeKind = ["orders", "payments", "shifts"].includes(kind) ? kind : "orders";
+      const relUrl = `/api/pos/export/${safeKind}.csv`;
+      if (this.sdk.isEmbedded && this.sdk.portalHostConnected) {
+        this.sdk.emitPortalEvent("pos_download_csv", { kind: safeKind, url: relUrl });
+        return relUrl;
+      }
+      if (typeof document !== "undefined" && hasHttpOrigin()) {
+        const a = document.createElement("a");
+        a.href = relUrl;
+        a.download = `game9k-${safeKind}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      return relUrl;
+    }
   }
 
   // ==========================================================================
@@ -2491,8 +2912,8 @@
   class Game9KSDK {
     constructor() {
       this.gameId = "dino-race";
-      this.version = "2.0.0";
-      this.sdkVersion = "2.0.0";
+      this.version = "3.0.0";
+      this.sdkVersion = "3.0.0";
       this.playerId = this._resolveGuestId();
       this.isEmbedded = Boolean(global.parent && global.parent !== global);
       this.portalHostConnected = false;
@@ -2509,6 +2930,9 @@
 
       this.stream = new LiveStreamBridge();
       this.ads = new Game9KAdsManager(this);
+      this.splice = new Game9KSpliceAdapter(this);
+      this.pos = new Game9KPosEconomyAdapter(this);
+      this.economy = this.pos;
       this.xsolla = new Game9KXsollaClient(this);
       this.commerce = this.xsolla;
       this.poki = new Game9KPokiAdapter(this);
@@ -2597,7 +3021,13 @@
         sdkVersion: this.sdkVersion,
         mode: this.isEmbedded ? "PORTAL_CONNECTED" : "STANDALONE_G4",
         maxTelemetryHz: clampedHz,
-        capabilities: ["poki-portal-sdk", "xsolla-sdk-3", "kol-live-bridge"],
+        capabilities: [
+          "poki-portal-sdk",
+          "xsolla-sdk-3",
+          "splice-spec-to-sdk",
+          "pos-kds-economy",
+          "kol-live-bridge",
+        ],
       });
 
       return this;
@@ -2809,6 +3239,8 @@
   global.Game9K = sdkInstance;
   global.PokiSDK = sdkInstance.poki;
   global.XsollaSDK = sdkInstance.xsolla;
+  global.SpliceSDK = sdkInstance.splice;
+  global.Game9KPOS = sdkInstance.pos;
   global.LiveStreamBridge = sdkInstance.stream;
   global.TikTokBridge = sdkInstance.stream;
 })(typeof window !== "undefined" ? window : globalThis);

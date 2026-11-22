@@ -372,6 +372,8 @@
           sku: payload.sku,
           userId: portalSessionUser.userId,
           country,
+          couponCode: payload.couponCode || "",
+          managerApproved: Boolean(payload.managerApproved),
           sandbox: payload.sandbox !== false,
           webhookMode: Boolean(payload.webhookMode),
         }),
@@ -527,6 +529,79 @@
               document.getElementById("metric-orders").textContent = String(iapCount);
               updatePillUI(portalSessionUser, data.inventory);
             }
+          } else if (msg.action === "splice_http_proxy") {
+            const p = msg.payload || {};
+            const headers = { "Content-Type": "application/json" };
+            if (p.apiKey) headers["x-g9k-api-key"] = p.apiKey;
+            data = await fetch(p.path || "/api/health", {
+              method: p.method || "GET",
+              headers,
+              ...(p.body ? { body: JSON.stringify(p.body) } : {}),
+            }).then((r) => r.json());
+          } else if (msg.action === "pos_get_stock") {
+            data = await fetch("/api/pos/stock").then((r) => r.json());
+          } else if (msg.action === "pos_adjust_stock") {
+            data = await fetch("/api/pos/stock/adjust", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(msg.payload || {}),
+            }).then((r) => r.json());
+          } else if (msg.action === "pos_get_discounts") {
+            data = await fetch("/api/pos/discounts").then((r) => r.json());
+          } else if (msg.action === "pos_toggle_happy_hour") {
+            data = await fetch("/api/pos/happy-hour", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(msg.payload || {}),
+            }).then((r) => r.json());
+          } else if (msg.action === "pos_validate_coupon") {
+            data = await fetch("/api/pos/validate-coupon", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(msg.payload || {}),
+            }).then((r) => r.json());
+          } else if (msg.action === "pos_quote_order") {
+            data = await fetch("/api/pos/quote", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(msg.payload || {}),
+            }).then((r) => r.json());
+          } else if (msg.action === "pos_get_kds") {
+            data = await fetch("/api/pos/kds").then((r) => r.json());
+          } else if (msg.action === "pos_bump_ticket") {
+            data = await fetch("/api/pos/kds/bump", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(msg.payload || {}),
+            }).then((r) => r.json());
+          } else if (msg.action === "pos_recall_ticket") {
+            data = await fetch("/api/pos/kds/recall", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(msg.payload || {}),
+            }).then((r) => r.json());
+          } else if (msg.action === "pos_stream_gift") {
+            data = await fetch("/api/pos/kds/stream-gift", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(msg.payload || {}),
+            }).then((r) => r.json());
+          } else if (msg.action === "pos_get_shifts") {
+            data = await fetch("/api/pos/shifts").then((r) => r.json());
+          } else if (msg.action === "pos_open_shift") {
+            data = await fetch("/api/pos/shifts/open", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(msg.payload || {}),
+            }).then((r) => r.json());
+          } else if (msg.action === "pos_close_shift") {
+            data = await fetch("/api/pos/shifts/close", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(msg.payload || {}),
+            }).then((r) => r.json());
+          } else if (msg.action === "pos_get_z_report") {
+            data = await fetch("/api/pos/z-report").then((r) => r.json());
           }
 
           sendToIframe({
@@ -564,6 +639,15 @@
         pokiBadge.className = "text-amber-300";
       } else if (msg.type === "poki_move_pill" && msg.payload) {
         pillEl.style.top = `calc(${Number(msg.payload.topPercent) || 0}% + ${Number(msg.payload.topPx) || 14}px)`;
+      } else if (msg.type === "pos_download_csv" && msg.payload?.url) {
+        const a = document.createElement("a");
+        a.href = msg.payload.url;
+        a.download = `game9k-${msg.payload.kind || "orders"}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        addLog(`📥 Portal xuất báo cáo CSV (${msg.payload.kind})`, "text-emerald-300");
+        return;
       } else if (msg.type === "poki_happy_time") {
         const banner = document.getElementById("happy-time-banner");
         banner.classList.remove("hidden");
