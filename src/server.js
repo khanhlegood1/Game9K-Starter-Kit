@@ -27,6 +27,7 @@ import XsollaCommerceService from "./services/XsollaCommerceService.js";
 import PosEconomyService from "./services/PosEconomyService.js";
 import SpliceSpecService from "./services/SpliceSpecService.js";
 import E2BSandboxService from "./services/E2BSandboxService.js";
+import OpenRouterService from "./services/OpenRouterService.js";
 import { IpRateLimiter } from "./lib/rateLimiter.js";
 import { validateGamePackage } from "./lib/manifestValidator.js";
 
@@ -42,14 +43,24 @@ export function createGame9KServer(options = {}) {
     maxSocketsPerIp: options.maxSocketsPerIp ?? 40,
     maxRequestsPerMinute: options.maxRequestsPerMinute ?? 240,
   });
-  const decisionsService = new ProjectDecisionsService({ liveRoomHub });
   const posService = new PosEconomyService(options.pos || {});
+  const openRouterService = new OpenRouterService({
+    ...(options.openRouter || {}),
+    posEconomy: posService,
+  });
+  const decisionsService = new ProjectDecisionsService({
+    liveRoomHub,
+    openRouter: openRouterService,
+  });
   const xsollaService = new XsollaCommerceService({
     ...(options.xsolla || {}),
     posEconomy: posService,
   });
   const spliceService = new SpliceSpecService(options.splice || {});
-  const e2bService = new E2BSandboxService(options.e2b || {});
+  const e2bService = new E2BSandboxService({
+    ...(options.e2b || {}),
+    openRouter: openRouterService,
+  });
 
   const io = new Server(httpServer, {
     cors: {
@@ -94,8 +105,15 @@ export function createGame9KServer(options = {}) {
         ? "gemini-decision-1"
         : "game9k-calibrated-decisions",
       sdkCapabilities: {
-        version: "4.0.0",
+        version: "5.0.0",
         pokiPortalSdk: true,
+        openRouterAi: {
+          enabled: true,
+          modelsCount: openRouterService.listModels().length,
+          oauthPkceS256: true,
+          zdrPrivacy: true,
+          agentProtocolV1: true,
+        },
         e2bRuntime: {
           enabled: true,
           templates: e2bService.listTemplates().map((t) => t.templateId),
@@ -838,6 +856,115 @@ export function createGame9KServer(options = {}) {
   });
 
   // ==========================================================================
+  // REST API: OPENROUTER MULTI-MODEL GATEWAY, OAUTH PKCE & AGENT PROTOCOL v1
+  // ==========================================================================
+
+  app.get("/api/openrouter/status", (_req, res) => {
+    return res.json({
+      ...openRouterService.getStatus(),
+      models: openRouterService.listModels(),
+      recentUsage: openRouterService.usageHistory.slice(0, 15),
+    });
+  });
+
+  app.post("/api/openrouter/pkce/start", (req, res) => {
+    return res.json(openRouterService.createPkceAuthRequest(req.body || {}));
+  });
+
+  app.post("/api/openrouter/pkce/exchange", async (req, res) => {
+    const out = await openRouterService.exchangePkceCode(req.body || {});
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    return res.json(out);
+  });
+
+  app.post("/api/openrouter/budget", (req, res) => {
+    return res.json(openRouterService.setBudgetLimitUsd(req.body?.limitUsd ?? 2.0));
+  });
+
+  app.post("/api/openrouter/chat", async (req, res) => {
+    const out = await openRouterService.chat(req.body || {});
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    return res.json(out);
+  });
+
+  app.post("/api/openrouter/fragments/generate", async (req, res) => {
+    const out = await e2bService.generateAndDeployFragment(
+      req.body?.prompt || "",
+      req.body || {}
+    );
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    return res.json(out);
+  });
+
+  app.post("/api/openrouter/fragments/morph", async (req, res) => {
+    const out = await e2bService.smartMorphEdit(
+      req.body?.sandboxId,
+      req.body?.instruction || "Upgrade visual theme",
+      req.body?.file_path || "index.html"
+    );
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    return res.json(out);
+  });
+
+  app.post("/api/openrouter/shoutcast", async (req, res) => {
+    const out = await openRouterService.shoutcastStreamEvent(req.body || {});
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    return res.json(out);
+  });
+
+  app.post("/api/openrouter/benchmark", async (_req, res) => {
+    const out = await openRouterService.runOrderedAgentBenchmark({
+      e2bService,
+      validateFn: (html) => !/\beval\s*\(|<video\b/i.test(String(html || "")),
+    });
+    return res.json(out);
+  });
+
+  // Standardized Agent Protocol v1 (`e2b.dev/resources/the-state-of-ai-agents...`)
+  const agentProtocolTasks = new Map();
+  app.post("/api/agent-protocol/v1/agent/tasks", async (req, res) => {
+    const input = String(req.body?.input || "Create playable Poki mini-game");
+    const taskId = `ap_task_${Date.now().toString(36)}`;
+    const gen = await e2bService.generateAndDeployFragment(input, req.body?.additional_input || {});
+    const task = {
+      task_id: taskId,
+      input,
+      additional_input: req.body?.additional_input || {},
+      created_at: new Date().toISOString(),
+      artifacts: gen.ok
+        ? [
+            {
+              artifact_id: `art_${gen.sbxId}`,
+              agent_created: true,
+              file_name: "index.html",
+              relative_path: gen.url,
+            },
+          ]
+        : [],
+      steps: [
+        {
+          step_id: `${taskId}_step_1`,
+          task_id: taskId,
+          name: "generate_and_verify_poki_fragment",
+          status: gen.ok ? "completed" : "failed",
+          output: gen.ok
+            ? `Playable fragment ready at ${gen.url} (${gen.selectedModel})`
+            : gen.error,
+          is_last: true,
+        },
+      ],
+    };
+    agentProtocolTasks.set(taskId, task);
+    return res.status(200).json(task);
+  });
+
+  app.get("/api/agent-protocol/v1/agent/tasks/:taskId", (req, res) => {
+    const task = agentProtocolTasks.get(req.params.taskId);
+    if (!task) return res.status(404).json({ error: "Agent Protocol task not found" });
+    return res.json(task);
+  });
+
+  // ==========================================================================
   // SOCKET.IO REAL-TIME MULTI-TENANT BRIDGE
   // ==========================================================================
 
@@ -950,6 +1077,7 @@ export function createGame9KServer(options = {}) {
     posService,
     spliceService,
     e2bService,
+    openRouterService,
   };
 }
 

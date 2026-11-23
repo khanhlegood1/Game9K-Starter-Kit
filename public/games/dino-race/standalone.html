@@ -407,9 +407,9 @@
   <script>
 /**
  * game9k-sdk.js
- * Official Unified Browser SDK for Game9K Starter Kit (v4.0.0)
+ * Official Unified Browser SDK for Game9K Starter Kit (v5.0.0)
  *
- * Unifies nine production modules under the Poki Portal SDK Sandbox Bridge (`<iframe sandbox="allow-scripts">`):
+ * Unifies ten production modules under the Poki Portal SDK Sandbox Bridge (`<iframe sandbox="allow-scripts">`):
  *   1. Poki Portal SDK (`window.PokiSDK` + `window.Game9K.poki`)
  *   2. Xsolla SDK 3 — 4-Step Game Monetization (`window.XsollaSDK` + `window.Game9K.xsolla`)
  *   3. Splice Spec-to-SDK & Mock Gateway (`window.SpliceSDK` + `PokiSDK.splice`)
@@ -418,7 +418,8 @@
  *   6. E2B Stateful Code Interpreter & Chart Kernel (`window.CodeInterpreterSDK` + `PokiSDK.interpreter`)
  *   7. E2B Fragments & Morph Lazy Patch Engine (`window.FragmentsSDK` + `PokiSDK.fragments`)
  *   8. Open Computer Use Vision/Grounding/Action Agent (`window.ComputerUseSDK` + `PokiSDK.computerUse`)
- *   9. Game9K Core Quota-Safe `SafeStorage` & Multi-Platform KOL Stream Bridge (`window.TikTokBridge`)
+ *   9. OpenRouter Multi-Model Gateway, OAuth PKCE & Agent Protocol v1 (`window.OpenRouterSDK` + `PokiSDK.ai`)
+ *  10. Game9K Core Quota-Safe `SafeStorage` & Multi-Platform KOL Stream Bridge (`window.TikTokBridge`)
  */
 (function initGame9KGlobal(global) {
   "use strict";
@@ -2622,6 +2623,10 @@
     get computerUse() {
       return this.sdk.computerUse;
     }
+
+    get ai() {
+      return this.sdk.ai;
+    }
   }
 
   // ==========================================================================
@@ -3345,13 +3350,114 @@
   }
 
   // ==========================================================================
+  // 4H. OPENROUTER MULTI-MODEL GATEWAY, OAUTH PKCE & AGENT PROTOCOL (`PokiSDK.ai`)
+  // ==========================================================================
+  class Game9KOpenRouterAdapter {
+    constructor(sdk) {
+      this.sdk = sdk;
+      this.defaultSort = "latency";
+      this.zdrEnabled = true;
+    }
+
+    _call(rpcAction, method, path, body = null) {
+      if (this.sdk.isEmbedded && this.sdk.portalHostConnected) {
+        return this.sdk._portalRpc(rpcAction, { ...(body || {}), path, method }).catch(() =>
+          this.sdk.splice.request(path, {
+            method,
+            ...(body ? { body: JSON.stringify(body) } : {}),
+          })
+        );
+      }
+      return this.sdk.splice.request(path, {
+        method,
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+    }
+
+    getStatus() {
+      return this._call("openrouter_status", "GET", "/api/openrouter/status");
+    }
+
+    startPkceAuth(opts = {}) {
+      return this._call("openrouter_pkce_start", "POST", "/api/openrouter/pkce/start", opts);
+    }
+
+    exchangePkceCode(opts = {}) {
+      return this._call(
+        "openrouter_pkce_exchange",
+        "POST",
+        "/api/openrouter/pkce/exchange",
+        opts
+      );
+    }
+
+    setBudgetLimit(limitUsd = 2.0) {
+      return this._call("openrouter_budget", "POST", "/api/openrouter/budget", {
+        limitUsd,
+      });
+    }
+
+    chat(promptOrMessages, opts = {}) {
+      const payload = Array.isArray(promptOrMessages)
+        ? { messages: promptOrMessages, ...opts }
+        : { prompt: String(promptOrMessages || ""), ...opts };
+      if (!payload.sort) payload.sort = this.defaultSort;
+      if (payload.zdr === undefined) payload.zdr = this.zdrEnabled;
+      return this._call("openrouter_chat", "POST", "/api/openrouter/chat", payload);
+    }
+
+    async generateFragment(prompt, opts = {}) {
+      const res = await this._call(
+        "openrouter_generate_fragment",
+        "POST",
+        "/api/openrouter/fragments/generate",
+        { prompt, ...opts }
+      );
+      if (res?.sbxId) {
+        this.sdk.runtime.activeSandboxId = res.sbxId;
+      }
+      return res;
+    }
+
+    smartMorphEdit(sandboxId, instruction, filePath = "index.html") {
+      return this._call(
+        "openrouter_smart_morph",
+        "POST",
+        "/api/openrouter/fragments/morph",
+        {
+          sandboxId: sandboxId || this.sdk.runtime.activeSandboxId,
+          instruction,
+          file_path: filePath,
+        }
+      );
+    }
+
+    shoutcast(eventPayload = {}) {
+      return this._call("openrouter_shoutcast", "POST", "/api/openrouter/shoutcast", eventPayload);
+    }
+
+    runBenchmark() {
+      return this._call("openrouter_benchmark", "POST", "/api/openrouter/benchmark", {});
+    }
+
+    createAgentProtocolTask(input, additionalInput = {}) {
+      return this._call(
+        "openrouter_agent_task",
+        "POST",
+        "/api/agent-protocol/v1/agent/tasks",
+        { input, additional_input: additionalInput }
+      );
+    }
+  }
+
+  // ==========================================================================
   // 5. GAME9K CORE BRIDGE (Sandbox PostMessage RPC, Telemetry <= 20Hz, Legal Lock)
   // ==========================================================================
   class Game9KSDK {
     constructor() {
       this.gameId = "dino-race";
-      this.version = "4.0.0";
-      this.sdkVersion = "4.0.0";
+      this.version = "5.0.0";
+      this.sdkVersion = "5.0.0";
       this.playerId = this._resolveGuestId();
       this.isEmbedded = Boolean(global.parent && global.parent !== global);
       this.portalHostConnected = false;
@@ -3375,6 +3481,8 @@
       this.interpreter = new Game9KCodeInterpreterAdapter(this);
       this.fragments = new Game9KFragmentsAdapter(this);
       this.computerUse = new Game9KComputerUseAdapter(this);
+      this.ai = new Game9KOpenRouterAdapter(this);
+      this.openRouter = this.ai;
       this.xsolla = new Game9KXsollaClient(this);
       this.commerce = this.xsolla;
       this.poki = new Game9KPokiAdapter(this);
@@ -3472,6 +3580,8 @@
           "e2b-code-interpreter",
           "e2b-fragments-morph",
           "open-computer-use",
+          "openrouter-multi-model-pkce",
+          "agent-protocol-v1",
           "kol-live-bridge",
         ],
       });
@@ -3702,6 +3812,7 @@
   global.CodeInterpreterSDK = sdkInstance.interpreter;
   global.FragmentsSDK = sdkInstance.fragments;
   global.ComputerUseSDK = sdkInstance.computerUse;
+  global.OpenRouterSDK = sdkInstance.ai;
   global.LiveStreamBridge = sdkInstance.stream;
   global.TikTokBridge = sdkInstance.stream;
 })(typeof window !== "undefined" ? window : globalThis);

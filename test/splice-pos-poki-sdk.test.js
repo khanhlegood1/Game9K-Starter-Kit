@@ -347,7 +347,7 @@ test("Poki Portal SDK v3.0 Opaque Sandbox Bridge: PokiSDK.splice, PokiSDK.econom
   vm.runInNewContext(sdkSource, sandboxGlobal);
 
   const { Game9K, PokiSDK, SpliceSDK, Game9KPOS } = sandboxGlobal;
-  assert.equal(Game9K.sdkVersion, "4.0.0");
+  assert.equal(Game9K.sdkVersion, "5.0.0");
   assert.equal(PokiSDK.splice, SpliceSDK);
   assert.equal(PokiSDK.economy, Game9KPOS);
 

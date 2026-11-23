@@ -214,6 +214,7 @@ export default class PosEconomyService {
 
     this.orders = [];
     this.shifts = [];
+    this.aiLedger = [];
     this.currentShiftId = null;
 
     // Open default live-ops shift automatically
@@ -891,6 +892,20 @@ export default class PosEconomyService {
     return { ok: true, shift };
   }
 
+  recordAiUsage(entry = {}) {
+    const rec = {
+      id: `ai_${randomBytes(4).toString("hex")}`,
+      timestamp: entry.timestamp || new Date().toISOString(),
+      shiftId: this.currentShiftId,
+      model: entry.model || "openrouter/auto",
+      task: entry.task || "chat",
+      totalTokens: Math.max(0, Number(entry.totalTokens) || 0),
+      costUsd: Math.max(0, Number(entry.costUsd) || 0),
+    };
+    this.aiLedger.unshift(rec);
+    return rec;
+  }
+
   computeZReport({ fromKey, toKey } = {}) {
     const today = dateKeyUTC(new Date());
     const start = fromKey || today;
@@ -976,6 +991,17 @@ export default class PosEconomyService {
     const totalCollectedCents = netCents + taxCents;
     const avgCheckCents = checks > 0 ? Math.round(netCents / checks) : 0;
 
+    const aiMatching = this.aiLedger.filter((entry) => {
+      const k = entry.timestamp.slice(0, 10);
+      return k >= start && k <= end;
+    });
+    const aiSpendUsd = Number(
+      aiMatching.reduce((sum, item) => sum + (Number(item.costUsd) || 0), 0).toFixed(6)
+    );
+    const aiSpendCents = Math.round(aiSpendUsd * 100);
+    const aiTokens = aiMatching.reduce((sum, item) => sum + (Number(item.totalTokens) || 0), 0);
+    const netAfterAiCents = studioNetCents - aiSpendCents;
+
     const topSellers = Array.from(topSellersMap.values()).sort(
       (a, b) => b.netCents - a.netCents || b.quantity - a.quantity
     );
@@ -1004,6 +1030,13 @@ export default class PosEconomyService {
       totalCollectedCents,
       xsollaFeeCents,
       studioNetCents,
+      aiUsage: {
+        requests: aiMatching.length,
+        totalTokens: aiTokens,
+        spendUsd: aiSpendUsd,
+        spendCents: aiSpendCents,
+        netAfterAiCents,
+      },
       avgCheckCents,
       cardPaymentsCents,
       streamCoinsCents,

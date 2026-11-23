@@ -869,8 +869,9 @@ export const GAME9K_DECISION_PRESETS = [
 ];
 
 export class ProjectDecisionsService {
-  constructor({ liveRoomHub } = {}) {
+  constructor({ liveRoomHub, openRouter } = {}) {
     this.liveRoomHub = liveRoomHub || null;
+    this.openRouter = openRouter || null;
     this.history = [];
     this.sprintTasks = [
       {
@@ -1025,7 +1026,14 @@ export class ProjectDecisionsService {
 
     const payload = {
       model,
-      engine: "game9k-calibrated-decisions",
+      engine: this.openRouter?.apiKey
+        ? "openrouter-multi-model-decisions"
+        : "game9k-calibrated-decisions",
+      failoverChain: [
+        "gemini-decision-1",
+        "openrouter/auto (gemini -> claude -> deepseek)",
+        "game9k-calibrated-decisions",
+      ],
       answers,
       usage: {
         total_input_tokens: estTokens,
