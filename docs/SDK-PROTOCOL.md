@@ -32,7 +32,30 @@ PokiSDK.gameplayStart();
 
 ---
 
-## 2. Splice Spec-to-SDK & Mock Gateway (`window.SpliceSDK` / `PokiSDK.splice`)
+## 2. Live PK bridge & Marble Race contract (`window.Game9K.stream`)
+
+`Marble Race Live` consumes one canonical event shape for TikTok Live, YouTube Live, simulator and webhook sources. Team attribution is explicit when a creator pair is configured; the client must not infer a same-platform pair from timing.
+
+```javascript
+await Game9K.init({ gameId: "marble-race-live", version: "1.0.0", maxTelemetryHz: 10 });
+
+Game9K.stream.connectPair({
+  A: { roomId: "creator-a", tiktok: "@creator_a", team: "A" },
+  B: { roomId: "creator-b", youtube: "LIVE_VIDEO_ID", team: "B" },
+});
+
+Game9K.stream.on("event", (event) => {
+  // type: chat | gift | like | share | follow | join
+  // platform: tiktok | youtube | simulator
+  // user: { uniqueId, nickname, profilePictureUrl? }
+  // team: A | B; giftValue/giftTier only for gifts
+  marbleEngine.applyStreamEvent(event);
+});
+```
+
+The gateway accepts `team` on `join-room` and `/api/rooms/:roomId/connect`, then stamps `team` and `streamerTeam` on `stream_event` and SSE frames. A combined room remains supported: TikTok defaults to team A and YouTube to team B. Gift tiers are normalized to `rose`, `meat`, `banana`, `meteor`, `crown`; the Marble engine maps higher tiers to an opponent obstacle, and queues events received during `FINISHED` until the next countdown.
+
+## 3. Splice Spec-to-SDK & Mock Gateway (`window.SpliceSDK` / `PokiSDK.splice`)
 
 ```javascript
 // 1. Khởi tạo Mock Server độc lập & nhận khóa sk_live_<32_chars> tự động chèn vào Interceptor:
@@ -56,7 +79,7 @@ const sdkPkg = await PokiSDK.splice.generateTypedSDK({
 
 ---
 
-## 3. Counter POS, Tồn Kho 86'd, Happy Hour, KDS & Z-Report (`Game9K.pos` / `PokiSDK.economy`)
+## 4. Counter POS, Tồn Kho 86'd, Happy Hour, KDS & Z-Report (`Game9K.pos` / `PokiSDK.economy`)
 
 ```javascript
 // 1. Báo giá trước đơn hàng Xsolla với Happy Hour (-15%) + Coupon GAMER9K (-15%) + Kiểm tra tồn kho:
@@ -85,7 +108,7 @@ PokiSDK.economy.downloadCSV("shifts");   // game9k-shifts.csv
 
 ---
 
-## 4. Lưu Trữ An Toàn Chống Tràn Dung Lượng (`Game9K.storage`)
+## 5. Lưu Trữ An Toàn Chống Tràn Dung Lượng (`Game9K.storage`)
 
 ```javascript
 // Tương thích Opaque Origin (<iframe sandbox="allow-scripts">) + bắt sự kiện đầy bộ nhớ:
@@ -100,7 +123,7 @@ console.log("Bytes used:", Game9K.storage.getBytesUsed());
 
 ---
 
-## 5. E2B Runtime, Code Interpreter, Fragments/Morph & Open Computer Use (`PokiSDK.*`)
+## 6. E2B Runtime, Code Interpreter, Fragments/Morph & Open Computer Use (`PokiSDK.*`)
 
 ```javascript
 // 1. E2B Runtime Control Plane (Snapshot Boot, Pause GCRA + envd Freeze, Fork & Auto-Resume):
@@ -139,7 +162,7 @@ console.log(step.step.grounding, step.step.toolCall);
 
 ---
 
-## 6. OpenRouter Multi-Model Gateway, OAuth PKCE & Agent Protocol v1 (`PokiSDK.ai`)
+## 7. OpenRouter Multi-Model Gateway, OAuth PKCE & Agent Protocol v1 (`PokiSDK.ai`)
 
 ```javascript
 // 1. Sinh trực tiếp mini-game Poki 60 FPS từ câu lệnh tự nhiên + vá nóng qua Morph v3:
@@ -164,7 +187,7 @@ console.log(evalReport.passedTiers, zReport.aiUsage);
 
 ---
 
-## 7. Awesome AI SDKs Suite v6.0 (`PokiSDK.ai.streamChat` + `PokiSDK.agentOps`)
+## 8. Awesome AI SDKs Suite v6.0 (`PokiSDK.ai.streamChat` + `PokiSDK.agentOps`)
 
 Hợp nhất 11 chuẩn **Awesome AI SDKs** (`Vercel AI SDK`, `AgentOps`, `Langfuse`, `LangSmith`, `Helicone`, `Chidori`, `SID`, `Steamship`, `Fixie`, `LangChain`, `E2B`) an toàn xuyên qua `<iframe sandbox="allow-scripts">`:
 
@@ -196,7 +219,7 @@ await PokiSDK.agentOps.dispatchWebhook("agentops.eval_passed", { sdkVersion: "7.
 
 ---
 
-## 8. OpenRouter Multimodal & KOL Fleet Suite v7.0 (`PokiSDK.ai`)
+## 9. OpenRouter Multimodal & KOL Fleet Suite v7.0 (`PokiSDK.ai`)
 
 Mở khóa 4 năng lực đa phương thức & quản trị đội ngũ KOL từ hệ sinh thái 600+ mô hình `openrouter.ai`:
 
@@ -236,7 +259,7 @@ console.log(turn2.upstreamCacheHit, turn2.usage.cachedReadTokens);
 
 ---
 
-## 9. Cloud & Edge Production Launchpad v9.0 (`PokiSDK.cloud` + `npm run deploy`)
+## 10. Cloud & Edge Production Launchpad v9.0 (`PokiSDK.cloud` + `npm run deploy`)
 
 Khép kín vòng đời xuất bản sản phẩm thật lên **Cloudflare R2 (`AWS4-HMAC-SHA256`)**, **Supabase PostgREST**, **Kho bạc Token Solana (`Ed25519`)**, và **Bộ đếm giờ chơi U18 Nghị định 147/2024/NĐ-CP**:
 
@@ -263,7 +286,7 @@ console.log(guard.shouldLockUnder18, guard.portalPostMessageCmd); // true, "UNDE
 
 ---
 
-## 10. Multi-Game KOL Esports Arena v9.0 (`PokiSDK.arena`)
+## 11. Multi-Game KOL Esports Arena v9.0 (`PokiSDK.arena`)
 
 `dino-race` và `cyber-boss-raid` dùng chung bracket ELO, phiên anti-cheat HMAC một lần, Battle Pass liên game và sổ cái chia doanh thu 70/20/10. Các lời gọi trong iframe sandbox đi qua Portal RPC; khi chạy trên gateway, SDK dùng các REST endpoint tương ứng:
 

@@ -298,6 +298,8 @@
     constructor() {
       this.socket = null;
       this.sse = null;
+      this.pairSockets = new Map();
+      this.pairSse = new Map();
       this.roomId = null;
       this.config = {};
       this.handlers = {
@@ -377,6 +379,88 @@
       }
     }
 
+    /**
+     * Connect two isolated upstream rooms for a PK battle. Each socket carries
+     * its team label to the gateway, so normalized events stay attributable
+     * even when both creators use the same platform.
+     */
+    connectPair(pair = {}, serverUrl) {
+      this.socket?.disconnect?.();
+      this.socket = null;
+      this.sse?.close?.();
+      this.sse = null;
+      for (const socket of this.pairSockets.values()) socket.disconnect?.();
+      for (const source of this.pairSse.values()) source.close?.();
+      this.pairSockets.clear();
+      this.pairSse.clear();
+
+      const entries = [
+        ["A", pair.A || pair.a || {}],
+        ["B", pair.B || pair.b || {}],
+      ];
+      const base = serverUrl || (hasHttpOrigin() ? global.location.origin : undefined);
+      this.roomId = "pk-pair";
+      this.config = { pair: true };
+
+      for (const [team, rawOpts] of entries) {
+        const opts = { ...(rawOpts || {}), team };
+        const roomId = String(opts.roomId || opts.tiktok || opts.youtube || `marble-pk-${team}`)
+          .trim()
+          .toLowerCase()
+          .replace(/^@+/, "")
+          .replace(/[^a-z0-9_.-]/g, "-");
+
+        if (typeof global.io === "function") {
+          const socket = base ? global.io(base) : global.io();
+          this.pairSockets.set(team, socket);
+          socket.on("connect", () => socket.emit("join-room", { ...opts, roomId, team }));
+          socket.on("room-joined", (data) => this._emit("connected", { ...data, team, roomId }));
+          socket.on("stream_event", (evt) =>
+            this._routeNormalizedEvent({ ...evt, team: evt?.team || team, streamerTeam: evt?.streamerTeam || team })
+          );
+          socket.on("stream_status", (st) => {
+            const status = { ...st, team, roomId };
+            this._emit("status", status);
+            if (st.status === "connected") this._emit("connected", status);
+            if (st.status === "disconnected") this._emit("disconnected", status);
+            if (st.status === "reconnecting") this._emit("reconnecting", status);
+          });
+          socket.on("connection-error", (err) => this._emit("error", { ...err, team, roomId }));
+        } else if (typeof global.EventSource === "function" && hasHttpOrigin()) {
+          this._connectPairSse(team, roomId, opts);
+        }
+      }
+      return { ok: true, teams: entries.map(([team, opts]) => ({ team, roomId: opts.roomId || null })) };
+    }
+
+    async _connectPairSse(team, roomId, opts) {
+      try {
+        await fetch(`/api/rooms/${encodeURIComponent(roomId)}/connect`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...opts, team }),
+        });
+        const source = new global.EventSource(`/api/sse/${encodeURIComponent(roomId)}`);
+        this.pairSse.set(team, source);
+        source.onmessage = (msg) => {
+          try {
+            const parsed = JSON.parse(msg.data);
+            if (parsed.kind === "event" && parsed.event) {
+              this._routeNormalizedEvent({ ...parsed.event, team: parsed.event.team || team, streamerTeam: parsed.event.streamerTeam || team });
+            } else if (parsed.kind === "status" && parsed.status) {
+              this._emit("status", { ...parsed.status, team, roomId });
+            } else if (parsed.kind === "connected") {
+              this._emit("connected", { ...parsed, team, roomId });
+            }
+          } catch {
+            // Ignore malformed SSE frame
+          }
+        };
+      } catch (err) {
+        this._emit("error", { message: err?.message || "PK SSE connection failed", team, roomId });
+      }
+    }
+
     _bindSocketListeners() {
       this.socket.on("connect", () => {
         this.socket.emit("join-room", { ...this.config, roomId: this.roomId });
@@ -438,6 +522,7 @@
             };
 
       const type = String(raw.type || "chat").toLowerCase();
+      const team = raw.team === "B" ? "B" : raw.team === "A" ? "A" : undefined;
 
       if (type === "gift" || type === "superchat") {
         const coins = Math.max(1, Number(raw.giftValue ?? raw.coins ?? raw.diamonds ?? 1));
@@ -458,6 +543,7 @@
         const normalized = {
           type: "gift",
           platform,
+          team,
           user: userObj,
           giftId: Number(raw.giftId || 1),
           giftName:
@@ -479,6 +565,7 @@
         const normalized = {
           type: "like",
           platform,
+          team,
           user: userObj,
           likeCount: Math.max(1, Number(raw.likeCount || raw.count || 3)),
           timestamp: Date.now(),
@@ -491,6 +578,7 @@
         const normalized = {
           type,
           platform,
+          team,
           user: userObj,
           timestamp: Date.now(),
         };
@@ -511,6 +599,7 @@
       const normalized = {
         type: "chat",
         platform,
+        team,
         user: userObj,
         comment,
         lane,

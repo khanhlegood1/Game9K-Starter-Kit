@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Marble Race Live — Game9K PK Streamer Battle</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #e2e8f0;
+      --muted: #94a3b8;
+      --panel: rgba(2, 6, 23, .84);
+      --line: rgba(148, 163, 184, .22);
+      --cyan: #22d3ee;
+      --pink: #f472b6;
+      --yellow: #fde047;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: #020617; color: var(--ink); font: 14px/1.4 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { min-height: 100vh; overflow-x: hidden; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .app { min-height: 100vh; display: flex; flex-direction: column; }
+    .topbar { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; background: rgba(2, 6, 23, .94); border-bottom: 1px solid rgba(34, 211, 238, .22); position: relative; z-index: 3; }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; background: linear-gradient(135deg, #0891b2, #a21caf); box-shadow: 0 0 22px rgba(34,211,238,.23); }
+    .brand h1 { margin: 0; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
+    .brand p { margin: 2px 0 0; color: var(--muted); font-size: 10px; }
+    .top-actions { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+    .pill, .btn { border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: rgba(15, 23, 42, .9); padding: 7px 10px; font-size: 11px; font-weight: 750; }
+    .btn:hover { filter: brightness(1.18); }
+    .btn.primary { color: #082f49; border-color: #67e8f9; background: linear-gradient(135deg, #22d3ee, #a7f3d0); }
+    .btn.warn { color: #422006; border-color: #facc15; background: linear-gradient(135deg, #fde047, #fb923c); }
+    .btn.pink { border-color: rgba(244,114,182,.62); background: rgba(157,23,77,.64); }
+    .btn.ghost { background: rgba(15,23,42,.56); }
+    .live-dot { display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: #fb7185; box-shadow: 0 0 10px #fb7185; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 318px; flex: 1; min-height: calc(100vh - 58px); }
+    .stage { min-height: 560px; position: relative; background: #020617; }
+    #marbleCanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .stage-hint { position: absolute; left: 16px; bottom: 16px; max-width: min(480px, calc(100% - 32px)); padding: 9px 12px; border: 1px solid rgba(103,232,249,.24); background: rgba(2,6,23,.66); border-radius: 10px; color: #cbd5e1; font-size: 11px; pointer-events: none; }
+    .stage-hint b { color: var(--yellow); }
+    .side { padding: 12px; background: #07101f; border-left: 1px solid rgba(148,163,184,.18); overflow: auto; }
+    .card { padding: 12px; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 13px; background: var(--panel); box-shadow: 0 15px 35px rgba(0,0,0,.2); }
+    .card h2 { margin: 0 0 8px; color: #f8fafc; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+    .card p { margin: 0 0 9px; color: var(--muted); font-size: 11px; }
+    .team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .team { padding: 9px; border: 1px solid; border-radius: 11px; }
+    .team.a { border-color: rgba(34,211,238,.48); background: rgba(8,145,178,.1); }
+    .team.b { border-color: rgba(244,114,182,.48); background: rgba(190,24,93,.1); }
+    .team strong { display: block; font-size: 12px; }
+    .team span { display: block; color: #cbd5e1; font: 700 11px ui-monospace, monospace; margin-top: 2px; }
+    .team small { display: block; margin-top: 5px; color: var(--muted); font-size: 9px; }
+    .field { display: grid; gap: 4px; margin: 7px 0; }
+    .field label { color: #cbd5e1; font-size: 10px; font-weight: 700; }
+    .field input, .field select { width: 100%; padding: 8px 9px; border: 1px solid rgba(148,163,184,.25); border-radius: 8px; color: #e2e8f0; background: #020617; outline: none; }
+    .field input:focus, .field select:focus { border-color: var(--cyan); }
+    .row { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+    .row > .btn { flex: 1; min-width: 100px; }
+    .event-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+    .event-grid .btn { padding: 8px 4px; font-size: 10px; }
+    .event-grid .btn[data-team="A"] { border-color: rgba(34,211,238,.5); }
+    .event-grid .btn[data-team="B"] { border-color: rgba(244,114,182,.5); }
+    .feed { max-height: 155px; overflow: auto; display: grid; gap: 5px; color: #cbd5e1; font: 10px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .feed div { padding-bottom: 5px; border-bottom: 1px solid rgba(148,163,184,.1); }
+    .fairness { padding: 9px; border-radius: 9px; background: rgba(34,211,238,.07); border: 1px solid rgba(34,211,238,.22); color: #bae6fd; font-size: 10px; }
+    .fairness code { color: #fef08a; word-break: break-all; }
+    .queue { color: #fbbf24; font: 700 10px ui-monospace, monospace; }
+    .hidden { display: none !important; }
+    @media (max-width: 920px) {
+      .workspace { grid-template-columns: 1fr; }
+      .stage { min-height: 64vh; }
+      .side { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border-left: 0; border-top: 1px solid rgba(148,163,184,.18); }
+      .card { margin: 0; }
+      .card:last-child { grid-column: 1 / -1; }
+    }
+    @media (max-width: 600px) {
+      .topbar { align-items: flex-start; }
+      .top-actions { max-width: 150px; }
+      .top-actions .pill { display: none; }
+      .side { display: block; }
+      .side .card { margin-bottom: 10px; }
+      .stage { min-height: 58vh; }
+      .stage-hint { font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <a class="brand-mark" href="/index.html" aria-label="Game9K home">🟣</a>
+      <div>
+        <h1>Marble Race Live · PK Streamer Battle</h1>
+        <p><span class="live-dot"></span>TikTok Live + YouTube Live · G2 · viewer avatars · seeded fairness</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span id="connection-pill" class="pill">OFFLINE DEMO</span>
+      <button id="btn-sound" class="btn ghost" type="button">🔊</button>
+      <button id="btn-new-heat" class="btn warn" type="button">NEXT HEAT</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="stage" aria-label="Marble race canvas">
+      <canvas id="marbleCanvas"></canvas>
+      <div class="stage-hint"><b>PK:</b> gift/điểm của A hoặc B sẽ tạo vật cản ở lane đối thủ. Chat <b>A</b>, <b>B</b>, <b>1</b>, <b>2</b> để vào đội. Mỗi heat có seed hiển thị để replay.</div>
+    </section>
+
+    <aside class="side">
+      <section class="card">
+        <h2>Streamer PK score</h2>
+        <div class="team-grid">
+          <div class="team a"><strong>CYAN · STREAMER A</strong><span id="score-a">0</span><small id="coins-a">gift coins 0</small></div>
+          <div class="team b"><strong>PINK · STREAMER B</strong><span id="score-b">0</span><small id="coins-b">gift coins 0</small></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Dual-room routing</h2>
+        <p>Map room A/B to two streamers. With one combined room, TikTok routes to A and YouTube routes to B.</p>
+        <div class="field"><label for="room-a">Room / TikTok for A</label><input id="room-a" placeholder="@streamer_a" autocomplete="off"></div>
+        <div class="field"><label for="room-b">Room / YouTube for B</label><input id="room-b" placeholder="live video id or @streamer_b" autocomplete="off"></div>
+        <div class="row"><button id="btn-connect" class="btn primary" type="button">CONNECT PK</button><button id="btn-demo" class="btn pink" type="button">DEMO BOT</button></div>
+        <div id="stream-status" class="queue" style="margin-top:8px">room: local sandbox</div>
+      </section>
+
+      <section class="card">
+        <h2>Heat controls</h2>
+        <div class="field"><label for="seed-input">Fairness seed</label><input id="seed-input" value="G9K-MARBLE-001" autocomplete="off"></div>
+        <div class="row"><button id="btn-start" class="btn primary" type="button">START / RESTART</button><button id="btn-hide-labels" class="btn ghost" type="button">LABELS</button></div>
+        <div class="fairness" style="margin-top:9px">Obstacle layout is generated from <code id="seed-receipt">G9K-MARBLE-001</code>. Physics is replayable; live event timestamps are queued between heats instead of mutating a finished result.</div>
+      </section>
+
+      <section class="card">
+        <h2>Send live event</h2>
+        <p>Simulator buttons exercise the same normalized chat/gift/like/join contract used by the bridge.</p>
+        <div class="event-grid">
+          <button class="btn ghost" data-event="chat" data-team="A" type="button">💬 A chat</button>
+          <button class="btn ghost" data-event="chat" data-team="B" type="button">💬 B chat</button>
+          <button class="btn ghost" data-event="like" data-team="A" type="button">❤️ A like</button>
+          <button class="btn ghost" data-event="gift" data-team="A" data-tier="rose" data-coins="1" type="button">🌹 A +1</button>
+          <button class="btn ghost" data-event="gift" data-team="A" data-tier="meteor" data-coins="20" type="button">☄️ A PK</button>
+          <button class="btn ghost" data-event="gift" data-team="B" data-tier="meteor" data-coins="20" type="button">☄️ B PK</button>
+          <button class="btn ghost" data-event="gift" data-team="B" data-tier="banana" data-coins="10" type="button">🍌 B trap</button>
+          <button class="btn ghost" data-event="gift" data-team="A" data-tier="crown" data-coins="99" type="button">👑 A chaos</button>
+          <button class="btn ghost" data-event="share" data-team="B" type="button">↗️ B share</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Event queue & feed</h2>
+        <div id="queue-status" class="queue" style="margin-bottom:8px">queued between heats: 0</div>
+        <div id="event-feed" class="feed" aria-live="polite"></div>
+      </section>
+    </aside>
+  </main>
+</div>
+
+<script src="/socket.io/socket.io.js" onerror="/* optional in standalone */"></script>
+<script src="/sdk/game9k-sdk.js"></script>
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>

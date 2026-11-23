@@ -8,7 +8,7 @@ Tài liệu này mô tả chi tiết cách `Game9K-Starter-Kit` hiện thực h�
 
 1. **Bước 1 — Quét Tĩnh & Đóng Dấu Mã Băm Bất Biến (`npm run validate` & `npm run build`)**:
    - Đọc `game9k.manifest.json` của từng trò chơi trong `public/games/<slug>/`.
-   - Kiểm tra ngân sách dung lượng nén Gzip (`dino-race` đạt **32.3 KB Gzip**, thấp hơn nhiều trần `125–275 KB`).
+   - Kiểm tra ngân sách dung lượng nén Gzip (`dino-race` đạt **34.37 KB**, Marble Race **17.90 KB**, thấp hơn trần `125 KB`).
    - Tự động từ chối bản dựng nếu phát hiện thẻ `<video>` (gây lỗi `playsinline` trên TikTok In-App WebView), lệnh thực thi động (`eval`, `new Function`), hoặc truy cập trái phép `parent.document.cookie` / `window.top.location`.
    - Xuất gói phát hành tĩnh ra `dist/` kèm `dist/release-manifest.json` chứa mã băm `SHA-256` của từng tệp và `bundle_sha256` toàn cục để lưu trữ bất biến trên **Cloudflare R2** (phục vụ qua Custom Domain bật nén Zstd/Brotli).
 2. **Bước 2 — Vận Hành Hai Chế Độ Độc Lập Hoặc Nối Cổng (`public/sdk/game9k-sdk.js`)**:
@@ -19,14 +19,25 @@ Tài liệu này mô tả chi tiết cách `Game9K-Starter-Kit` hiện thực h�
 
 ---
 
-## 2. Tiết Lưu Supabase Realtime Broadcast (`<= 20 Hz`)
+## 2. Viewer-first Marble Race Live & PK contract
+
+`public/games/marble-race-live/` là một game độc lập `G2`, không phải skin đổi tên của Dino Race. Kênh chính là live overlay cho TikTok Live/YouTube Live; Poki/instant-play chỉ là acquisition và sandbox fallback.
+
+- `MarbleRaceEngine` giữ tối đa `120` marble/heat. Mỗi marble có `nickname`, `avatar`, `platform`, `team` và trạng thái boost/slow/stun. `MarbleRaceRenderer` dùng Canvas, clip avatar thành circle và giảm kích thước khi crowd dày.
+- Obstacle layout được sinh từ `hashSeed(seed:heat)`. HUD hiển thị seed; `vortex`, `falling_rock`, `split_gate` có thể tác động lên lane/team đối thủ.
+- Gift/điểm của A hoặc B boost team gửi quà và gọi `spawnObstacle(..., opponentTeam, sourceTeam)`. Điều này tạo lật kèo quan sát được thay vì âm thầm sửa tốc độ.
+- `LiveStreamBridge.connectPair({ A, B })` mở hai Socket.IO/SSE room tenant riêng. `join-room` nhận `team`; `LiveRoomHub` stamp `team` và `streamerTeam` vào `stream_event`/SSE. Với combined room, client fallback TikTok → A và YouTube → B.
+- Khi phase là `FINISHED`, event mới vào `eventQueue`; `nextHeat()` flush queue sau khi seed/layout mới được khóa. Kết quả heat đã chốt không bị live traffic mutate.
+- `npm run build` sinh cả `public/games/dino-race/standalone.html` và `public/games/marble-race-live/standalone.html`.
+
+## 3. Tiết Lưu Supabase Realtime Broadcast (`<= 20 Hz`)
 
 - Mọi gói dịch vụ Supabase Realtime đều áp trần cứng **5 lần gọi `Presence.track()` mỗi 30 giây / client**. Nếu đẩy tọa độ khủng long qua `Presence`, kênh sẽ bị ngắt ngay với lỗi `ClientPresenceRateLimitReached`.
 - `Game9K.broadcastTick(payload)` trong SDK cưỡng bức chu kỳ tối thiểu `66ms` (**~15 sự kiện/giây**, không bao giờ vượt quá trần `20 Hz`), chỉ truyền gói tin tạm thời qua kênh **Broadcast** (độ trễ trung vị ~6ms).
 
 ---
 
-## 3. Tích Hợp Google H5 Games Ad Placement API (`Game9K.ads`)
+## 4. Tích Hợp Google H5 Games Ad Placement API (`Game9K.ads`)
 
 - Hỗ trợ đầy đủ `adConfig()` và `adBreak()` cho cả định dạng **Xen kẽ (`preroll`, `next`)** và **Có thưởng (`reward`)**.
 - Tích hợp **bộ hẹn giờ an toàn 2.000ms** cho `preroll`: nếu mạng chậm hoặc tên miền đang chờ duyệt H5 Beta (`breakStatus=other`), game tự động giải phóng khóa chờ để người chơi vào đường đua ngay lập tức.
@@ -34,7 +45,7 @@ Tài liệu này mô tả chi tiết cách `Game9K-Starter-Kit` hiện thực h�
 
 ---
 
-## 4. Khuôn Khổ Tuân Thủ Nghị Định 147/2024/NĐ-CP (Thị Trường Việt Nam)
+## 5. Khuôn Khổ Tuân Thủ Nghị Định 147/2024/NĐ-CP (Thị Trường Việt Nam)
 
 - Tệp `game9k.manifest.json` bắt buộc khai báo `legal_classification` (`G1`, `G2`, `G3` hoặc `G4`).
 - Lớp vỏ cổng (`/portal.html`) đặt bên ngoài `<iframe>` chịu trách nhiệm giám sát tổng thời gian chơi trong ngày của tài khoản dưới 18 tuổi (**tối đa 60 phút/ngày cho một game** và **180 phút/ngày trên toàn cổng**) và gửi lệnh `UNDER18_LIMIT_LOCK` để khóa cứng màn hình chơi khi chạm ngưỡng.

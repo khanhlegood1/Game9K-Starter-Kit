@@ -1,7 +1,7 @@
 {
   "name": "game9k-starter-kit",
   "version": "1.0.0",
-  "description": "Game9K HTML5 Instant-Play Starter Kit & Multi-Platform Live Stream Gateway (TikTok Live + YouTube Live) featuring Jurassic Sanctuary Sprint (Dino Race)",
+  "description": "Game9K viewer-first HTML5 live-interaction games and Multi-Platform Live Stream Gateway (TikTok Live + YouTube Live): Dino Race and Marble Race PK",
   "type": "module",
   "main": "src/server.js",
   "bin": {

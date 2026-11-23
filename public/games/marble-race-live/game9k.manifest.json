@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "id": "marble-race-live",
+  "title": "Game9K Marble Race Live — PK Streamer Battle",
+  "version": "1.0.0",
+  "description": "Viewer-first deterministic Canvas marble race for TikTok Live and YouTube Live. Avatars join heats, gifts boost their team, and streamer PK gifts create fair, visible obstacles for the opposing room.",
+  "author": "Game9K Studio",
+  "entry": "index.html",
+  "standalone_entry": "standalone.html",
+  "legal_classification": "G2",
+  "supported_modes": ["G4", "G2"],
+  "audience": {
+    "primary": "live_viewer",
+    "secondary": ["kol_creator", "brand_sponsor"],
+    "investor_experience": "dashboard_only"
+  },
+  "distribution": {
+    "game9k_live_room": "primary",
+    "poki_portal": "acquisition_only",
+    "obs_browser_source": true,
+    "supports_9_16_portrait": true
+  },
+  "budgets": {
+    "max_gzip_kb": 125,
+    "target_fps": 60
+  },
+  "bridge": {
+    "sandbox_compatible": true,
+    "requires_same_origin": false,
+    "poki_sdk_compatible": true,
+    "max_telemetry_hz": 10,
+    "events_emitted": [
+      "game_ready",
+      "poki_loading_finished",
+      "heat_started",
+      "race_started",
+      "marble_joined",
+      "pk_gift_scored",
+      "physics_obstacle_spawned",
+      "event_queued",
+      "event_queue_flushed",
+      "heat_finished",
+      "leaderboard_submit"
+    ]
+  },
+  "live": {
+    "platforms": ["tiktok-live", "youtube-live"],
+    "room_model": "dual_streamer_pk",
+    "team_event_contract": "team_and_streamerTeam",
+    "teams": ["STREAMER_A", "STREAMER_B"],
+    "max_marbles_per_heat": 120,
+    "avatar_skin_engine": "canvas_circle_avatar",
+    "deterministic_seeded_heats": true,
+    "physics_obstacles": ["vortex", "falling_rock", "split_gate"],
+    "chat_commands": ["A", "B", "1", "2"],
+    "gift_to_opponent_obstacle": true,
+    "fairness_receipt": "seed_visible_in_hud"
+  },
+  "ads": {
+    "provider": "poki-portal-and-google-h5",
+    "placements": ["preroll", "commercialBreak", "rewardedBreak"],
+    "preroll_timeout_ms": 2000
+  },
+  "monetization": {
+    "model": "creator_led_live_entertainment",
+    "viewer_entry": "free",
+    "products": ["creator_boost_pack", "branded_obstacle_pack", "team_skin_pack"],
+    "revenue_split": { "studio_pct": 70, "creator_pct": 20, "prize_pool_pct": 10 }
+  },
+  "safety": {
+    "no_investment_required_to_play": true,
+    "no_token_purchase_required": true,
+    "u18_lock_delegated_to_portal": true
+  }
+}

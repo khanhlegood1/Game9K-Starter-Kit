@@ -149,6 +149,58 @@ function compileDinoRaceStandalone() {
   };
 }
 
+/**
+ * Bundle the viewer-first Marble Race modules and the Game9K SDK into a
+ * portable single-file HTML for OBS Browser Source and offline demos.
+ */
+function compileMarbleRaceStandalone() {
+  const marbleDir = join(GAMES_DIR, "marble-race-live");
+  const indexHtmlPath = join(marbleDir, "index.html");
+  if (!existsSync(indexHtmlPath)) return null;
+
+  const sdkCode = readFileSync(join(PUBLIC_DIR, "sdk/game9k-sdk.js"), "utf8");
+  const moduleOrder = [
+    "js/marble-engine.js",
+    "js/renderer.js",
+    "js/main.js",
+  ];
+  const strippedModules = moduleOrder.map((relPath) => {
+    const raw = readFileSync(join(marbleDir, relPath), "utf8");
+    return raw
+      .replace(/^\s*import\s+[\s\S]*?from\s+["'][^"']+["'];?\s*$/gm, "")
+      .replace(/^\s*export\s+(class|function|const|let)\s+/gm, "$1 ");
+  });
+
+  const combinedScript = [
+    "<script>",
+    sdkCode,
+    "</script>",
+    "<script>",
+    "(function () {",
+    '"use strict";',
+    ...strippedModules,
+    "})();",
+    "</script>",
+  ].join("\n");
+
+  const templateHtml = readFileSync(indexHtmlPath, "utf8");
+  const standaloneHtml = templateHtml
+    .replace(/<script src="\/socket\.io\/socket\.io\.js"[^>]*><\/script>\s*/g, "")
+    .replace(/<script src="\/sdk\/game9k-sdk\.js"><\/script>\s*/g, "")
+    .replace(/<script type="module" src="\.\/js\/main\.js"><\/script>/, () => combinedScript);
+
+  const outPath = join(marbleDir, "standalone.html");
+  writeFileSync(outPath, standaloneHtml, "utf8");
+  const buf = Buffer.from(standaloneHtml, "utf8");
+  const gz = gzipSync(buf, { level: 9 });
+  return {
+    path: "public/games/marble-race-live/standalone.html",
+    rawKb: Number((buf.length / 1024).toFixed(2)),
+    gzipKb: Number((gz.length / 1024).toFixed(2)),
+    sha256: sha256Hex(buf),
+  };
+}
+
 function runCapabilities(opts) {
   emitResult({
     json: opts.json,
@@ -254,10 +306,16 @@ function runValidate(opts) {
 }
 
 function runBuild(opts) {
-  let standaloneInfo = null;
+  const standaloneBundles = [];
   if (!opts.game || opts.game === "dino-race") {
-    standaloneInfo = compileDinoRaceStandalone();
+    const info = compileDinoRaceStandalone();
+    if (info) standaloneBundles.push(info);
   }
+  if (!opts.game || opts.game === "marble-race-live") {
+    const info = compileMarbleRaceStandalone();
+    if (info) standaloneBundles.push(info);
+  }
+  const standaloneInfo = standaloneBundles[0] || null;
 
   const slugs = discoverGames(opts.game);
   if (slugs.length === 0) {
@@ -327,6 +385,7 @@ function runBuild(opts) {
     generated_at: new Date().toISOString(),
     bundle_sha256: bundleTreeSha256,
     standalone_bundle: standaloneInfo,
+    standalone_bundles: standaloneBundles,
     games: builtGames,
     artifacts: distEntries,
   };
@@ -346,6 +405,7 @@ function runBuild(opts) {
       outputDir: "dist/",
       bundleSha256: bundleTreeSha256,
       standalone: standaloneInfo,
+      standaloneBundles,
       games: builtGames.map((g) => ({
         slug: g.slug,
         version: g.version,
