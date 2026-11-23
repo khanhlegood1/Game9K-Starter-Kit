@@ -240,6 +240,7 @@ export default class E2BSandboxService {
     this.tokenSecret =
       options.tokenSecret || process.env.E2B_VOLUME_SECRET || "g9k_e2b_volume_jwt_2026";
     this.pauseLimitPerMinute = options.pauseLimitPerMinute ?? 6;
+    this.openRouter = options.openRouter || null;
 
     this.templates = new Map();
     this.aliasCache = new Map();
@@ -931,6 +932,52 @@ export default class E2BSandboxService {
       instruction: morphPayload.instruction || "",
       content: patched.content,
       previewUrl: `/api/e2b/preview/${rec.sandboxId}`,
+    };
+  }
+
+  async generateAndDeployFragment(prompt, options = {}) {
+    if (!this.openRouter) {
+      return { ok: false, status: 503, error: "OpenRouterService is not attached." };
+    }
+    const specRes = await this.openRouter.generateFragmentSpec(prompt, options);
+    if (!specRes.ok) return specRes;
+
+    const deployed = this.deployFragment({
+      fragment: specRes.fragment,
+      sandboxId: options.sandboxId || null,
+      userID: options.userID || "studio",
+    });
+    return {
+      ...deployed,
+      selectedModel: specRes.selectedModel,
+      failoverTrace: specRes.failoverTrace,
+      fragment: specRes.fragment,
+      usage: specRes.usage,
+      budget: specRes.budget,
+    };
+  }
+
+  async smartMorphEdit(sandboxId, instruction, filePath = "index.html") {
+    if (!this.openRouter) {
+      return { ok: false, status: 503, error: "OpenRouterService is not attached." };
+    }
+    const fileRes = this.readSandboxFile(sandboxId, filePath);
+    if (!fileRes.ok) return fileRes;
+
+    const morphSpec = await this.openRouter.generateMorphPatch(fileRes.content, instruction);
+    if (!morphSpec.ok) return morphSpec;
+
+    const applied = this.applyMorphEdit(sandboxId, {
+      file_path: filePath,
+      instruction,
+      edit: morphSpec.edit,
+    });
+    return {
+      ...applied,
+      selectedModel: morphSpec.selectedModel,
+      edit: morphSpec.edit,
+      usage: morphSpec.usage,
+      budget: morphSpec.budget,
     };
   }
 

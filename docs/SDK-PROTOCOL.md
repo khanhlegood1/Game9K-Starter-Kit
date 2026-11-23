@@ -1,6 +1,6 @@
-# Đặc Tả Giao Thức SDK Hợp Nhất (`@game9k/sdk` v4.0 — Poki Portal × Xsolla × Splice × POS/KDS × E2B Runtime & Computer Use)
+# Đặc Tả Giao Thức SDK Hợp Nhất (`@game9k/sdk` v5.0 — Poki Portal × Xsolla × Splice × POS/KDS × E2B × OpenRouter AI)
 
-Mọi trò chơi HTML5 phát triển trên bộ **Game9K Starter Kit** chỉ cần nhúng duy nhất `/sdk/game9k-sdk.js` (hoặc các shim `/sdk/poki-sdk.js`, `/sdk/xsolla-sdk.js`, `/sdk/splice-sdk.js`, `/sdk/e2b-sdk.js`, `/sdk/tiktok-bridge.js`) để sử dụng đồng thời **9 mô-đun công nghiệp** theo đúng kiến trúc **Poki Portal SDK** (`PORTAL_RPC_REQUEST` qua `<iframe sandbox="allow-scripts">`):
+Mọi trò chơi HTML5 phát triển trên bộ **Game9K Starter Kit** chỉ cần nhúng duy nhất `/sdk/game9k-sdk.js` (hoặc các shim `/sdk/poki-sdk.js`, `/sdk/xsolla-sdk.js`, `/sdk/splice-sdk.js`, `/sdk/e2b-sdk.js`, `/sdk/openrouter-sdk.js`, `/sdk/tiktok-bridge.js`) để sử dụng đồng thời **10 mô-đun công nghiệp** theo đúng kiến trúc **Poki Portal SDK** (`PORTAL_RPC_REQUEST` qua `<iframe sandbox="allow-scripts">`):
 
 1. **`window.PokiSDK`** (`window.Game9K.poki`) — Tương thích thả-chạy 100% với chuẩn **Poki Portal SDK** (`init`, `gameLoadingFinished`, `gameplayStart/Stop`, `commercialBreak`, `rewardedBreak`, `happyTime`, `movePill`, `shareableURL`, `getURLParam`, `login/getUser/getToken`).
 2. **`window.XsollaSDK`** (`window.Game9K.xsolla`) — Chu trình **Xsolla SDK 3** chỉ **4 lệnh API** (`01 Authenticate → 02 Load Catalog → 03 Purchase Product → 04 Finalize Purchase`), tích hợp trực tiếp **Mã Giảm Giá POS (`GAMER9K`, `KOL20`)**, **Happy Hour** và **Khóa Hết Hàng Auto-86'd**.
@@ -10,7 +10,8 @@ Mọi trò chơi HTML5 phát triển trên bộ **Game9K Starter Kit** chỉ c�
 6. **`window.CodeInterpreterSDK`** (`PokiSDK.interpreter`) — Áp dụng **`e2b-dev/code-interpreter`**: Kernel thực thi nhiều ô giữ nguyên trạng thái biến (`runCode`), thu luồng `logs.stdout` / `logs.stderr` và bộ trích xuất biểu đồ SVG + dữ liệu có cấu trúc (`emitChart`).
 7. **`window.FragmentsSDK`** (`PokiSDK.fragments`) — Áp dụng **`lexuankhanh1612/fragments`**: Kiểm định `FragmentSchema`, triển khai trực tiếp mini-game Poki HTML5 lên URL `/api/e2b/preview/:sandboxId` và vá mã tức thời **Morph Lazy Edit** (`// ... existing code ...`).
 8. **`window.ComputerUseSDK`** (`PokiSDK.computerUse`) — Áp dụng **`e2b-dev/open-computer-use`**: Gia hạn `setSandboxTimeout(60_000)` mỗi bước, chụp ảnh màn hình Canvas + Grounding tọa độ nút bấm, vẽ dấu chấm đỏ-vàng `drawBigDot(x, y)` và điều khiển tự động `click` / `doubleClick` / `typeText` / `sendKey`.
-9. **`window.Game9K.storage` & `window.TikTokBridge`** — `SafeStorage` chống lỗi `QuotaExceededError` trong Opaque Origin và luồng sự kiện **TikTok Live + YouTube Live**.
+9. **`window.OpenRouterSDK`** (`PokiSDK.ai`) — Áp dụng **`openrouter.ai` + E2B State of AI Agents**: Định tuyến đa mô hình (`openrouter/auto`, `models: [...]` failover, `sort: "latency"|"throughput"|"price"`, `zdr: true`), đăng nhập **OAuth PKCE S256 BYOK** kèm trần chi tiêu, **Prompt-to-Poki-Fragment** + **Morph v3 Fast-Apply**, **AI Shoutcaster + Lọc NĐ 147/2024**, đối soát chi phí AI vào **POS Z-Report** và giao thức chuẩn **Agent Protocol v1**.
+10. **`window.Game9K.storage` & `window.TikTokBridge`** — `SafeStorage` chống lỗi `QuotaExceededError` trong Opaque Origin và luồng sự kiện **TikTok Live + YouTube Live**.
 
 ---
 
@@ -135,4 +136,30 @@ const step = await PokiSDK.computerUse.click("Boost button", {
 });
 console.log(step.step.grounding, step.step.toolCall);
 ```
+
+---
+
+## 6. OpenRouter Multi-Model Gateway, OAuth PKCE & Agent Protocol v1 (`PokiSDK.ai`)
+
+```javascript
+// 1. Sinh trực tiếp mini-game Poki 60 FPS từ câu lệnh tự nhiên + vá nóng qua Morph v3:
+const game = await PokiSDK.ai.generateFragment("Tạo mini-game khủng long neon né thiên thạch 60fps", {
+  sort: "throughput",
+  zdr: true,
+});
+await PokiSDK.ai.smartMorphEdit(game.sbxId, "Nâng cấp nhân vật sang màu vàng gold");
+
+// 2. AI Shoutcaster cho KOL Livestream + Lọc nội dung NĐ 147/2024 (Zero Data Retention):
+const cast = await PokiSDK.ai.shoutcast({
+  nickname: "VIP_KhanhLe",
+  giftTier: "meteor",
+  comment: "Thiên thạch lật kèo phút chót!",
+});
+
+// 3. Chạy kiểm định tiến trình 4 bậc (Simple -> Hard) & xem chi phí AI trong POS Z-Report:
+const evalReport = await PokiSDK.ai.runBenchmark();
+const zReport = await PokiSDK.economy.getZReport();
+console.log(evalReport.passedTiers, zReport.aiUsage);
+```
+
 

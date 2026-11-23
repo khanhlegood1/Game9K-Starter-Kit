@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game9K SDK Studio v4.0 — Poki Portal × Xsolla × Splice × POS/KDS × E2B Runtime &amp; Computer Use</title>
+  <title>Game9K SDK Studio v5.0 — Poki Portal × Xsolla × Splice × POS/KDS × E2B × OpenRouter AI</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
@@ -53,7 +53,7 @@
           <div class="flex items-center flex-wrap gap-2">
             <span class="font-black text-sm sm:text-base text-white tracking-tight">GAME9K SDK STUDIO</span>
             <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
-              Poki Portal SDK v4.0 · Xsolla · Splice · POS/KDS · E2B
+              Poki Portal SDK v5.0 · Xsolla · Splice · POS/KDS · E2B · OpenRouter
             </span>
             <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-sky-500/15 text-sky-300 border border-sky-500/30">
               User ID: <strong id="hdr-explorer-id">------</strong>
@@ -63,7 +63,7 @@
             </span>
           </div>
           <p class="text-[11px] text-slate-400 mt-0.5">
-            Hợp nhất <code class="text-amber-300">PokiSDK</code>, <code class="text-emerald-300">XsollaSDK</code>, <code class="text-sky-300">SpliceSDK</code>, <code class="text-pink-300">Game9K.pos</code> và <code class="text-violet-300">PokiSDK.runtime / interpreter / fragments / computerUse</code>.
+            Hợp nhất <code class="text-amber-300">PokiSDK</code>, <code class="text-emerald-300">XsollaSDK</code>, <code class="text-sky-300">SpliceSDK</code>, <code class="text-pink-300">Game9K.pos</code>, <code class="text-violet-300">E2B</code> và <code class="text-cyan-300">PokiSDK.ai (OpenRouter + Agent Protocol)</code>.
           </p>
         </div>
       </div>
@@ -82,6 +82,9 @@
           </button>
           <button data-main-tab="e2b" class="main-tab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white">
             🧪 4. E2B · Fragments &amp; Computer Use
+          </button>
+          <button data-main-tab="openrouter" class="main-tab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white">
+            🌐 5. OpenRouter AI &amp; Agent Eval
           </button>
         </div>
 
@@ -623,6 +626,103 @@ ctx.fillStyle = "#f43f5e"; // Morph Turbo Neon Mode!
     </section>
   </main>
 
+  <!-- ========================================================================
+       TAB 5: OPENROUTER MULTI-MODEL GATEWAY · OAUTH PKCE · PROMPT-TO-GAME & EVAL
+       ======================================================================== -->
+  <main id="panel-openrouter" class="hidden max-w-[1460px] mx-auto w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">
+
+    <!-- Col 1: OAuth PKCE S256 BYOK + Routing Strategy + Spend Cap Guardrail -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-cyan-400">OPENROUTER.AI · OAUTH PKCE &amp; GUARDRAILS</div>
+          <h2 class="text-sm font-black text-white">1-Click PKCE BYOK &amp; Multi-Model Router</h2>
+        </div>
+        <span id="or-mode-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-800 text-cyan-300">READY</span>
+      </div>
+
+      <div class="flex gap-2 text-xs">
+        <button id="btn-or-pkce" class="flex-1 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-stone-950 font-black">
+          🔐 Kết Nối OpenRouter (PKCE S256)
+        </button>
+        <button id="btn-or-failover" class="px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 font-bold">
+          ⚡ Test Failover
+        </button>
+      </div>
+
+      <div id="or-budget-box" class="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-[10.5px] text-slate-300 space-y-1.5">
+        <div>Session Key: <span class="text-emerald-300">sandbox_calibrated</span></div>
+        <div>Budget: <span class="text-cyan-300">$0.0000 / $5.00</span> (Alerts at 80%, stops at 100%)</div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <select id="or-sort-select" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-emerald-300">
+          <option value="latency">sort: latency (&lt;200ms)</option>
+          <option value="throughput">sort: throughput</option>
+          <option value="price">sort: lowest price</option>
+        </select>
+        <label class="flex items-center gap-2 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-sky-300">
+          <input id="or-zdr-toggle" type="checkbox" checked class="accent-emerald-400" />
+          ZDR Privacy ON
+        </label>
+      </div>
+
+      <pre id="or-router-log" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono text-[10px] text-slate-300 overflow-auto max-h-56">// Chọn chiến lược định tuyến hoặc bấm "Test Failover" để kiểm tra tự động chuyển đổi Gemini -> DeepSeek -> Claude!</pre>
+    </section>
+
+    <!-- Col 2: Outcome-First Prompt-to-Poki-Game + Morph Fast-Apply -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-emerald-400">PROMPT-TO-POKI-FRAGMENT · MORPH v3</div>
+          <h2 class="text-sm font-black text-white">Tạo Mini-Game Poki 60 FPS Bằng Câu Lệnh</h2>
+        </div>
+        <span id="or-frag-model" class="text-[10px] font-mono text-purple-300">openrouter/auto</span>
+      </div>
+
+      <textarea id="or-game-prompt" rows="2" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white font-mono">Tạo mini-game khủng long neon né thiên thạch Poki 60fps</textarea>
+
+      <div class="flex gap-2 text-xs">
+        <button id="btn-or-gen-game" class="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black">
+          🎮 Sinh &amp; Chạy Game Ngay
+        </button>
+        <button id="btn-or-morph-gold" class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black">
+          🪄 Morph Gold
+        </button>
+      </div>
+
+      <div class="rounded-xl overflow-hidden border border-slate-700 bg-slate-950 h-60">
+        <iframe id="or-game-iframe" sandbox="allow-scripts" class="w-full h-full border-0" title="OpenRouter Generated Poki Game"></iframe>
+      </div>
+    </section>
+
+    <!-- Col 3: KOL AI Shoutcaster (NĐ 147 ZDR) + 4-Tier Progressive Agent Benchmark -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-amber-400">STATE OF AI AGENTS · PROGRESSIVE EVAL</div>
+          <h2 class="text-sm font-black text-white">KOL AI Shoutcaster &amp; 4-Tier Agent Benchmark</h2>
+        </div>
+        <button id="btn-or-bench" class="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-[11px]">
+          🏆 Run 4-Tier Eval
+        </button>
+      </div>
+
+      <div class="flex gap-2 text-xs">
+        <input id="or-shout-input" value="VIP_KhanhLe tung Thiên Thạch lật kèo phút chót!" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-[11px] text-white" />
+        <button id="btn-or-shout" class="px-3 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-500 text-white font-black whitespace-nowrap">
+          🎙️ Shoutcast
+        </button>
+      </div>
+
+      <div id="or-shout-banner" class="p-2.5 rounded-xl bg-slate-950 border border-pink-500/30 text-xs text-pink-200 font-bold">
+        🎙️ Sẵn sàng bình luận trực tiếp &amp; lọc ngôn từ vi phạm NĐ 147/2024 (ZDR ON).
+      </div>
+
+      <pre id="or-bench-output" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono text-[10px] text-emerald-300 overflow-auto max-h-56">// Nhấn "Run 4-Tier Eval" để kiểm định tiến trình Simple -> Hard theo chuẩn E2B State of AI Agents + đồng bộ chi phí vào POS Z-Report!</pre>
+    </section>
+  </main>
+
   <script src="/sdk/game9k-sdk.js"></script>
   <script>
     const SNIPPETS = {
@@ -661,6 +761,7 @@ const kds = await client.getKdsTickets();`
       splice: document.getElementById("panel-splice"),
       pos: document.getElementById("panel-pos"),
       e2b: document.getElementById("panel-e2b"),
+      openrouter: document.getElementById("panel-openrouter"),
     };
     document.querySelectorAll(".main-tab").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -677,6 +778,7 @@ const kds = await client.getKdsTickets();`
         if (target === "splice") loadSpliceSpec();
         if (target === "pos") refreshPosDashboard();
         if (target === "e2b") ensureE2BReady();
+        if (target === "openrouter") refreshOpenRouterTab();
       });
     });
 
@@ -1461,6 +1563,114 @@ tick();
     document.getElementById("btn-cu-pause").addEventListener("click", async () => {
       const res = await window.PokiSDK.computerUse.pauseAgent();
       document.getElementById("cu-agent-log").textContent = JSON.stringify(res, null, 2);
+    });
+
+    // ========================================================================
+    // TAB 5 CONTROLLER: OPENROUTER PKCE · PROMPT-TO-GAME & 4-TIER AGENT EVAL
+    // ========================================================================
+    let activeOrGameSbxId = null;
+
+    async function refreshOpenRouterTab() {
+      const st = await window.PokiSDK.ai.getStatus();
+      document.getElementById("or-mode-badge").textContent = st.pkceConnected
+        ? "PKCE S256 ACTIVE"
+        : st.mode.toUpperCase().slice(0, 18);
+      document.getElementById("or-budget-box").innerHTML = `
+        <div>Key: <span class="text-emerald-300 font-bold">${st.maskedKey}</span> · Requests: <span class="text-sky-300">${st.totals?.requests || 0}</span></div>
+        <div>Budget: <span class="text-cyan-300 font-bold">$${st.budget.spentUsd.toFixed(5)} / $${st.budget.limitUsd.toFixed(2)}</span> (${st.budget.usedPercent}% · Alert80=${st.budget.alert80Triggered})</div>
+      `;
+      if (!activeOrGameSbxId) {
+        await generateOrPokiGame();
+      }
+    }
+
+    async function generateOrPokiGame() {
+      const prompt = document.getElementById("or-game-prompt").value;
+      const sort = document.getElementById("or-sort-select").value;
+      const zdr = document.getElementById("or-zdr-toggle").checked;
+      const res = await window.PokiSDK.ai.generateFragment(prompt, { sort, zdr });
+      if (res?.ok && res.url) {
+        activeOrGameSbxId = res.sbxId;
+        document.getElementById("or-frag-model").textContent = res.selectedModel;
+        const sep = res.url.includes("?") ? "&" : "?";
+        document.getElementById("or-game-iframe").src = `${res.url}${sep}t=${Date.now()}`;
+        await refreshOpenRouterTab();
+      }
+    }
+
+    document.getElementById("btn-or-pkce").addEventListener("click", async () => {
+      const started = await window.PokiSDK.ai.startPkceAuth({
+        callbackUrl: `${window.location.origin}/sdk-demo.html`,
+        spendLimitUsd: 2.5,
+      });
+      const exchanged = await window.PokiSDK.ai.exchangePkceCode({
+        state: started.state,
+        code: "demo_pkce_auth_code",
+        codeVerifier: started.codeVerifier,
+        simulateSandbox: true,
+      });
+      document.getElementById("or-router-log").textContent = JSON.stringify(
+        { pkceChallenge: started, exchangedSession: exchanged },
+        null,
+        2
+      );
+      await refreshOpenRouterTab();
+    });
+
+    document.getElementById("btn-or-failover").addEventListener("click", async () => {
+      const sort = document.getElementById("or-sort-select").value;
+      const zdr = document.getElementById("or-zdr-toggle").checked;
+      const out = await window.PokiSDK.ai.chat(
+        "Kiểm tra tự động chuyển đổi dự phòng OpenRouter cho phòng đua KOL 24/7",
+        {
+          models: ["google/gemini-2.5-flash", "deepseek/deepseek-chat", "anthropic/claude-3.7-sonnet"],
+          simulatePrimaryFailure: true,
+          sort,
+          zdr,
+        }
+      );
+      document.getElementById("or-router-log").textContent = JSON.stringify(out, null, 2);
+      await refreshOpenRouterTab();
+    });
+
+    document.getElementById("btn-or-gen-game").addEventListener("click", generateOrPokiGame);
+
+    document.getElementById("btn-or-morph-gold").addEventListener("click", async () => {
+      if (!activeOrGameSbxId) await generateOrPokiGame();
+      const res = await window.PokiSDK.ai.smartMorphEdit(
+        activeOrGameSbxId,
+        "Nâng cấp nhân vật sang màu vàng gold huyền thoại"
+      );
+      if (res?.ok && res.previewUrl) {
+        document.getElementById("or-frag-model").textContent = res.selectedModel;
+        const sep = res.previewUrl.includes("?") ? "&" : "?";
+        document.getElementById("or-game-iframe").src = `${res.previewUrl}${sep}t=${Date.now()}`;
+        await refreshOpenRouterTab();
+      }
+    });
+
+    document.getElementById("btn-or-shout").addEventListener("click", async () => {
+      const comment = document.getElementById("or-shout-input").value;
+      const out = await window.PokiSDK.ai.shoutcast({
+        nickname: "VIP_KhanhLe9K",
+        giftTier: "meteor",
+        comment,
+      });
+      if (out?.shoutcast) {
+        document.getElementById("or-shout-banner").textContent = out.shoutcast.headline;
+        await refreshOpenRouterTab();
+      }
+    });
+
+    document.getElementById("btn-or-bench").addEventListener("click", async () => {
+      const bench = await window.PokiSDK.ai.runBenchmark();
+      const zRep = await window.PokiSDK.economy.getZReport();
+      document.getElementById("or-bench-output").textContent = JSON.stringify(
+        { benchmark: bench, posZReportAiUsage: zRep.aiUsage },
+        null,
+        2
+      );
+      await refreshOpenRouterTab();
     });
 
     // Mini animated dinosaur sprint preview on Canvas

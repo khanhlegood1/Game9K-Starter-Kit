@@ -60,7 +60,7 @@ export function removeCircularReferences(obj, seen = new WeakSet()) {
 export default class SpliceSpecService {
   constructor(options = {}) {
     this.portalTitle = options.portalTitle || "Game9K Poki Portal & Live-Ops Gateway API";
-    this.portalVersion = options.portalVersion || "4.0.0";
+    this.portalVersion = options.portalVersion || "5.0.0";
     this.state = getGlobalState();
   }
 
@@ -75,7 +75,7 @@ export default class SpliceSpecService {
         title: this.portalTitle,
         version: this.portalVersion,
         description:
-          "Unified OpenAPI 3.1 Contract for Game9K Portal SDK v4.0 — Poki Lifecycle RPC, Xsolla SDK 3, Counter POS/KDS, E2B Runtime Sandboxes, Code Interpreter, Fragments & Open Computer Use.",
+          "Unified OpenAPI 3.1 Contract for Game9K Portal SDK v5.0 — Poki Lifecycle RPC, Xsolla SDK 3, Counter POS/KDS, E2B Sandboxes/Fragments/Computer Use, OpenRouter Multi-Model Gateway & Agent Protocol v1.",
         license: { name: "MIT" },
       },
       servers: [
@@ -279,6 +279,38 @@ export default class SpliceSpecService {
             tags: ["Open Computer Use"],
             summary: "Run Vision/Grounding + drawBigDot + Click/Key action step in sandbox",
             responses: { 200: { description: "Grounded coordinate dot & executed tool call" } },
+          },
+        },
+        "/api/openrouter/chat": {
+          post: {
+            operationId: "openRouterChat",
+            tags: ["OpenRouter AI"],
+            summary: "Multi-model routed completion with provider fallbacks & ZDR privacy policy",
+            responses: { 200: { description: "Routed model response & Z-Report token spend" } },
+          },
+        },
+        "/api/openrouter/fragments/generate": {
+          post: {
+            operationId: "generatePlayableFragment",
+            tags: ["OpenRouter AI"],
+            summary: "Prompt-to-Poki-Game via Structured Output FragmentSchema + E2B deploy",
+            responses: { 200: { description: "Playable fragment preview URL & usage ledger" } },
+          },
+        },
+        "/api/openrouter/pkce/start": {
+          post: {
+            operationId: "startOpenRouterPkce",
+            tags: ["OpenRouter AI"],
+            summary: "Initiate 1-click OAuth PKCE S256 BYOK session with spend cap",
+            responses: { 200: { description: "PKCE code_challenge & authorization URL" } },
+          },
+        },
+        "/api/agent-protocol/v1/agent/tasks": {
+          post: {
+            operationId: "createAgentProtocolTask",
+            tags: ["Agent Protocol v1"],
+            summary: "Standardized OpenAPI v3 Agent Protocol task creation & step execution",
+            responses: { 200: { description: "Agent Protocol Task with steps & artifacts" } },
           },
         },
       },
