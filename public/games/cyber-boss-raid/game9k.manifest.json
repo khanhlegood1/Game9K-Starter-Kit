@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "id": "cyber-boss-raid",
+  "title": "Mecha Kaiju Raid — Đại Chiến Boss Tương Tác KOL Live",
+  "version": "2.0.0",
+  "description": "Co-op HTML5 60 FPS Cyber-Kaiju Boss Raid for Game9K Portal & 24/7 KOL TikTok/YouTube Livestreams with Anti-Cheat Score Proofs, Cross-Game Battle Pass XP, Xsolla SDK 3, and OpenRouter AI MC.",
+  "author": "Game9K Studio",
+  "entry": "index.html",
+  "standalone_entry": "standalone.html",
+  "legal_classification": "G2",
+  "supported_modes": ["G4", "G2", "G1"],
+  "budgets": {
+    "max_gzip_kb": 125,
+    "target_fps": 60
+  },
+  "bridge": {
+    "sandbox_compatible": true,
+    "requires_same_origin": false,
+    "poki_sdk_compatible": true,
+    "max_telemetry_hz": 15,
+    "events_emitted": [
+      "game_ready",
+      "poki_loading_finished",
+      "poki_gameplay_start",
+      "poki_gameplay_stop",
+      "poki_happy_time",
+      "raid_started",
+      "boss_shield_broken",
+      "raid_finished",
+      "arena_verified_score",
+      "battlepass_xp_earned",
+      "xsolla_purchase_finalized"
+    ]
+  },
+  "ads": {
+    "provider": "poki-portal-and-google-h5",
+    "placements": ["preroll", "commercialBreak", "rewardedBreak"],
+    "preroll_timeout_ms": 2000
+  },
+  "monetization": {
+    "provider": "xsolla-sdk-3",
+    "project_id": 249001,
+    "sandbox_supported": true,
+    "steps": [
+      "01_authenticate",
+      "02_load_catalog",
+      "03_purchase_product",
+      "04_finalize_purchase"
+    ],
+    "products": [
+      "amber_gems_100",
+      "revive_turbo_surge",
+      "kol_meteor_pack_5",
+      "golden_croc_skin",
+      "sanctuary_vip_pass"
+    ]
+  },
+  "stream": {
+    "platforms": ["tiktok-live", "youtube-live"],
+    "chat_commands": ["1", "2", "3", "4"],
+    "gift_tiers": ["nitro", "trap", "shield", "meteor", "crown"],
+    "supports_9_16_portrait": true,
+    "unattended_24_7_loop": true
+  }
+}

@@ -416,9 +416,9 @@
   <script>
 /**
  * game9k-sdk.js
- * Official Unified Browser SDK for Game9K Starter Kit (v8.0.0)
+ * Official Unified Browser SDK for Game9K Starter Kit (v9.0.0)
  *
- * Unifies twelve production modules under the Poki Portal SDK Sandbox Bridge (`<iframe sandbox="allow-scripts">`):
+ * Unifies thirteen production modules under the Poki Portal SDK Sandbox Bridge (`<iframe sandbox="allow-scripts">`):
  *   1. Poki Portal SDK (`window.PokiSDK` + `window.Game9K.poki`)
  *   2. Xsolla SDK 3 — 4-Step Game Monetization (`window.XsollaSDK` + `window.Game9K.xsolla`)
  *   3. Splice Spec-to-SDK & Mock Gateway (`window.SpliceSDK` + `PokiSDK.splice`)
@@ -430,7 +430,8 @@
  *   9. OpenRouter Multimodal v7 (Audio Speech TTS, Transparent Sprite/9:16 Poster Images, KOL Sub-Keys, Sticky Prompt Cache, OAuth PKCE & Vercel Stream) (`window.OpenRouterSDK` + `PokiSDK.ai`)
  *  10. AgentOps Observability, Helicone Cache, Chidori Reactive Bus, SID Capsule & Steamship Webhooks (`window.AgentOpsSDK` + `PokiSDK.agentOps`)
  *  11. Cloud & Edge Launchpad (Cloudflare R2 SigV4, Supabase Dual-Write, Solana Ed25519 Milestones & NĐ 147 U18 Guard) (`window.CloudEdgeSDK` + `PokiSDK.cloud`)
- *  12. Game9K Core Quota-Safe `SafeStorage` & Multi-Platform KOL Stream Bridge (`window.TikTokBridge`)
+ *  12. Multi-Game KOL Esports Arena (ELO Brackets, HMAC Anti-Cheat Proofs, Cross-Game Battle Pass & 70/20/10 Creator RevShare) (`window.ArenaSDK` + `PokiSDK.arena`)
+ *  13. Game9K Core Quota-Safe `SafeStorage` & Multi-Platform KOL Stream Bridge (`window.TikTokBridge`)
  */
 (function initGame9KGlobal(global) {
   "use strict";
@@ -2646,6 +2647,10 @@
     get cloud() {
       return this.sdk.cloud;
     }
+
+    get arena() {
+      return this.sdk.arena;
+    }
   }
 
   // ==========================================================================
@@ -3869,13 +3874,175 @@
   }
 
   // ==========================================================================
+  // 4J. MULTI-GAME KOL ESPORTS ARENA (ELO, ANTI-CHEAT & BATTLE PASS)
+  // ==========================================================================
+  class Game9KArenaAdapter {
+    constructor(sdk) {
+      this.sdk = sdk;
+      this.activeScoreSession = null;
+    }
+
+    _call(rpcAction, method, path, body = null) {
+      const payload = { ...(body || {}), path, method };
+      if (this.sdk.isEmbedded && this.sdk.portalHostConnected) {
+        return this.sdk._portalRpc(rpcAction, payload).catch(() =>
+          this.sdk.splice.request(path, {
+            method,
+            ...(body && method !== "GET" ? { body: JSON.stringify(body) } : {}),
+          })
+        );
+      }
+      return this.sdk.splice.request(path, {
+        method,
+        ...(body && method !== "GET" ? { body: JSON.stringify(body) } : {}),
+      });
+    }
+
+    getStatus() {
+      return this._call("arena_status", "GET", "/api/arena/status");
+    }
+
+    listTournaments() {
+      return this._call("arena_tournaments_list", "GET", "/api/arena/tournaments");
+    }
+
+    createTournament(options = {}) {
+      return this._call("arena_tournaments_create", "POST", "/api/arena/tournaments", options);
+    }
+
+    reportMatchResult(tournamentId, result = {}) {
+      const id = encodeURIComponent(String(tournamentId || ""));
+      return this._call(
+        "arena_match_report",
+        "POST",
+        `/api/arena/tournaments/${id}/matches`,
+        result
+      );
+    }
+
+    async startScoreSession(gameIdOrOptions = this.sdk.gameId) {
+      const options =
+        typeof gameIdOrOptions === "string"
+          ? { gameId: gameIdOrOptions }
+          : { ...(gameIdOrOptions || {}) };
+      const res = await this._call("arena_anticheat_session", "POST", "/api/arena/anticheat/session", {
+        playerId: options.playerId || this.sdk.playerId,
+        gameId: options.gameId || this.sdk.gameId,
+      });
+      if (res?.ok && res.sessionToken) this.activeScoreSession = res;
+      return res;
+    }
+
+    async _hmacSha256Hex(secret, message) {
+      const cryptoApi = global.crypto;
+      if (!cryptoApi?.subtle || typeof global.TextEncoder !== "function") return "";
+      const encoder = new global.TextEncoder();
+      const key = await cryptoApi.subtle.importKey(
+        "raw",
+        encoder.encode(String(secret)),
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"]
+      );
+      const signature = await cryptoApi.subtle.sign("HMAC", key, encoder.encode(String(message)));
+      return Array.from(new Uint8Array(signature), (byte) => byte.toString(16).padStart(2, "0")).join("");
+    }
+
+    async computeClientProof({ session, score, durationSec, eventsCount, gameId, playerId } = {}) {
+      const active = session || this.activeScoreSession;
+      if (!active?.sessionToken) return "";
+      const canonical = `${active.sessionToken}|${gameId || active.gameId}|${playerId || active.playerId}|${Number(score)}|${Number(durationSec)}|${Number(eventsCount)}`;
+      return this._hmacSha256Hex(active.sessionToken, canonical);
+    }
+
+    async submitVerifiedScore({ session, nickname = "ArenaExplorer", score = 0, durationSec = 30, eventsCount = 25, clientProof, ...rest } = {}) {
+      const active = session || this.activeScoreSession;
+      if (!active?.sessionId || !active?.sessionToken) {
+        return { ok: false, error: "No active anti-cheat score session." };
+      }
+      const gameId = active.gameId || this.sdk.gameId;
+      const playerId = active.playerId || this.sdk.playerId;
+      const proof =
+        clientProof ||
+        (await this.computeClientProof({
+          session: active,
+          score,
+          durationSec,
+          eventsCount,
+          gameId,
+          playerId,
+        }));
+      if (!proof) {
+        return { ok: false, error: "Web Crypto HMAC is unavailable in this browser context." };
+      }
+
+      const res = await this._call("arena_anticheat_submit", "POST", "/api/arena/anticheat/submit", {
+        ...rest,
+        sessionId: active.sessionId,
+        playerId,
+        nickname,
+        gameId,
+        score,
+        durationSec,
+        eventsCount,
+        clientProof: proof,
+      });
+      if (res?.ok) {
+        if (this.activeScoreSession?.sessionId === active.sessionId) this.activeScoreSession = null;
+        this.sdk.emitPortalEvent("arena_verified_score", {
+          receiptId: res.record?.receiptId || null,
+          score: Number(score) || 0,
+          gameId,
+        });
+      }
+      return res;
+    }
+
+    getBattlePass(playerId = this.sdk.playerId) {
+      const id = encodeURIComponent(String(playerId || this.sdk.playerId || "guest"));
+      return this._call("arena_battlepass_get", "GET", `/api/arena/battlepass/${id}`);
+    }
+
+    async awardBattlePassXp(gameIdOrOptions = this.sdk.gameId, xp = 50, reason = "gameplay_milestone", playerId = this.sdk.playerId) {
+      const options =
+        gameIdOrOptions && typeof gameIdOrOptions === "object"
+          ? { ...gameIdOrOptions }
+          : { gameId: gameIdOrOptions, xp, reason, playerId };
+      const res = await this._call("arena_battlepass_xp", "POST", "/api/arena/battlepass/xp", {
+        playerId: options.playerId || this.sdk.playerId,
+        gameId: options.gameId || this.sdk.gameId,
+        xp: options.xp ?? 50,
+        reason: options.reason || "gameplay_milestone",
+      });
+      if (res?.ok) {
+        this.sdk.emitPortalEvent("battlepass_xp_earned", {
+          gameId: options.gameId || this.sdk.gameId,
+          xp: res.xpAdded,
+          reason: options.reason || "gameplay_milestone",
+        });
+      }
+      return res;
+    }
+
+    async attributeCreatorSale(options = {}) {
+      const res = await this._call("arena_creator_attribute", "POST", "/api/arena/creators/attribute", {
+        buyerId: this.sdk.playerId,
+        gameId: this.sdk.gameId,
+        ...options,
+      });
+      if (res?.ok) this.sdk.emitPortalEvent("xsolla_purchase_finalized", res.attribution || {});
+      return res;
+    }
+  }
+
+  // ==========================================================================
   // 5. GAME9K CORE BRIDGE (Sandbox PostMessage RPC, Telemetry <= 20Hz, Legal Lock)
   // ==========================================================================
   class Game9KSDK {
     constructor() {
       this.gameId = "dino-race";
-      this.version = "8.0.0";
-      this.sdkVersion = "8.0.0";
+      this.version = "9.0.0";
+      this.sdkVersion = "9.0.0";
       this.playerId = this._resolveGuestId();
       this.isEmbedded = Boolean(global.parent && global.parent !== global);
       this.portalHostConnected = false;
@@ -3904,6 +4071,7 @@
       this.openRouter = this.ai;
       this.agentOps = new Game9KAgentOpsAdapter(this);
       this.cloud = new Game9KCloudEdgeAdapter(this);
+      this.arena = new Game9KArenaAdapter(this);
       this.xsolla = new Game9KXsollaClient(this);
       this.commerce = this.xsolla;
       this.poki = new Game9KPokiAdapter(this);
@@ -4003,6 +4171,9 @@
           "open-computer-use",
           "openrouter-multi-model-pkce",
           "agent-protocol-v1",
+          "arena-esports-brackets",
+          "arena-anticheat-score-proofs",
+          "arena-cross-game-battle-pass",
           "kol-live-bridge",
         ],
       });
@@ -4028,6 +4199,9 @@
     }
     rewardedBreak(optionsOrOnStart) {
       return this.poki.rewardedBreak(optionsOrOnStart);
+    }
+    sendTelemetry(eventType = "tick", payload = {}) {
+      return this.broadcastTick({ eventType, ...payload });
     }
     shareableURL(params) {
       return this.poki.shareableURL(params);
@@ -4256,6 +4430,7 @@
   global.OpenRouterSDK = sdkInstance.ai;
   global.AgentOpsSDK = sdkInstance.agentOps;
   global.CloudEdgeSDK = sdkInstance.cloud;
+  global.ArenaSDK = sdkInstance.arena;
   global.LiveStreamBridge = sdkInstance.stream;
   global.TikTokBridge = sdkInstance.stream;
 })(typeof window !== "undefined" ? window : globalThis);

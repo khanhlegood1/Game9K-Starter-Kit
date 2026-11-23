@@ -236,7 +236,7 @@ console.log(turn2.upstreamCacheHit, turn2.usage.cachedReadTokens);
 
 ---
 
-## 9. Cloud & Edge Production Launchpad v8.0 (`PokiSDK.cloud` + `npm run deploy`)
+## 9. Cloud & Edge Production Launchpad v9.0 (`PokiSDK.cloud` + `npm run deploy`)
 
 Khép kín vòng đời xuất bản sản phẩm thật lên **Cloudflare R2 (`AWS4-HMAC-SHA256`)**, **Supabase PostgREST**, **Kho bạc Token Solana (`Ed25519`)**, và **Bộ đếm giờ chơi U18 Nghị định 147/2024/NĐ-CP**:
 
@@ -261,7 +261,27 @@ const guard = await PokiSDK.cloud.heartbeatPlaytime({ ageGroup: "under18", elaps
 console.log(guard.shouldLockUnder18, guard.portalPostMessageCmd); // true, "UNDER18_LIMIT_LOCK"
 ```
 
+---
 
+## 10. Multi-Game KOL Esports Arena v9.0 (`PokiSDK.arena`)
 
+`dino-race` và `cyber-boss-raid` dùng chung bracket ELO, phiên anti-cheat HMAC một lần, Battle Pass liên game và sổ cái chia doanh thu 70/20/10. Các lời gọi trong iframe sandbox đi qua Portal RPC; khi chạy trên gateway, SDK dùng các REST endpoint tương ứng:
 
+```javascript
+const session = await PokiSDK.arena.startScoreSession("cyber-boss-raid");
+const verified = await PokiSDK.arena.submitVerifiedScore({
+  session,
+  nickname: "RaidCommander",
+  score: 12400,
+  durationSec: 18,
+  eventsCount: 120,
+});
 
+const pass = await PokiSDK.arena.getBattlePass();
+await PokiSDK.arena.awardBattlePassXp("dino-race", 80, "race_completed");
+await PokiSDK.arena.attributeCreatorSale({
+  creatorCode: "KOL_MINHANH",
+  sku: "kol_meteor_pack_5",
+  grossCents: 499,
+});
+```

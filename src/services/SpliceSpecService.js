@@ -60,7 +60,7 @@ export function removeCircularReferences(obj, seen = new WeakSet()) {
 export default class SpliceSpecService {
   constructor(options = {}) {
     this.portalTitle = options.portalTitle || "Game9K Poki Portal & Live-Ops Gateway API";
-    this.portalVersion = options.portalVersion || "8.0.0";
+    this.portalVersion = options.portalVersion || "9.0.0";
     this.state = getGlobalState();
   }
 
@@ -75,7 +75,7 @@ export default class SpliceSpecService {
         title: this.portalTitle,
         version: this.portalVersion,
         description:
-          "Unified OpenAPI 3.1 Contract for Game9K Portal SDK v8.0 — Poki Lifecycle RPC, Xsolla SDK 3, POS/KDS, E2B Sandboxes, OpenRouter Multimodal v7, AgentOps Observability, and Cloud/Edge Launchpad (Cloudflare R2 SigV4, Supabase, Solana Ed25519 Milestones & NĐ 147 U18 Guard).",
+          "Unified OpenAPI 3.1 Contract for Game9K Portal SDK v9.0 — Poki Lifecycle RPC, Xsolla SDK 3, POS/KDS, E2B Sandboxes, OpenRouter Multimodal v7, AgentOps Observability, Cloud/Edge Launchpad (R2 SigV4, Supabase, Solana Ed25519, NĐ 147), and Multi-Game KOL Esports Arena (ELO Brackets, Anti-Cheat Score Proofs, Cross-Game Battle Pass & 70/20/10 Creator RevShare).",
         license: { name: "MIT" },
       },
       servers: [
@@ -370,7 +370,7 @@ export default class SpliceSpecService {
         "/api/cloud/status": {
           get: {
             operationId: "getCloudEdgeStatus",
-            tags: ["Cloud & Edge v8"],
+            tags: ["Cloud & Edge v9"],
             summary: "Inspect Cloudflare R2, Supabase Dual-Write, Solana Ed25519 Authority & NĐ 147 U18 Guard status",
             responses: { 200: { description: "Cloud/Edge status snapshot" } },
           },
@@ -378,7 +378,7 @@ export default class SpliceSpecService {
         "/api/cloud/r2/publish": {
           post: {
             operationId: "publishBundleToCloudflareR2",
-            tags: ["Cloud & Edge v8"],
+            tags: ["Cloud & Edge v9"],
             summary: "Validate <= 125 KB gzip & publish immutable game bundle via AWS Signature V4 to Cloudflare R2",
             responses: { 200: { description: "Signed R2 deployment receipt & CDN URL" } },
           },
@@ -386,7 +386,7 @@ export default class SpliceSpecService {
         "/api/cloud/solana/milestones": {
           post: {
             operationId: "evaluateSolanaMilestones",
-            tags: ["Cloud & Edge v8"],
+            tags: ["Cloud & Edge v9"],
             summary: "Evaluate Game9K KPI gates & sign eligible Solana $G9K token tranches with Ed25519",
             responses: { 200: { description: "Ed25519 signed milestone attestations" } },
           },
@@ -394,9 +394,71 @@ export default class SpliceSpecService {
         "/api/cloud/nd147/heartbeat": {
           post: {
             operationId: "heartbeatNd147Playtime",
-            tags: ["Cloud & Edge v8"],
+            tags: ["Cloud & Edge v9"],
             summary: "Enforce Vietnam Decree 147/2024/NĐ-CP Under-18 playtime limits (60m per game / 180m daily)",
             responses: { 200: { description: "Playtime ledger state & UNDER18_LIMIT_LOCK command" } },
+          },
+        },
+        "/api/arena/status": {
+          get: {
+            operationId: "getArenaEsportsStatus",
+            tags: ["Multi-Game Arena v9"],
+            summary: "Inspect active KOL tournaments, ELO standings, Battle Pass & 70/20/10 Creator RevShare",
+            responses: { 200: { description: "Arena Esports v9 snapshot" } },
+          },
+        },
+        "/api/arena/tournaments": {
+          get: {
+            operationId: "listArenaTournaments",
+            tags: ["Multi-Game Arena v9"],
+            summary: "List cross-game KOL Esports brackets & ELO leaderboard",
+            responses: { 200: { description: "Brackets & ELO ratings" } },
+          },
+          post: {
+            operationId: "createArenaTournament",
+            tags: ["Multi-Game Arena v9"],
+            summary: "Create a new multi-game KOL tournament bracket (`dino-race` or `cyber-boss-raid`)",
+            responses: { 200: { description: "Created tournament bracket" } },
+          },
+        },
+        "/api/arena/anticheat/session": {
+          post: {
+            operationId: "startAntiCheatScoreSession",
+            tags: ["Multi-Game Arena v9"],
+            summary: "Issue single-use HMAC-SHA256 session nonce & physics plausibility caps",
+            responses: { 200: { description: "Anti-cheat score session token" } },
+          },
+        },
+        "/api/arena/anticheat/submit": {
+          post: {
+            operationId: "submitVerifiedArenaScore",
+            tags: ["Multi-Game Arena v9"],
+            summary: "Verify deterministic HMAC score proof & physics caps before awarding Battle Pass XP",
+            responses: { 200: { description: "Verified score receipt & updated Battle Pass" } },
+          },
+        },
+        "/api/arena/battlepass/{playerId}": {
+          get: {
+            operationId: "getCrossGameBattlePass",
+            tags: ["Multi-Game Arena v9"],
+            summary: "Read a player's shared Season Pass tier, rewards and per-game XP ledger",
+            responses: { 200: { description: "Cross-game Battle Pass profile" } },
+          },
+        },
+        "/api/arena/battlepass/xp": {
+          post: {
+            operationId: "awardCrossGameBattlePassXp",
+            tags: ["Multi-Game Arena v9"],
+            summary: "Award shared Season Pass XP across `dino-race` and `cyber-boss-raid`",
+            responses: { 200: { description: "Updated player Season Pass tier & unlocked rewards" } },
+          },
+        },
+        "/api/arena/creators/attribute": {
+          post: {
+            operationId: "attributeKolCreatorSale",
+            tags: ["Multi-Game Arena v9"],
+            summary: "Split commerce gross into 70% Studio / 20% KOL Streamer / 10% Esports Prize Pool",
+            responses: { 200: { description: "70/20/10 revenue-share ledger entry" } },
           },
         },
       },

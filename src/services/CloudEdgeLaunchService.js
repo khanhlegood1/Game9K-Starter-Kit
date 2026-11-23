@@ -1,6 +1,6 @@
 /**
  * CloudEdgeLaunchService.js
- * Production Cloud, Edge, Blockchain & Regulatory Infrastructure for Game9K SDK v8.0 (`PokiSDK.cloud`):
+ * Production Cloud, Edge, Blockchain & Regulatory Infrastructure for Game9K SDK v9.0 (`PokiSDK.cloud`):
  *
  *   1. Cloudflare R2 S3v4 Bundle Publisher (`AWS4-HMAC-SHA256` canonical signing, immutable CDN headers,
  *      pre-flight `<= 125 KB` gzip & zero-`<video>` gate, + `g9k deploy` CLI integration).
