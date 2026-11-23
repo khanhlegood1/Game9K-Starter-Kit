@@ -191,8 +191,49 @@ await PokiSDK.agentOps.emitReactiveEvent("kol.high_tier_gift", {
 });
 const capsule = await PokiSDK.agentOps.getContextCapsule("dino-race");
 await PokiSDK.agentOps.registerWebhook({ url: "https://hooks.game9k.vn/ops", events: ["*"] });
-await PokiSDK.agentOps.dispatchWebhook("agentops.eval_passed", { sdkVersion: "6.0.0" });
+await PokiSDK.agentOps.dispatchWebhook("agentops.eval_passed", { sdkVersion: "7.0.0" });
 ```
+
+---
+
+## 8. OpenRouter Multimodal & KOL Fleet Suite v7.0 (`PokiSDK.ai`)
+
+Mở khóa 4 năng lực đa phương thức & quản trị đội ngũ KOL từ hệ sinh thái 600+ mô hình `openrouter.ai`:
+
+```javascript
+// 1. MC Giọng Nói Thật qua Web Audio API (`/api/v1/audio/speech` — tuyệt đối không dùng <video>):
+const tts = await PokiSDK.ai.speakShoutcast({
+  nickname: "VIP_KhanhLe9K",
+  giftTier: "meteor",
+  comment: "Mưa thiên thạch 5x lật kèo!",
+});
+console.log(tts.generationId, tts.byteSize);
+
+// 2. Sinh Sprite nền trong suốt 1:1, ảnh động GIF/SVG nhiều frame & Poster dọc 9:16 (`/api/v1/images`):
+const sprite = await PokiSDK.ai.generateSprite("Golden Cyber T-Rex VIP Racer", {
+  aspect_ratio: "1:1",
+  background: "transparent",
+  frame_count: 4,
+});
+console.log(sprite.kbSize, sprite.r2BudgetSafe); // <= 125 KB Cloudflare R2 / Poki
+
+// 3. Cấp khóa con giới hạn ngày tự reset cho từng kênh KOL (`/api/v1/keys` Management API):
+const kolKey = await PokiSDK.ai.createKolKey({
+  name: "KOL Room #2 — @MinhAnhLive",
+  kolHandle: "@MinhAnhLive",
+  limit: 2.0,
+  limit_reset: "daily",
+  include_byok_in_limit: true,
+});
+
+// 4. Upstream Sticky Prompt Caching (`x-session-id` + `cache_control: { type: "ephemeral" }`):
+const turn2 = await PokiSDK.ai.stickyChat("kol_room_vn01", [
+  { role: "system", content: "Luật đua Game9K NĐ 147/2024..." },
+  { role: "user", content: "Khán giả bình chọn làn 3!" },
+]);
+console.log(turn2.upstreamCacheHit, turn2.usage.cachedReadTokens);
+```
+
 
 
 

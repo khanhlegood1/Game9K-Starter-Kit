@@ -1,6 +1,6 @@
 /**
  * game9k-sdk.js
- * Official Unified Browser SDK for Game9K Starter Kit (v6.0.0)
+ * Official Unified Browser SDK for Game9K Starter Kit (v7.0.0)
  *
  * Unifies eleven production modules under the Poki Portal SDK Sandbox Bridge (`<iframe sandbox="allow-scripts">`):
  *   1. Poki Portal SDK (`window.PokiSDK` + `window.Game9K.poki`)
@@ -11,7 +11,7 @@
  *   6. E2B Stateful Code Interpreter & Chart Kernel (`window.CodeInterpreterSDK` + `PokiSDK.interpreter`)
  *   7. E2B Fragments & Morph Lazy Patch Engine (`window.FragmentsSDK` + `PokiSDK.fragments`)
  *   8. Open Computer Use Vision/Grounding/Action Agent (`window.ComputerUseSDK` + `PokiSDK.computerUse`)
- *   9. OpenRouter Multi-Model Gateway, Vercel AI Stream, OAuth PKCE & Agent Protocol v1 (`window.OpenRouterSDK` + `PokiSDK.ai`)
+ *   9. OpenRouter Multimodal v7 (Audio Speech TTS, Transparent Sprite/9:16 Poster Images, KOL Sub-Keys, Sticky Prompt Cache, OAuth PKCE & Vercel Stream) (`window.OpenRouterSDK` + `PokiSDK.ai`)
  *  10. AgentOps Observability, Helicone Cache, Chidori Reactive Bus, SID Capsule & Steamship Webhooks (`window.AgentOpsSDK` + `PokiSDK.agentOps`)
  *  11. Game9K Core Quota-Safe `SafeStorage` & Multi-Platform KOL Stream Bridge (`window.TikTokBridge`)
  */
@@ -3152,6 +3152,100 @@
       return this._call("openrouter_shoutcast", "POST", "/api/openrouter/shoutcast", eventPayload);
     }
 
+    async playAudioDataUri(audioDataUri) {
+      if (!audioDataUri || this.sdk.isPaused) return false;
+      try {
+        const AudioCtx = global.AudioContext || global.webkitAudioContext;
+        if (typeof AudioCtx === "function" && typeof global.atob === "function") {
+          const base64Part = String(audioDataUri).split(",")[1] || "";
+          const binary = global.atob(base64Part);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          const ctx = new AudioCtx();
+          const decoded = await ctx.decodeAudioData(bytes.buffer.slice(0));
+          const src = ctx.createBufferSource();
+          src.buffer = decoded;
+          src.connect(ctx.destination);
+          src.start(0);
+          return true;
+        }
+        if (typeof global.Audio === "function") {
+          const el = new global.Audio(audioDataUri);
+          await el.play();
+          return true;
+        }
+      } catch {
+        // Ignore browser autoplay policy blocks prior to gesture
+      }
+      return false;
+    }
+
+    async speakShoutcast(eventOrText = {}, opts = {}) {
+      const payload =
+        typeof eventOrText === "string"
+          ? { input: eventOrText, ...opts }
+          : { ...eventOrText, ...opts };
+      const res = await this._call(
+        "openrouter_audio_speech",
+        "POST",
+        "/api/openrouter/audio/speech",
+        payload
+      );
+      if (res?.ok && res.audioDataUri && opts.autoPlay !== false) {
+        await this.playAudioDataUri(res.audioDataUri);
+      }
+      return res;
+    }
+
+    generateSprite(prompt, opts = {}) {
+      const payload =
+        typeof prompt === "object" && prompt !== null
+          ? { ...prompt }
+          : { prompt: String(prompt || "Golden T-Rex Sprite"), ...opts };
+      return this._call(
+        "openrouter_generate_sprite",
+        "POST",
+        "/api/openrouter/images/generate",
+        payload
+      );
+    }
+
+    listKolKeys() {
+      return this._call("openrouter_kol_keys_list", "GET", "/api/openrouter/kol-keys");
+    }
+
+    createKolKey(opts = {}) {
+      return this._call("openrouter_kol_keys_create", "POST", "/api/openrouter/kol-keys", opts);
+    }
+
+    updateKolKey(keyHash, patch = {}) {
+      const h = encodeURIComponent(String(keyHash || ""));
+      return this._call(
+        "openrouter_kol_keys_update",
+        "PATCH",
+        `/api/openrouter/kol-keys/${h}`,
+        patch
+      );
+    }
+
+    revokeKolKey(keyHash) {
+      const h = encodeURIComponent(String(keyHash || ""));
+      return this._call(
+        "openrouter_kol_keys_delete",
+        "DELETE",
+        `/api/openrouter/kol-keys/${h}`
+      );
+    }
+
+    stickyChat(sessionId, promptOrMessages, opts = {}) {
+      return this.chat(promptOrMessages, {
+        ...opts,
+        sessionId: String(sessionId || "g9k_sticky_kol_session"),
+        cache_control: opts.cache_control || { type: "ephemeral" },
+        cacheTtl: opts.cacheTtl || "30m",
+      });
+    }
+
     runBenchmark() {
       return this._call("openrouter_benchmark", "POST", "/api/openrouter/benchmark", {});
     }
@@ -3257,8 +3351,8 @@
   class Game9KSDK {
     constructor() {
       this.gameId = "dino-race";
-      this.version = "6.0.0";
-      this.sdkVersion = "6.0.0";
+      this.version = "7.0.0";
+      this.sdkVersion = "7.0.0";
       this.playerId = this._resolveGuestId();
       this.isEmbedded = Boolean(global.parent && global.parent !== global);
       this.portalHostConnected = false;
