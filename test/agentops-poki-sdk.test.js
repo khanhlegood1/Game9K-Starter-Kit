@@ -13,9 +13,9 @@ test("Helicone SHA-256 prompt cache ($0.00 hit), AgentOps Trace/Span/Replay & PO
   const base = `http://127.0.0.1:${port}`;
 
   try {
-    // 1. Health check v6.0.0
+    // 1. Health check v9.0.0
     const health = await fetch(`${base}/api/health`).then((r) => r.json());
-    assert.equal(health.sdkCapabilities.version, "8.0.0");
+    assert.equal(health.sdkCapabilities.version, "9.0.0");
     assert.equal(health.sdkCapabilities.agentOpsSuite.heliconePromptCache, true);
     assert.equal(health.sdkCapabilities.agentOpsSuite.vercelSseStream, true);
 
@@ -286,10 +286,10 @@ test("Poki <iframe sandbox='allow-scripts'> bridges PokiSDK.ai.streamChat & Poki
   vm.runInNewContext(sdkSource, sandboxGlobal);
 
   const { Game9K, PokiSDK, AgentOpsSDK } = sandboxGlobal;
-  assert.equal(Game9K.sdkVersion, "8.0.0");
+  assert.equal(Game9K.sdkVersion, "9.0.0");
   assert.equal(PokiSDK.agentOps, AgentOpsSDK);
 
-  await PokiSDK.init({ gameId: "dino-race", version: "8.0.0" });
+  await PokiSDK.init({ gameId: "dino-race", version: "9.0.0" });
   await new Promise((r) => setTimeout(r, 10));
 
   const receivedDeltas = [];

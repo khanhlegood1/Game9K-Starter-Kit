@@ -689,6 +689,25 @@
             } else if (msg.action === "cloud_nd147_reset" && data?.ok) {
               sendToIframe({ type: "UNDER18_LIMIT_UNLOCK" });
             }
+          } else if (
+            typeof msg.action === "string" &&
+            msg.action.startsWith("arena_")
+          ) {
+            const safePath = String(msg.payload?.path || "/api/arena/status");
+            if (!safePath.startsWith("/api/arena/")) {
+              throw new Error("Blocked non-Arena RPC path");
+            }
+            const method = String(msg.payload?.method || "GET").toUpperCase();
+            const bodyObj = { ...(msg.payload || {}) };
+            delete bodyObj.path;
+            delete bodyObj.method;
+            data = await fetch(safePath, {
+              method,
+              headers: { "Content-Type": "application/json" },
+              ...(method !== "GET" && method !== "HEAD"
+                ? { body: JSON.stringify(bodyObj) }
+                : {}),
+            }).then((r) => r.json());
           }
 
           sendToIframe({

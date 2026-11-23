@@ -6,7 +6,7 @@ import { execFileSync } from "node:child_process";
 import { createGame9KServer } from "../src/server.js";
 import SpliceSpecService from "../src/services/SpliceSpecService.js";
 
-test("CloudEdge v8: Cloudflare R2 AWS Signature V4 publisher & CLI g9k deploy enforce <= 125 KB gzip", async () => {
+test("CloudEdge v9: Cloudflare R2 AWS Signature V4 publisher & CLI g9k deploy enforce <= 125 KB gzip", async () => {
   const { httpServer } = createGame9KServer();
   await new Promise((resolve) => httpServer.listen(0, "127.0.0.1", resolve));
   const { port } = httpServer.address();
@@ -14,13 +14,13 @@ test("CloudEdge v8: Cloudflare R2 AWS Signature V4 publisher & CLI g9k deploy en
 
   try {
     const health = await fetch(`${base}/api/health`).then((r) => r.json());
-    assert.equal(health.sdkCapabilities.version, "8.0.0");
+    assert.equal(health.sdkCapabilities.version, "9.0.0");
     assert.equal(health.sdkCapabilities.cloudEdgeSuite.cloudflareR2SigV4, true);
     assert.equal(health.sdkCapabilities.cloudEdgeSuite.solanaEd25519Milestones, true);
 
     const splice = new SpliceSpecService();
     const spec = splice.getOpenAPISpec();
-    assert.equal(spec.info.version, "8.0.0");
+    assert.equal(spec.info.version, "9.0.0");
     assert.ok(spec.paths["/api/cloud/r2/publish"]);
     assert.ok(spec.paths["/api/cloud/solana/milestones"]);
     assert.ok(spec.paths["/api/cloud/nd147/heartbeat"]);
@@ -49,7 +49,7 @@ test("CloudEdge v8: Cloudflare R2 AWS Signature V4 publisher & CLI g9k deploy en
   }
 });
 
-test("CloudEdge v8: Supabase dual-write adapter & Solana Ed25519 milestone signing + tamper rejection", async () => {
+test("CloudEdge v9: Supabase dual-write adapter & Solana Ed25519 milestone signing + tamper rejection", async () => {
   const { httpServer } = createGame9KServer();
   await new Promise((resolve) => httpServer.listen(0, "127.0.0.1", resolve));
   const { port } = httpServer.address();
@@ -120,7 +120,7 @@ test("CloudEdge v8: Supabase dual-write adapter & Solana Ed25519 milestone signi
   }
 });
 
-test("CloudEdge v8: Browser PokiSDK.cloud inside sandbox enforces NĐ 147/2024 Under-18 60m lock & unlock", async () => {
+test("CloudEdge v9: Browser PokiSDK.cloud inside sandbox enforces NĐ 147/2024 Under-18 60m lock & unlock", async () => {
   const { httpServer } = createGame9KServer();
   await new Promise((resolve) => httpServer.listen(0, "127.0.0.1", resolve));
   const { port } = httpServer.address();
@@ -200,10 +200,10 @@ test("CloudEdge v8: Browser PokiSDK.cloud inside sandbox enforces NĐ 147/2024 U
     vm.runInNewContext(sdkSource, sandboxGlobal);
 
     const { PokiSDK, Game9K, CloudEdgeSDK } = sandboxGlobal;
-    assert.equal(Game9K.sdkVersion, "8.0.0");
+    assert.equal(Game9K.sdkVersion, "9.0.0");
     assert.equal(PokiSDK.cloud, CloudEdgeSDK);
 
-    await PokiSDK.init({ gameId: "dino-race", version: "8.0.0" });
+    await PokiSDK.init({ gameId: "dino-race", version: "9.0.0" });
     await new Promise((r) => setTimeout(r, 10));
 
     // 1. 35 minutes Under-18 -> still unlocked

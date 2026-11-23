@@ -30,6 +30,7 @@ import E2BSandboxService from "./services/E2BSandboxService.js";
 import OpenRouterService from "./services/OpenRouterService.js";
 import AgentOpsService from "./services/AgentOpsService.js";
 import CloudEdgeLaunchService from "./services/CloudEdgeLaunchService.js";
+import ArenaTournamentService from "./services/ArenaTournamentService.js";
 import { IpRateLimiter } from "./lib/rateLimiter.js";
 import { validateGamePackage } from "./lib/manifestValidator.js";
 
@@ -49,6 +50,11 @@ export function createGame9KServer(options = {}) {
   const agentOpsService = new AgentOpsService(options.agentOps || {});
   const cloudEdgeService = new CloudEdgeLaunchService({
     ...(options.cloudEdge || {}),
+    liveRoomHub,
+    posService,
+  });
+  const arenaService = new ArenaTournamentService({
+    ...(options.arena || {}),
     liveRoomHub,
     posService,
   });
@@ -114,8 +120,16 @@ export function createGame9KServer(options = {}) {
         ? "gemini-decision-1"
         : "game9k-calibrated-decisions",
       sdkCapabilities: {
-        version: "8.0.0",
+        version: "9.0.0",
         pokiPortalSdk: true,
+        arenaEsportsSuite: {
+          enabled: true,
+          flagshipGames: ["dino-race", "cyber-boss-raid"],
+          eloBrackets: true,
+          hmacAntiCheatProof: true,
+          crossGameBattlePass: true,
+          kolCreatorRevShare70_20_10: true,
+        },
         cloudEdgeSuite: {
           enabled: true,
           cloudflareR2SigV4: true,
@@ -1099,7 +1113,7 @@ export function createGame9KServer(options = {}) {
   });
 
   // ==========================================================================
-  // REST API: CLOUDFLARE R2 · SUPABASE · SOLANA ED25519 · NĐ 147 U18 GUARD (v8.0)
+  // REST API: CLOUDFLARE R2 · SUPABASE · SOLANA ED25519 · NĐ 147 U18 GUARD (v9.0)
   // ==========================================================================
 
   app.get("/api/cloud/status", (_req, res) => {
@@ -1144,6 +1158,50 @@ export function createGame9KServer(options = {}) {
 
   app.post("/api/cloud/nd147/reset", (req, res) => {
     return res.json(cloudEdgeService.resetPlaytime(req.body?.playerId || "guest_u18"));
+  });
+
+  // ==========================================================================
+  // REST API: MULTI-GAME KOL ESPORTS · ANTI-CHEAT · BATTLE PASS · REVSHARE (v9.0)
+  // ==========================================================================
+
+  app.get("/api/arena/status", (_req, res) => {
+    return res.json(arenaService.getStatus());
+  });
+
+  app.get("/api/arena/tournaments", (_req, res) => {
+    return res.json(arenaService.listTournaments());
+  });
+
+  app.post("/api/arena/tournaments", (req, res) => {
+    return res.json(arenaService.createTournament(req.body || {}));
+  });
+
+  app.post("/api/arena/tournaments/:tournamentId/matches", (req, res) => {
+    const out = arenaService.reportMatchResult(req.params.tournamentId, req.body || {});
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    return res.json(out);
+  });
+
+  app.post("/api/arena/anticheat/session", (req, res) => {
+    return res.json(arenaService.startScoreSession(req.body || {}));
+  });
+
+  app.post("/api/arena/anticheat/submit", (req, res) => {
+    const out = arenaService.submitVerifiedScore(req.body || {});
+    if (!out.ok) return res.status(out.status || 422).json(out);
+    return res.json(out);
+  });
+
+  app.get("/api/arena/battlepass/:playerId", (req, res) => {
+    return res.json(arenaService.getBattlePass(req.params.playerId));
+  });
+
+  app.post("/api/arena/battlepass/xp", (req, res) => {
+    return res.json(arenaService.awardBattlePassXp(req.body || {}));
+  });
+
+  app.post("/api/arena/creators/attribute", (req, res) => {
+    return res.json(arenaService.attributeCreatorSale(req.body || {}));
   });
 
   // ==========================================================================
@@ -1262,6 +1320,7 @@ export function createGame9KServer(options = {}) {
     openRouterService,
     agentOpsService,
     cloudEdgeService,
+    arenaService,
   };
 }
 
@@ -1281,6 +1340,7 @@ if (isDirectRun) {
   Listening on: http://${HOST}:${PORT}
   • KOL Launcher Hub:    /index.html
   • Dino Race Flagship:  /games/dino-race/index.html
+  • Mecha Kaiju Raid:    /games/cyber-boss-raid/index.html
   • Poki × Xsolla SDK:   /sdk-demo.html
   • Dev Decisions Board: /decisions.html
   • Portal Sandbox Host: /portal.html

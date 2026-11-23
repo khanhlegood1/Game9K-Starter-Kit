@@ -60,6 +60,7 @@ Sau khi chạy `npm start`, mở trình duyệt tại:
 | :--- | :--- |
 | **`http://localhost:3000/`** | **KOL Live Launcher Hub** — Tạo link OBS / TikTok LIVE Studio / YouTube Live & xem danh mục gói game |
 | **`http://localhost:3000/games/dino-race/index.html`** | **Jurassic Sanctuary Sprint** — Bản đầy đủ (Tự lái Solo + 4 Đội KOL + 24 Avatar Khán Giả) |
+| **`http://localhost:3000/games/cyber-boss-raid/index.html`** | **Mecha Kaiju Raid** — Co-op boss raid 60 FPS với chat 1–4, quà KOL, anti-cheat score proof và Battle Pass liên game |
 | **`http://localhost:3000/games/dino-race/standalone.html`** | **Bản 1 File Độc Lập (~42 KB Gzip)** — Mở trực tiếp không cần máy chủ hoặc tải thẳng lên Cloudflare R2 |
 | **`http://localhost:3000/sdk-demo.html`** | **Poki × Xsolla SDK Explorer** — Trải nghiệm trực tiếp 4 bước thanh toán Xsolla SDK 3 (`Authenticate → Catalog → Pay Station → Finalize`) & vòng đời `PokiSDK` |
 | **`http://localhost:3000/decisions.html`** | **Dev Decisions Studio (`Gemini Decisions API`)** — Cổng duyệt phát hành R2, phân loại NĐ 147, duyệt PR, Sprint Backlog & Playground đa phương thức |

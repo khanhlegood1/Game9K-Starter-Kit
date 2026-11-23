@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mecha Kaiju Raid — Đại Chiến Boss KOL Live | Game9K</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: #030712;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+    .cyber-panel {
+      background: rgba(15, 23, 42, 0.84);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col">
+
+  <!-- TOP HUD BAR -->
+  <header class="z-20 bg-slate-950/95 border-b border-cyan-500/30 px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+    <div class="flex items-center gap-2">
+      <a href="/index.html" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-bold text-cyan-300">← Hub</a>
+      <span class="font-black text-xs sm:text-sm text-white">🤖 MECHA KAIJU RAID</span>
+      <span id="hud-bp-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/20 text-purple-300 border border-purple-400/40">
+        🎖️ Pass T0 · 0 XP
+      </span>
+      <span class="hidden md:inline px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/15 text-emerald-300">
+        Score: <b id="hud-team-score">0</b>
+      </span>
+    </div>
+
+    <div class="flex items-center gap-1.5 text-[11px]">
+      <button id="btn-xsolla-orbital" class="px-2.5 py-1 rounded bg-gradient-to-r from-amber-400 to-rose-500 text-stone-950 font-black hover:brightness-110">
+        🛒 Pháo Quỹ Đạo (Xsolla)
+      </button>
+      <button id="btn-raid-ai-mc" class="px-2 py-1 rounded bg-fuchsia-900/70 border border-fuchsia-400/50 text-fuchsia-200 font-bold">
+        🎙️ AI MC
+      </button>
+      <button id="btn-raid-autobot" class="px-2 py-1 rounded bg-cyan-900/60 border border-cyan-500/40 text-cyan-200 font-bold">
+        🤖 Auto: ON
+      </button>
+      <button id="btn-raid-aspect" class="px-2 py-1 rounded bg-slate-800 text-sky-300 font-bold hidden sm:inline">
+        🖥️ 16:9
+      </button>
+      <button id="btn-raid-audio" class="px-2 py-1 rounded bg-slate-800 text-emerald-300 font-bold">
+        🔊
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN RAID CANVAS SHELL -->
+  <div id="raid-viewport" class="relative flex-1 w-full overflow-hidden">
+    <canvas id="raidCanvas" class="w-full h-full block"></canvas>
+
+    <!-- BOSS HP & ENERGY SHIELD BARS -->
+    <div class="absolute top-3 left-1/2 -translate-x-1/2 w-[92%] max-w-xl cyber-panel rounded-2xl p-2.5 z-10">
+      <div class="flex items-center justify-between text-[11px] font-black mb-1">
+        <span id="hud-boss-name" class="text-rose-400 tracking-wide">OMEGA-KAIJU MK-1</span>
+        <span id="hud-boss-hp-txt" class="font-mono text-amber-300">12,000 / 12,000 HP</span>
+      </div>
+      <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-rose-500/40">
+        <div id="hud-boss-hp-bar" class="h-full bg-gradient-to-r from-rose-600 to-amber-400 transition-all duration-100" style="width: 100%"></div>
+      </div>
+      <div class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden mt-1">
+        <div id="hud-boss-shield-bar" class="h-full bg-cyan-400 transition-all duration-100" style="width: 100%"></div>
+      </div>
+    </div>
+
+    <!-- OPENROUTER v7 AI MC SHOUTCAST TICKER -->
+    <div id="raid-ai-mc-banner" class="hidden pointer-events-none absolute top-24 left-1/2 -translate-x-1/2 max-w-md w-[88%] cyber-panel border-fuchsia-400/60 rounded-xl px-3 py-1.5 z-20 text-center">
+      <div class="text-[9px] font-black text-fuchsia-300">🎙️ AI RAID SHOUTCASTER · NĐ 147 ZDR</div>
+      <div id="raid-ai-mc-text" class="text-xs font-bold text-amber-200"></div>
+    </div>
+
+    <!-- MVP DAMAGE LEADERBOARD OVERLAY -->
+    <aside class="hidden sm:block absolute bottom-16 left-3 w-60 cyber-panel rounded-xl p-2.5 z-10 text-[11px]">
+      <div class="font-black text-cyan-300 uppercase text-[10px] border-b border-slate-700 pb-1 mb-1">
+        🏆 Top MVP Sát Thương KOL Live
+      </div>
+      <div id="hud-mvp-list" class="space-y-0.5 text-[10px]"></div>
+    </aside>
+
+    <!-- NĐ 147/2024 UNDER-18 PLAYTIME LOCK OVERLAY -->
+    <div id="u18-lock-overlay" class="hidden absolute inset-0 bg-slate-950/95 z-30 flex items-center justify-center p-6 text-center">
+      <div class="max-w-md cyber-panel rounded-2xl p-6 border-rose-500/60 space-y-2">
+        <div class="text-3xl">🛡️</div>
+        <h2 class="text-base font-black text-rose-400">Tạm Nghỉ Bảo Vệ Sức Khỏe U18 (NĐ 147/2024/NĐ-CP)</h2>
+        <p class="text-xs text-slate-300">Bạn đã đạt giới hạn 60 phút cho phiên chơi đơn lẻ hoặc 180 phút/ngày. Vòng lặp 60 FPS đã tự động tạm dừng an toàn.</p>
+      </div>
+    </div>
+
+    <!-- BOTTOM INTERACTIVE SQUAD & GIFT BAR -->
+    <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-[96%] max-w-3xl cyber-panel rounded-2xl px-3 py-2 z-10 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+      <div class="flex flex-wrap gap-1.5">
+        <button data-lane-btn="1" class="px-2.5 py-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 font-black">1 ⚔️ Striker</button>
+        <button data-lane-btn="2" class="px-2.5 py-1 rounded-lg bg-sky-600/80 hover:bg-sky-500 font-black">2 🛡️ Guardian</button>
+        <button data-lane-btn="3" class="px-2.5 py-1 rounded-lg bg-amber-500/90 hover:bg-amber-400 text-stone-950 font-black">3 ⚡ Sniper</button>
+        <button data-lane-btn="4" class="px-2.5 py-1 rounded-lg bg-emerald-600/80 hover:bg-emerald-500 font-black">4 💖 Medic</button>
+      </div>
+      <div class="flex flex-wrap gap-1">
+        <button data-gift-sim="trap" class="px-2 py-1 rounded bg-indigo-700 hover:bg-indigo-600 font-bold">🌩️ EMP</button>
+        <button data-gift-sim="meteor" class="px-2 py-1 rounded bg-orange-600 hover:bg-orange-500 font-bold">☄️ Laser</button>
+        <button data-gift-sim="crown" class="px-2 py-1 rounded bg-amber-400 hover:bg-amber-300 text-stone-950 font-black">👑 Omega</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/sdk/game9k-sdk.js"></script>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

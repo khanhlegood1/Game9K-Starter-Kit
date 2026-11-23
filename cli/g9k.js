@@ -156,10 +156,10 @@ function runCapabilities(opts) {
     command: "capabilities",
     data: {
       cli: "g9k",
-      version: "8.0.0",
+      version: "9.0.0",
       commands: ["capabilities", "validate", "build", "verify", "doctor", "decide", "codegen", "deploy"],
       sdk: {
-        version: "8.0.0",
+        version: "9.0.0",
         standards: [
           "poki-portal-sdk",
           "xsolla-sdk-3",
@@ -184,6 +184,10 @@ function runCapabilities(opts) {
           "cloudflare-r2-sigv4-publisher",
           "supabase-postgrest-dual-write",
           "solana-ed25519-milestone-vault",
+          "arena-esports-brackets",
+          "arena-anticheat-score-proofs",
+          "arena-cross-game-battle-pass",
+          "arena-creator-revshare-70-20-10",
           "nd147-under18-playtime-guard",
           "game9k-sandbox-bridge",
         ],
@@ -509,7 +513,7 @@ function runCodegen(opts) {
   const generated = splice.generateSDK(
     {
       packageName: `@game9k/${gameSlug}-portal-sdk`,
-      packageVersion: "8.0.0",
+      packageVersion: "9.0.0",
       gameId: gameSlug,
       language: "typescript",
     },
