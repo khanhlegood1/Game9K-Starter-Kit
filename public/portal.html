@@ -602,6 +602,27 @@
             }).then((r) => r.json());
           } else if (msg.action === "pos_get_z_report") {
             data = await fetch("/api/pos/z-report").then((r) => r.json());
+          } else if (typeof msg.action === "string" && msg.action.startsWith("e2b_")) {
+            const safePath = String(msg.payload?.path || "/api/e2b/templates");
+            if (!safePath.startsWith("/api/e2b/")) {
+              throw new Error("Blocked non-E2B RPC path");
+            }
+            const method = String(msg.payload?.method || "GET").toUpperCase();
+            const bodyObj = { ...(msg.payload || {}) };
+            delete bodyObj.path;
+            delete bodyObj.method;
+            data = await fetch(safePath, {
+              method,
+              headers: { "Content-Type": "application/json" },
+              ...(method !== "GET" && method !== "HEAD"
+                ? { body: JSON.stringify(bodyObj) }
+                : {}),
+            }).then((r) => r.json());
+            if (msg.action === "e2b_pause_sandbox" && data?.ok) {
+              sendToIframe({ type: "ENVD_FREEZE" });
+            } else if (msg.action === "e2b_resume_sandbox" && data?.ok) {
+              sendToIframe({ type: "ENVD_THAW" });
+            }
           }
 
           sendToIframe({

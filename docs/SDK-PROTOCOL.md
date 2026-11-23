@@ -1,12 +1,16 @@
-# Đặc Tả Giao Thức SDK Hợp Nhất (`@game9k/sdk` v3.0 — Poki Portal × Xsolla × Splice × POS/KDS)
+# Đặc Tả Giao Thức SDK Hợp Nhất (`@game9k/sdk` v4.0 — Poki Portal × Xsolla × Splice × POS/KDS × E2B Runtime & Computer Use)
 
-Mọi trò chơi HTML5 phát triển trên bộ **Game9K Starter Kit** chỉ cần nhúng duy nhất `/sdk/game9k-sdk.js` (hoặc các shim `/sdk/poki-sdk.js`, `/sdk/xsolla-sdk.js`, `/sdk/splice-sdk.js`, `/sdk/tiktok-bridge.js`) để sử dụng đồng thời **5 trụ cột công nghiệp** theo đúng kiến trúc **Poki Portal SDK** (`PORTAL_RPC_REQUEST` qua `<iframe sandbox="allow-scripts">`):
+Mọi trò chơi HTML5 phát triển trên bộ **Game9K Starter Kit** chỉ cần nhúng duy nhất `/sdk/game9k-sdk.js` (hoặc các shim `/sdk/poki-sdk.js`, `/sdk/xsolla-sdk.js`, `/sdk/splice-sdk.js`, `/sdk/e2b-sdk.js`, `/sdk/tiktok-bridge.js`) để sử dụng đồng thời **9 mô-đun công nghiệp** theo đúng kiến trúc **Poki Portal SDK** (`PORTAL_RPC_REQUEST` qua `<iframe sandbox="allow-scripts">`):
 
 1. **`window.PokiSDK`** (`window.Game9K.poki`) — Tương thích thả-chạy 100% với chuẩn **Poki Portal SDK** (`init`, `gameLoadingFinished`, `gameplayStart/Stop`, `commercialBreak`, `rewardedBreak`, `happyTime`, `movePill`, `shareableURL`, `getURLParam`, `login/getUser/getToken`).
 2. **`window.XsollaSDK`** (`window.Game9K.xsolla`) — Chu trình **Xsolla SDK 3** chỉ **4 lệnh API** (`01 Authenticate → 02 Load Catalog → 03 Purchase Product → 04 Finalize Purchase`), tích hợp trực tiếp **Mã Giảm Giá POS (`GAMER9K`, `KOL20`)**, **Happy Hour** và **Khóa Hết Hàng Auto-86'd**.
-3. **`window.SpliceSDK`** (`window.Game9K.splice` / `PokiSDK.splice`) — Áp dụng kiến trúc **`Darhlilove/splice`**: Trình phân tích đặc tả OpenAPI 3.1 (`/api/openapi.json`), `MockServerManager` tự sinh khóa bảo mật `sk_live_<32_chars>`, HTTP Interceptor tự chèn khóa + Retry Backoff, và trình sinh mã **TypeScript Studio SDK** (`npm run codegen`).
+3. **`window.SpliceSDK`** (`window.Game9K.splice` / `PokiSDK.splice`) — Áp dụng kiến trúc **`Darhlilove/splice`**: Trình phân tích đặc tả OpenAPI 3.1 (`/api/openapi.json`), `MockServerManager` tự sinh khóa studio, HTTP Interceptor tự chèn khóa + Retry Backoff, và trình sinh mã **TypeScript Studio SDK** (`npm run codegen`).
 4. **`window.Game9KPOS`** (`window.Game9K.pos` / `PokiSDK.economy`) — Áp dụng kiến trúc **`Restaurant-POS-Kitchen`**: Quản lý tồn kho giới hạn & tự động khóa **86'd**, Khuyến mãi **Happy Hour** theo khung giờ & **Coupon**, Hàng đợi thực thi vật phẩm/quà tặng trực tiếp **KDS (`on_time`/`watch`/`late` + Bump/Recall 30 phút + All-Day Counts)**, Quản lý Ca Livestream (**Shift**) và Đối soát **Z-Report + Xuất CSV**.
-5. **`window.Game9K.storage` & `window.TikTokBridge`** — `SafeStorage` chống lỗi `QuotaExceededError` trong Opaque Origin, đo dung lượng byte lưu trữ, chuyển đổi phiên bản khóa (`migrateVersion`) và luồng sự kiện **TikTok Live + YouTube Live**.
+5. **`window.E2BRuntimeSDK`** (`PokiSDK.runtime`) — Áp dụng kiến trúc **`e2b-dev/runtime/docs/ARCHITECTURE.md`**: Tách biệt Control Plane & Data Plane, Snapshot COW (`pauseSandbox` với GCRA `429 Retry-After` + `envd` cgroup freeze, `checkpointSandbox`, `forkSandbox`, `resumeSandbox` & Client-Proxy Auto-Resume), cùng Volume Content JWT ràng buộc `aud: https://api.<domain>`.
+6. **`window.CodeInterpreterSDK`** (`PokiSDK.interpreter`) — Áp dụng **`e2b-dev/code-interpreter`**: Kernel thực thi nhiều ô giữ nguyên trạng thái biến (`runCode`), thu luồng `logs.stdout` / `logs.stderr` và bộ trích xuất biểu đồ SVG + dữ liệu có cấu trúc (`emitChart`).
+7. **`window.FragmentsSDK`** (`PokiSDK.fragments`) — Áp dụng **`lexuankhanh1612/fragments`**: Kiểm định `FragmentSchema`, triển khai trực tiếp mini-game Poki HTML5 lên URL `/api/e2b/preview/:sandboxId` và vá mã tức thời **Morph Lazy Edit** (`// ... existing code ...`).
+8. **`window.ComputerUseSDK`** (`PokiSDK.computerUse`) — Áp dụng **`e2b-dev/open-computer-use`**: Gia hạn `setSandboxTimeout(60_000)` mỗi bước, chụp ảnh màn hình Canvas + Grounding tọa độ nút bấm, vẽ dấu chấm đỏ-vàng `drawBigDot(x, y)` và điều khiển tự động `click` / `doubleClick` / `typeText` / `sendKey`.
+9. **`window.Game9K.storage` & `window.TikTokBridge`** — `SafeStorage` chống lỗi `QuotaExceededError` trong Opaque Origin và luồng sự kiện **TikTok Live + YouTube Live**.
 
 ---
 
@@ -92,3 +96,43 @@ Game9K.storage.migrateVersion("dino_profile", "v1", "v2");
 Game9K.storage.setJson("dino_profile_v2", { bestMs: 28400 });
 console.log("Bytes used:", Game9K.storage.getBytesUsed());
 ```
+
+---
+
+## 5. E2B Runtime, Code Interpreter, Fragments/Morph & Open Computer Use (`PokiSDK.*`)
+
+```javascript
+// 1. E2B Runtime Control Plane (Snapshot Boot, Pause GCRA + envd Freeze, Fork & Auto-Resume):
+const { sandbox } = await PokiSDK.runtime.createSandbox({ templateId: "code-interpreter-v1" });
+await PokiSDK.runtime.checkpointSandbox(sandbox.sandboxId);
+const forked = await PokiSDK.runtime.forkSandbox(sandbox.sandboxId);
+
+// 2. Stateful Code Interpreter + SVG Chart Extractor (@e2b/code-interpreter):
+await PokiSDK.interpreter.runCode("x = 41;", { sandboxId: sandbox.sandboxId });
+const exec = await PokiSDK.interpreter.runCode(
+  "x += 1; emitChart({ type: 'bar', title: 'Wave XP', points: [{ label: 'W1', value: x }] }); x;",
+  { sandboxId: sandbox.sandboxId }
+);
+console.log(exec.text, exec.results[0].svg); // "42", "<svg ...>"
+
+// 3. Fragments Deployer & Morph Lazy Patch (`// ... existing code ...`):
+const frag = await PokiSDK.fragments.deployFragment({
+  template: "poki-canvas-mini",
+  title: "Dino Mini Fragment",
+  file_path: "index.html",
+  code: "<!DOCTYPE html><html><body><h1>Emerald Mode</h1></body></html>",
+});
+await PokiSDK.fragments.applyMorphEdit(frag.sbxId, {
+  file_path: "index.html",
+  instruction: "Switch heading to Turbo Mode",
+  edit: "// ... existing code ...\n<body><h1>Turbo Mode</h1></body>\n// ... existing code ...",
+});
+
+// 4. Open Computer Use Vision + Grounding + Action Agent (`drawBigDot` + Click/Key):
+const step = await PokiSDK.computerUse.click("Boost button", {
+  sandboxId: frag.sbxId,
+  uiElements: [{ label: "Boost button", x: 180, y: 92, width: 110, height: 34 }],
+});
+console.log(step.step.grounding, step.step.toolCall);
+```
+

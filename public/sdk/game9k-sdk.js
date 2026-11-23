@@ -1,18 +1,17 @@
 /**
  * game9k-sdk.js
- * Official Unified Browser SDK for Game9K Starter Kit (v3.0.0)
+ * Official Unified Browser SDK for Game9K Starter Kit (v4.0.0)
  *
- * Unifies five production pillars in a single zero-dependency browser bundle:
+ * Unifies nine production modules under the Poki Portal SDK Sandbox Bridge (`<iframe sandbox="allow-scripts">`):
  *   1. Poki Portal SDK (`window.PokiSDK` + `window.Game9K.poki`)
- *      - Lifecycle, Breaks, Shareable URLs, Pill Safe-Zone & SSO Identity
  *   2. Xsolla SDK 3 — 4-Step Game Monetization (`window.XsollaSDK` + `window.Game9K.xsolla`)
- *      - Authenticate -> Load Catalog -> Pay Station 4 Checkout -> Finalize Receipt
- *   3. Splice Spec-to-SDK & Mock Gateway (`window.SpliceSDK` + `window.Game9K.splice`)
- *      - OpenAPI 3.1 Spec Explorer, `sk_live_...` Mock Server Manager, HTTP Interceptors & TS SDK Codegen
- *   4. Counter POS & KDS Live-Ops Economy (`window.Game9KPOS` + `window.Game9K.pos` + `PokiSDK.economy`)
- *      - Limited Stock & Auto-86'd Scarcity, Happy Hour & Coupons, KDS Fulfillment Queue, Shifts & Z-Reports
- *   5. Game9K Core Instant-Play & Multi-Platform KOL Stream Bridge (`window.Game9K` + `window.TikTokBridge`)
- *      - Strict `<iframe sandbox="allow-scripts">` Quota-Safe `SafeStorage` + `postMessage` RPC
+ *   3. Splice Spec-to-SDK & Mock Gateway (`window.SpliceSDK` + `PokiSDK.splice`)
+ *   4. Counter POS & KDS Live-Ops Economy (`window.Game9KPOS` + `PokiSDK.economy`)
+ *   5. E2B Runtime Sandbox & Snapshot Orchestrator (`window.E2BRuntimeSDK` + `PokiSDK.runtime`)
+ *   6. E2B Stateful Code Interpreter & Chart Kernel (`window.CodeInterpreterSDK` + `PokiSDK.interpreter`)
+ *   7. E2B Fragments & Morph Lazy Patch Engine (`window.FragmentsSDK` + `PokiSDK.fragments`)
+ *   8. Open Computer Use Vision/Grounding/Action Agent (`window.ComputerUseSDK` + `PokiSDK.computerUse`)
+ *   9. Game9K Core Quota-Safe `SafeStorage` & Multi-Platform KOL Stream Bridge (`window.TikTokBridge`)
  */
 (function initGame9KGlobal(global) {
   "use strict";
@@ -2200,6 +2199,22 @@
     get economy() {
       return this.sdk.pos;
     }
+
+    get runtime() {
+      return this.sdk.runtime;
+    }
+
+    get interpreter() {
+      return this.sdk.interpreter;
+    }
+
+    get fragments() {
+      return this.sdk.fragments;
+    }
+
+    get computerUse() {
+      return this.sdk.computerUse;
+    }
   }
 
   // ==========================================================================
@@ -2500,13 +2515,436 @@
   }
 
   // ==========================================================================
+  // 4D. E2B RUNTIME SANDBOX & IN-FRAME `envd` AGENT (`window.E2BRuntimeSDK`)
+  // ==========================================================================
+  class Game9KE2BRuntimeAdapter {
+    constructor(sdk) {
+      this.sdk = sdk;
+      this.activeSandboxId = null;
+      this.envd = {
+        frozen: false,
+        lifecycleId: null,
+        cpuCount: 2,
+        startedTasks: 0,
+      };
+    }
+
+    _call(rpcAction, method, path, body = null) {
+      if (this.sdk.isEmbedded && this.sdk.portalHostConnected) {
+        return this.sdk._portalRpc(rpcAction, { ...(body || {}), path, method }).catch(() =>
+          this.sdk.splice.request(path, {
+            method,
+            ...(body ? { body: JSON.stringify(body) } : {}),
+          })
+        );
+      }
+      return this.sdk.splice.request(path, {
+        method,
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+    }
+
+    spawnEnvdTask(taskFn) {
+      if (this.envd.frozen) {
+        return {
+          ok: false,
+          status: 503,
+          error: "unavailable: workload cgroup is frozen for pause",
+        };
+      }
+      this.envd.startedTasks += 1;
+      const out = typeof taskFn === "function" ? taskFn() : null;
+      return { ok: true, taskIndex: this.envd.startedTasks, result: out };
+    }
+
+    listTemplates() {
+      return this._call("e2b_list_templates", "GET", "/api/e2b/templates");
+    }
+
+    listSandboxes() {
+      return this._call("e2b_list_sandboxes", "GET", "/api/e2b/sandboxes");
+    }
+
+    async createSandbox(opts = {}) {
+      const res = await this._call("e2b_create_sandbox", "POST", "/api/e2b/sandboxes", opts);
+      if (res?.sandbox?.sandboxId) {
+        this.activeSandboxId = res.sandbox.sandboxId;
+        this.envd.lifecycleId = res.sandbox.lifecycleId;
+        this.envd.frozen = false;
+      }
+      return res;
+    }
+
+    getSandbox(sandboxId) {
+      const id = sandboxId || this.activeSandboxId;
+      return this._call(
+        "e2b_get_sandbox",
+        "GET",
+        `/api/e2b/sandboxes/${encodeURIComponent(id)}`
+      );
+    }
+
+    async pauseSandbox(sandboxId) {
+      const id = sandboxId || this.activeSandboxId;
+      const res = await this._call(
+        "e2b_pause_sandbox",
+        "POST",
+        `/api/e2b/sandboxes/${encodeURIComponent(id)}/pause`,
+        { sandboxId: id }
+      );
+      if (res?.ok && id === this.activeSandboxId) {
+        this.envd.frozen = true;
+      }
+      return res;
+    }
+
+    async resumeSandbox(sandboxId) {
+      const id = sandboxId || this.activeSandboxId;
+      const res = await this._call(
+        "e2b_resume_sandbox",
+        "POST",
+        `/api/e2b/sandboxes/${encodeURIComponent(id)}/resume`,
+        { sandboxId: id }
+      );
+      if (res?.ok && id === this.activeSandboxId) {
+        this.envd.frozen = false;
+        this.envd.lifecycleId = res.sandbox?.lifecycleId || this.envd.lifecycleId;
+      }
+      return res;
+    }
+
+    checkpointSandbox(sandboxId) {
+      const id = sandboxId || this.activeSandboxId;
+      return this._call(
+        "e2b_checkpoint_sandbox",
+        "POST",
+        `/api/e2b/sandboxes/${encodeURIComponent(id)}/checkpoint`,
+        { sandboxId: id }
+      );
+    }
+
+    forkSandbox(sandboxId, opts = {}) {
+      const id = sandboxId || this.activeSandboxId;
+      return this._call(
+        "e2b_fork_sandbox",
+        "POST",
+        `/api/e2b/sandboxes/${encodeURIComponent(id)}/fork`,
+        { sandboxId: id, ...opts }
+      );
+    }
+
+    setSandboxTimeout(sandboxId, timeoutMs = 60000) {
+      const id = sandboxId || this.activeSandboxId;
+      return this._call(
+        "e2b_set_timeout",
+        "POST",
+        `/api/e2b/sandboxes/${encodeURIComponent(id)}/timeout`,
+        { sandboxId: id, timeoutMs }
+      );
+    }
+
+    killSandbox(sandboxId) {
+      const id = sandboxId || this.activeSandboxId;
+      return this._call(
+        "e2b_kill_sandbox",
+        "DELETE",
+        `/api/e2b/sandboxes/${encodeURIComponent(id)}`,
+        { sandboxId: id }
+      );
+    }
+
+    createVolume(name = "studio-assets") {
+      return this._call("e2b_create_volume", "POST", "/api/e2b/volumes", { name });
+    }
+  }
+
+  // ==========================================================================
+  // 4E. E2B STATEFUL CODE INTERPRETER (`window.CodeInterpreterSDK`)
+  // ==========================================================================
+  class Game9KCodeInterpreterAdapter {
+    constructor(sdk) {
+      this.sdk = sdk;
+    }
+
+    async create(opts = {}) {
+      const created = await this.sdk.runtime.createSandbox({
+        templateId: "code-interpreter-v1",
+        ...opts,
+      });
+      const sandboxId = created?.sandbox?.sandboxId;
+      return {
+        sandboxId,
+        sandbox: created?.sandbox,
+        runCode: (code, runOpts = {}) =>
+          this.runCode(code, { ...runOpts, sandboxId }),
+        pause: () => this.sdk.runtime.pauseSandbox(sandboxId),
+        resume: () => this.sdk.runtime.resumeSandbox(sandboxId),
+        fork: () => this.sdk.runtime.forkSandbox(sandboxId),
+        kill: () => this.sdk.runtime.killSandbox(sandboxId),
+      };
+    }
+
+    async runCode(code, opts = {}) {
+      const sandboxId = opts.sandboxId || this.sdk.runtime.activeSandboxId || null;
+      const res = await this.sdk.runtime._call(
+        "e2b_run_code",
+        "POST",
+        "/api/e2b/interpreter/run",
+        {
+          sandboxId,
+          code: String(code || ""),
+          contextId: opts.contextId || "ctx_default",
+          timeoutMs: opts.timeoutMs || 500,
+          autoResume: opts.autoResume !== false,
+        }
+      );
+      if (res?.sandboxId && !this.sdk.runtime.activeSandboxId) {
+        this.sdk.runtime.activeSandboxId = res.sandboxId;
+      }
+      return res;
+    }
+  }
+
+  // ==========================================================================
+  // 4F. E2B FRAGMENTS & MORPH LAZY EDIT ENGINE (`window.FragmentsSDK`)
+  // ==========================================================================
+  class Game9KFragmentsAdapter {
+    constructor(sdk) {
+      this.sdk = sdk;
+    }
+
+    listTemplates() {
+      return this.sdk.runtime.listTemplates();
+    }
+
+    async deployFragment(fragment = {}) {
+      const res = await this.sdk.runtime._call(
+        "e2b_deploy_fragment",
+        "POST",
+        "/api/e2b/fragments",
+        { fragment, userID: this.sdk.playerId }
+      );
+      if (res?.sbxId) {
+        this.sdk.runtime.activeSandboxId = res.sbxId;
+      }
+      return res;
+    }
+
+    applyMorphEdit(sandboxId, morphEdit = {}) {
+      const id = sandboxId || this.sdk.runtime.activeSandboxId;
+      return this.sdk.runtime._call(
+        "e2b_morph_edit",
+        "POST",
+        `/api/e2b/sandboxes/${encodeURIComponent(id)}/morph-edit`,
+        { sandboxId: id, ...morphEdit }
+      );
+    }
+
+    writeFile(sandboxId, filePath, content) {
+      const id = sandboxId || this.sdk.runtime.activeSandboxId;
+      return this.sdk.runtime._call(
+        "e2b_write_file",
+        "POST",
+        `/api/e2b/sandboxes/${encodeURIComponent(id)}/files`,
+        { sandboxId: id, path: filePath, content }
+      );
+    }
+
+    readFile(sandboxId, filePath = "index.html") {
+      const id = sandboxId || this.sdk.runtime.activeSandboxId;
+      return this.sdk.runtime._call(
+        "e2b_read_file",
+        "GET",
+        `/api/e2b/sandboxes/${encodeURIComponent(id)}/files?path=${encodeURIComponent(
+          filePath
+        )}`,
+        { sandboxId: id, path: filePath }
+      );
+    }
+  }
+
+  // ==========================================================================
+  // 4G. OPEN COMPUTER USE VISION + GROUNDING AGENT (`window.ComputerUseSDK`)
+  // ==========================================================================
+  class Game9KComputerUseAdapter {
+    constructor(sdk) {
+      this.sdk = sdk;
+      this.typingDelayMs = 12;
+      this.typingGroupSize = 50;
+    }
+
+    collectUiElements() {
+      if (typeof document === "undefined" || !document.querySelectorAll) return [];
+      const nodes = document.querySelectorAll("button, a, canvas, [data-cu-label]");
+      const items = [];
+      for (const el of nodes) {
+        if (typeof el.getBoundingClientRect !== "function") continue;
+        const r = el.getBoundingClientRect();
+        if (r.width <= 0 || r.height <= 0) continue;
+        items.push({
+          label:
+            el.getAttribute("data-cu-label") ||
+            el.id ||
+            (el.textContent || "").trim().slice(0, 32) ||
+            el.tagName.toLowerCase(),
+          x: Math.round(r.left + r.width / 2),
+          y: Math.round(r.top + r.height / 2),
+          width: Math.round(r.width),
+          height: Math.round(r.height),
+        });
+      }
+      return items.slice(0, 30);
+    }
+
+    screenshot(canvasEl = null) {
+      try {
+        const target =
+          canvasEl ||
+          (typeof document !== "undefined" ? document.querySelector("canvas") : null);
+        if (target && typeof target.toDataURL === "function") {
+          return target.toDataURL("image/png");
+        }
+      } catch {
+        // Cross-origin tainted canvas fallback
+      }
+      return null;
+    }
+
+    drawBigDot(x, y, containerEl = null) {
+      if (typeof document === "undefined" || !document.body) return null;
+      const host = containerEl || document.body;
+      const dot = document.createElement("div");
+      dot.style.cssText = `position:${
+        containerEl ? "absolute" : "fixed"
+      };left:${Math.round(x) - 11}px;top:${Math.round(
+        y
+      ) - 11}px;width:22px;height:22px;border-radius:999px;background:rgba(244,63,94,0.85);border:3px solid #fde047;box-shadow:0 0 18px rgba(244,63,94,0.9);pointer-events:none;z-index:99998;transition:transform 0.35s ease,opacity 0.35s ease;`;
+      host.appendChild(dot);
+      setTimeout(() => {
+        dot.style.transform = "scale(1.5)";
+        dot.style.opacity = "0";
+        setTimeout(() => dot.remove(), 380);
+      }, 650);
+      return { x: Math.round(x), y: Math.round(y) };
+    }
+
+    sendKey(name = "Space") {
+      if (typeof document !== "undefined" && typeof KeyboardEvent === "function") {
+        const down = new KeyboardEvent("keydown", { key: name, code: name, bubbles: true });
+        const up = new KeyboardEvent("keyup", { key: name, code: name, bubbles: true });
+        global.dispatchEvent?.(down);
+        document.dispatchEvent?.(down);
+        global.dispatchEvent?.(up);
+        document.dispatchEvent?.(up);
+      }
+      this.sdk.emitPortalEvent("computer_use_key", { key: name });
+      return { ok: true, key: name };
+    }
+
+    async typeText(text = "", inputEl = null) {
+      const str = String(text);
+      let out = "";
+      for (let i = 0; i < str.length; i += this.typingGroupSize) {
+        out += str.slice(i, i + this.typingGroupSize);
+        if (inputEl && "value" in inputEl) inputEl.value = out;
+        await new Promise((r) => setTimeout(r, this.typingDelayMs));
+      }
+      return { ok: true, typedLength: str.length };
+    }
+
+    async stepAgent(instruction, opts = {}) {
+      const screenshotDataUrl = opts.screenshotDataUrl ?? this.screenshot(opts.canvasEl);
+      const viewport = opts.viewport || {
+        width: Number(global.innerWidth || 360),
+        height: Number(global.innerHeight || 220),
+      };
+      const res = await this.sdk.runtime._call(
+        "e2b_computer_use_step",
+        "POST",
+        "/api/e2b/computer-use/step",
+        {
+          sandboxId: opts.sandboxId || this.sdk.runtime.activeSandboxId,
+          instruction,
+          action: opts.action || "click",
+          query: opts.query || instruction,
+          key: opts.key,
+          text: opts.text,
+          viewport,
+          uiElements: opts.uiElements || this.collectUiElements(),
+          screenshotDataUrl,
+        }
+      );
+
+      const tc = res?.step?.toolCall;
+      if (tc) {
+        if (tc.name === "send_key") {
+          this.sendKey(tc.parameters.name);
+        } else if (tc.name === "type_text") {
+          await this.typeText(tc.parameters.text, opts.inputEl);
+        } else if (typeof tc.parameters?.x === "number") {
+          this.drawBigDot(tc.parameters.x, tc.parameters.y, opts.containerEl);
+          if (opts.canvasEl && typeof MouseEvent === "function") {
+            const rect = opts.canvasEl.getBoundingClientRect();
+            opts.canvasEl.dispatchEvent(
+              new MouseEvent("click", {
+                clientX: rect.left + tc.parameters.x,
+                clientY: rect.top + tc.parameters.y,
+                bubbles: true,
+              })
+            );
+          }
+        }
+      }
+      return res;
+    }
+
+    click(query, opts = {}) {
+      return this.stepAgent(`Click ${query}`, { ...opts, action: "click", query });
+    }
+
+    doubleClick(query, opts = {}) {
+      return this.stepAgent(`Double click ${query}`, {
+        ...opts,
+        action: "double_click",
+        query,
+      });
+    }
+
+    rightClick(query, opts = {}) {
+      return this.stepAgent(`Right click ${query}`, {
+        ...opts,
+        action: "right_click",
+        query,
+      });
+    }
+
+    pauseAgent(sandboxId) {
+      return this.sdk.runtime._call(
+        "e2b_computer_use_step",
+        "POST",
+        "/api/e2b/computer-use/step",
+        { sandboxId: sandboxId || this.sdk.runtime.activeSandboxId, control: "pause" }
+      );
+    }
+
+    stopAgent(sandboxId) {
+      return this.sdk.runtime._call(
+        "e2b_computer_use_step",
+        "POST",
+        "/api/e2b/computer-use/step",
+        { sandboxId: sandboxId || this.sdk.runtime.activeSandboxId, control: "stop" }
+      );
+    }
+  }
+
+  // ==========================================================================
   // 5. GAME9K CORE BRIDGE (Sandbox PostMessage RPC, Telemetry <= 20Hz, Legal Lock)
   // ==========================================================================
   class Game9KSDK {
     constructor() {
       this.gameId = "dino-race";
-      this.version = "3.0.0";
-      this.sdkVersion = "3.0.0";
+      this.version = "4.0.0";
+      this.sdkVersion = "4.0.0";
       this.playerId = this._resolveGuestId();
       this.isEmbedded = Boolean(global.parent && global.parent !== global);
       this.portalHostConnected = false;
@@ -2526,6 +2964,10 @@
       this.splice = new Game9KSpliceAdapter(this);
       this.pos = new Game9KPosEconomyAdapter(this);
       this.economy = this.pos;
+      this.runtime = new Game9KE2BRuntimeAdapter(this);
+      this.interpreter = new Game9KCodeInterpreterAdapter(this);
+      this.fragments = new Game9KFragmentsAdapter(this);
+      this.computerUse = new Game9KComputerUseAdapter(this);
       this.xsolla = new Game9KXsollaClient(this);
       this.commerce = this.xsolla;
       this.poki = new Game9KPokiAdapter(this);
@@ -2619,6 +3061,10 @@
           "xsolla-sdk-3",
           "splice-spec-to-sdk",
           "pos-kds-economy",
+          "e2b-runtime-sandboxes",
+          "e2b-code-interpreter",
+          "e2b-fragments-morph",
+          "open-computer-use",
           "kol-live-bridge",
         ],
       });
@@ -2719,6 +3165,17 @@
         this._setPaused(false, "nd147_under18_limit");
       } else if (msg.type === "PORTAL_OPEN_STORE") {
         this.xsolla.openStoreModal(msg.payload || {});
+      } else if (msg.type === "ENVD_FREEZE") {
+        this.runtime.envd.frozen = true;
+        this._setPaused(true, "envd_freeze");
+      } else if (msg.type === "ENVD_THAW") {
+        this.runtime.envd.frozen = false;
+        this._setPaused(false, "envd_freeze");
+      } else if (msg.type === "COMPUTER_USE_ACTION" && msg.payload) {
+        if (msg.payload.key) this.computerUse.sendKey(msg.payload.key);
+        else if (typeof msg.payload.x === "number") {
+          this.computerUse.drawBigDot(msg.payload.x, msg.payload.y);
+        }
       } else if (
         (msg.type === "TIKTOK_EVENT" || msg.type === "STREAM_EVENT") &&
         msg.payload
@@ -2834,6 +3291,10 @@
   global.XsollaSDK = sdkInstance.xsolla;
   global.SpliceSDK = sdkInstance.splice;
   global.Game9KPOS = sdkInstance.pos;
+  global.E2BRuntimeSDK = sdkInstance.runtime;
+  global.CodeInterpreterSDK = sdkInstance.interpreter;
+  global.FragmentsSDK = sdkInstance.fragments;
+  global.ComputerUseSDK = sdkInstance.computerUse;
   global.LiveStreamBridge = sdkInstance.stream;
   global.TikTokBridge = sdkInstance.stream;
 })(typeof window !== "undefined" ? window : globalThis);
