@@ -34,6 +34,7 @@ import {
 } from "../src/lib/manifestValidator.js";
 import ProjectDecisionsService from "../src/services/ProjectDecisionsService.js";
 import SpliceSpecService from "../src/services/SpliceSpecService.js";
+import CloudEdgeLaunchService from "../src/services/CloudEdgeLaunchService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -155,10 +156,10 @@ function runCapabilities(opts) {
     command: "capabilities",
     data: {
       cli: "g9k",
-      version: "7.0.0",
-      commands: ["capabilities", "validate", "build", "verify", "doctor", "decide", "codegen"],
+      version: "8.0.0",
+      commands: ["capabilities", "validate", "build", "verify", "doctor", "decide", "codegen", "deploy"],
       sdk: {
-        version: "7.0.0",
+        version: "8.0.0",
         standards: [
           "poki-portal-sdk",
           "xsolla-sdk-3",
@@ -180,6 +181,10 @@ function runCapabilities(opts) {
           "chidori-reactive-event-bus",
           "sid-context-capsule",
           "steamship-hmac-webhooks",
+          "cloudflare-r2-sigv4-publisher",
+          "supabase-postgrest-dual-write",
+          "solana-ed25519-milestone-vault",
+          "nd147-under18-playtime-guard",
           "game9k-sandbox-bridge",
         ],
         xsolla_steps: [
@@ -504,7 +509,7 @@ function runCodegen(opts) {
   const generated = splice.generateSDK(
     {
       packageName: `@game9k/${gameSlug}-portal-sdk`,
-      packageVersion: "7.0.0",
+      packageVersion: "8.0.0",
       gameId: gameSlug,
       language: "typescript",
     },
@@ -543,6 +548,36 @@ function runCodegen(opts) {
   });
 }
 
+async function runDeploy(opts) {
+  const gameSlug = opts.game || "dino-race";
+  if (gameSlug === "dino-race") {
+    compileDinoRaceStandalone();
+  }
+  const cloud = new CloudEdgeLaunchService();
+  const published = await cloud.publishGameToR2({ gameSlug });
+  if (!published.ok) {
+    return emitResult({
+      json: opts.json,
+      ok: false,
+      command: "deploy",
+      error: { code: "r2_deploy_rejected", message: published.error },
+    });
+  }
+  const milestones = cloud.evaluateAndSignMilestones({ gameSlug });
+  emitResult({
+    json: opts.json,
+    ok: true,
+    command: "deploy",
+    data: {
+      deployment: published.deployment,
+      solanaMilestones: {
+        authorityAddress: milestones.authorityAddress,
+        totalUnlockedG9K: milestones.totalUnlockedG9K,
+      },
+    },
+  });
+}
+
 const opts = parseArgs(process.argv);
 if (opts.command === "capabilities") runCapabilities(opts);
 else if (opts.command === "validate") runValidate(opts);
@@ -551,6 +586,7 @@ else if (opts.command === "verify") runVerify(opts);
 else if (opts.command === "doctor") await runDoctor(opts);
 else if (opts.command === "decide") await runDecide(opts);
 else if (opts.command === "codegen") runCodegen(opts);
+else if (opts.command === "deploy") await runDeploy(opts);
 else {
   console.log(`Game9K Starter Kit CLI (g9k)
 Usage:
@@ -560,5 +596,6 @@ Usage:
   npm run g9k -- verify [--json]
   npm run g9k -- doctor [--json]
   npm run g9k -- decide [--json]
-  npm run g9k -- codegen [--game dino-race] [--json]`);
+  npm run g9k -- codegen [--game dino-race] [--json]
+  npm run g9k -- deploy [--game dino-race] [--json]`);
 }

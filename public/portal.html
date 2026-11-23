@@ -664,6 +664,31 @@
                 ? { body: JSON.stringify(bodyObj) }
                 : {}),
             }).then((r) => r.json());
+          } else if (
+            typeof msg.action === "string" &&
+            msg.action.startsWith("cloud_")
+          ) {
+            const safePath = String(msg.payload?.path || "/api/cloud/status");
+            if (!safePath.startsWith("/api/cloud/")) {
+              throw new Error("Blocked non-CloudEdge RPC path");
+            }
+            const method = String(msg.payload?.method || "GET").toUpperCase();
+            const bodyObj = { ...(msg.payload || {}) };
+            delete bodyObj.path;
+            delete bodyObj.method;
+            data = await fetch(safePath, {
+              method,
+              headers: { "Content-Type": "application/json" },
+              ...(method !== "GET" && method !== "HEAD"
+                ? { body: JSON.stringify(bodyObj) }
+                : {}),
+            }).then((r) => r.json());
+            if (msg.action === "cloud_nd147_heartbeat" && data?.shouldLockUnder18) {
+              sendToIframe({ type: "UNDER18_LIMIT_LOCK" });
+              addLog(`🛡️ [NĐ 147/2024] Tự động khóa phiên U18 (${data.lockReason})!`, "text-rose-400");
+            } else if (msg.action === "cloud_nd147_reset" && data?.ok) {
+              sendToIframe({ type: "UNDER18_LIMIT_UNLOCK" });
+            }
           }
 
           sendToIframe({

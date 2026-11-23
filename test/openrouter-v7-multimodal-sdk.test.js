@@ -292,9 +292,9 @@ test("Poki <iframe sandbox='allow-scripts'> bridges PokiSDK.ai v7 (speakShoutcas
   vm.runInNewContext(sdkSource, sandboxGlobal);
 
   const { Game9K, PokiSDK } = sandboxGlobal;
-  assert.equal(Game9K.sdkVersion, "7.0.0");
+  assert.equal(Game9K.sdkVersion, "8.0.0");
 
-  await PokiSDK.init({ gameId: "dino-race", version: "7.0.0" });
+  await PokiSDK.init({ gameId: "dino-race", version: "8.0.0" });
   await new Promise((r) => setTimeout(r, 10));
 
   const tts = await PokiSDK.ai.speakShoutcast("Thiên thạch 5x!", { autoPlay: false });

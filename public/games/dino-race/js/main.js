@@ -167,8 +167,67 @@ if (window.Game9K) {
   });
 
   // Connect incoming TikTok Live & YouTube Live events from SDK StreamBridge -> Engine
+  let aiMcEnabled = true;
+  let lastAiMcAt = 0;
+  let aiMcHideTimer = null;
+
+  function triggerLiveAiShoutcast(evt) {
+    if (!aiMcEnabled || !window.PokiSDK?.ai?.speakShoutcast) return;
+    const now = Date.now();
+    if (now - lastAiMcAt < 3500) return;
+    lastAiMcAt = now;
+
+    const nickname =
+      typeof evt.user === "string"
+        ? evt.user
+        : evt.user?.nickname || evt.user?.uniqueId || "VIP_Viewer";
+    const giftTier = evt.giftTier || "meteor";
+
+    window.PokiSDK.ai
+      .speakShoutcast(
+        {
+          nickname,
+          giftTier,
+          comment: evt.comment || "",
+        },
+        { autoPlay: !SoundFX.muted }
+      )
+      .then((out) => {
+        if (!out?.ok) return;
+        const banner = document.getElementById("ai-mc-banner");
+        const textEl = document.getElementById("ai-mc-headline");
+        if (banner && textEl) {
+          textEl.textContent = out.spokenText;
+          banner.classList.remove("hidden");
+          if (aiMcHideTimer) clearTimeout(aiMcHideTimer);
+          aiMcHideTimer = setTimeout(() => banner.classList.add("hidden"), 3200);
+        }
+      })
+      .catch(() => {});
+
+    window.PokiSDK.agentOps
+      ?.emitReactiveEvent("kol.high_tier_gift", { nickname, giftTier })
+      .catch(() => {});
+  }
+
   window.Game9K.stream.on("event", (evt) => {
     engine.applyStreamEvent(evt);
+    if (
+      (evt?.type === "gift" || evt?.kind === "gift") &&
+      (evt.giftTier === "meteor" || evt.giftTier === "crown")
+    ) {
+      triggerLiveAiShoutcast(evt);
+    }
+  });
+
+  document.getElementById("btn-ai-mc")?.addEventListener("click", (e) => {
+    aiMcEnabled = !aiMcEnabled;
+    e.currentTarget.classList.toggle("opacity-50", !aiMcEnabled);
+    appendFeedLog(
+      `<span class="text-fuchsia-300 font-bold">[🎙️ AI MC]</span> Bình luận viên giọng nói OpenRouter: <b>${
+        aiMcEnabled ? "BẬT" : "TẮT"
+      }</b>`
+    );
   });
 
   window.Game9K.stream.on("status", (st) => {
