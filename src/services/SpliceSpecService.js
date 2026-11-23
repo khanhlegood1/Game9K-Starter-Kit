@@ -60,7 +60,7 @@ export function removeCircularReferences(obj, seen = new WeakSet()) {
 export default class SpliceSpecService {
   constructor(options = {}) {
     this.portalTitle = options.portalTitle || "Game9K Poki Portal & Live-Ops Gateway API";
-    this.portalVersion = options.portalVersion || "6.0.0";
+    this.portalVersion = options.portalVersion || "7.0.0";
     this.state = getGlobalState();
   }
 
@@ -75,7 +75,7 @@ export default class SpliceSpecService {
         title: this.portalTitle,
         version: this.portalVersion,
         description:
-          "Unified OpenAPI 3.1 Contract for Game9K Portal SDK v6.0 — Poki Lifecycle RPC, Xsolla SDK 3, POS/KDS, E2B Sandboxes, OpenRouter AI Streaming, and AgentOps Observability/Cache/Webhooks.",
+          "Unified OpenAPI 3.1 Contract for Game9K Portal SDK v7.0 — Poki Lifecycle RPC, Xsolla SDK 3, POS/KDS, E2B Sandboxes, OpenRouter Multimodal (Audio Speech TTS, Transparent Sprite/Poster Images, KOL Sub-Keys, Sticky Prompt Caching), and AgentOps Observability.",
         license: { name: "MIT" },
       },
       servers: [
@@ -335,6 +335,36 @@ export default class SpliceSpecService {
             tags: ["AgentOps & Helicone"],
             summary: "SID 1-Click Unified Context Capsule (Manifest + POS Z-Report + E2B + OpenRouter)",
             responses: { 200: { description: "Unified studio context capsule" } },
+          },
+        },
+        "/api/openrouter/audio/speech": {
+          post: {
+            operationId: "speakOpenRouterShoutcast",
+            tags: ["OpenRouter Multimodal v7"],
+            summary: "OpenRouter Audio Speech TTS (`/api/v1/audio/speech`) for KOL Live voice shoutcasting with NĐ 147 moderation",
+            responses: { 200: { description: "Web Audio playable WAV/MP3 base64 + X-Generation-Id" } },
+          },
+        },
+        "/api/openrouter/images/generate": {
+          post: {
+            operationId: "generateOpenRouterSprite",
+            tags: ["OpenRouter Multimodal v7"],
+            summary: "OpenRouter Dedicated Image API (`/api/v1/images`) for R2-safe transparent sprites & 9:16 TikTok Live posters",
+            responses: { 200: { description: "Generated sprite/poster b64_json & R2 budget verification" } },
+          },
+        },
+        "/api/openrouter/kol-keys": {
+          get: {
+            operationId: "listOpenRouterKolKeys",
+            tags: ["OpenRouter Multimodal v7"],
+            summary: "List provisioned per-KOL sub-keys & daily/monthly spend caps (`/api/v1/keys`)",
+            responses: { 200: { description: "KOL fleet sub-keys list" } },
+          },
+          post: {
+            operationId: "createOpenRouterKolKey",
+            tags: ["OpenRouter Multimodal v7"],
+            summary: "Provision isolated per-KOL OpenRouter sub-key with daily/monthly reset & BYOK cap",
+            responses: { 201: { description: "Provisioned KOL sub-key & hash" } },
           },
         },
       },

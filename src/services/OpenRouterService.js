@@ -74,7 +74,154 @@ const OPENROUTER_MODEL_CATALOG = [
     completionUsdPer1M: 0.4,
     avgLatencyMs: 210,
   },
+  {
+    id: "mistralai/voxtral-mini-tts-2603",
+    name: "Mistral Voxtral Mini TTS",
+    category: "audio_speech",
+    modalities: ["text", "audio"],
+    promptUsdPer1M: 0.2,
+    completionUsdPer1M: 0.5,
+    avgLatencyMs: 120,
+  },
+  {
+    id: "bytedance-seed/seedream-4.5",
+    name: "ByteDance Seedream 4.5 (Sprite & 9:16 Poster)",
+    category: "image_generation",
+    modalities: ["text", "image"],
+    promptUsdPer1M: 0.5,
+    completionUsdPer1M: 1.2,
+    avgLatencyMs: 650,
+  },
+  {
+    id: "recraft/recraft-v3-svg",
+    name: "Recraft V3 Vector Sprite (R2 Ultra-Light)",
+    category: "vector_sprite",
+    modalities: ["text", "image", "svg"],
+    promptUsdPer1M: 0.45,
+    completionUsdPer1M: 0.9,
+    avgLatencyMs: 420,
+  },
+  {
+    id: "openrouter/decisions-v1",
+    name: "OpenRouter Calibrated Decisions Router",
+    category: "decisions",
+    modalities: ["text", "decisions", "structured_outputs"],
+    promptUsdPer1M: 0.12,
+    completionUsdPer1M: 0.12,
+    avgLatencyMs: 95,
+  },
 ];
+
+/**
+ * Synthesize a genuine, valid 8kHz 16-bit mono RIFF/WAVE PCM fanfare + voice-cadence buffer
+ * (~0.42s, ~6.7 KB) so Web Audio API (`AudioContext.decodeAudioData`) or `new Audio(dataUri)`
+ * plays crisp audible commentary inside `<iframe sandbox="allow-scripts">` with ZERO `<video>` tags!
+ */
+function synthesizeShoutcastWavBuffer(text = "Game9K!", { hype = true } = {}) {
+  const sampleRate = 8000;
+  const durationSec = 0.42;
+  const numSamples = Math.floor(sampleRate * durationSec);
+  const dataBytes = numSamples * 2;
+  const buf = Buffer.alloc(44 + dataBytes);
+
+  // RIFF/WAVE header
+  buf.write("RIFF", 0);
+  buf.writeUInt32LE(36 + dataBytes, 4);
+  buf.write("WAVE", 8);
+  buf.write("fmt ", 12);
+  buf.writeUInt32LE(16, 16); // PCM chunk size
+  buf.writeUInt16LE(1, 20); // AudioFormat = 1 (PCM)
+  buf.writeUInt16LE(1, 22); // NumChannels = 1 (Mono)
+  buf.writeUInt32LE(sampleRate, 24);
+  buf.writeUInt32LE(sampleRate * 2, 28); // ByteRate
+  buf.writeUInt16LE(2, 32); // BlockAlign
+  buf.writeUInt16LE(16, 34); // BitsPerSample
+  buf.write("data", 36);
+  buf.writeUInt32LE(dataBytes, 40);
+
+  // Derive deterministic harmonic arpeggio from headline seed
+  let seed = 0;
+  for (let i = 0; i < text.length; i++) seed = (seed * 31 + text.charCodeAt(i)) >>> 0;
+  const baseNotes = hype ? [523.25, 659.25, 783.99, 1046.5] : [392.0, 329.63, 261.63, 261.63];
+  const detune = ((seed % 17) - 8) * 1.5;
+
+  for (let i = 0; i < numSamples; i++) {
+    const t = i / sampleRate;
+    const noteIdx = Math.min(3, Math.floor((i / numSamples) * 4));
+    const freq = baseNotes[noteIdx] + detune;
+    const env = Math.sin(Math.PI * Math.min(1, (i % (numSamples / 4)) / (numSamples / 4)));
+    const sample =
+      0.55 * Math.sin(2 * Math.PI * freq * t) +
+      0.25 * Math.sin(4 * Math.PI * freq * t);
+    const pcm = Math.max(-32767, Math.min(32767, Math.round(sample * env * 18000)));
+    buf.writeInt16LE(pcm, 44 + i * 2);
+  }
+  return buf;
+}
+
+/**
+ * Deterministic ultra-lightweight SVG sprite / 9:16 TikTok Live Poster generator (< 2.5 KB)
+ * matching OpenRouter `/api/v1/images` parameters (`aspect_ratio`, `background`, `frame_count`).
+ */
+function synthesizeGame9KSpriteSvg({
+  prompt = "Neon T-Rex",
+  aspectRatio = "1:1",
+  background = "transparent",
+  frameCount = 1,
+  frameDurationMs = 140,
+} = {}) {
+  const isPortrait = aspectRatio === "9:16";
+  const isWide = aspectRatio === "16:9";
+  const w = isPortrait ? 360 : isWide ? 640 : 256;
+  const h = isPortrait ? 640 : isWide ? 360 : 256;
+  const lower = String(prompt || "").toLowerCase();
+  const accent = /gold|vàng|vip|crown|vương miện/i.test(lower)
+    ? "#fbbf24"
+    : /meteor|thiên thạch|lửa|fire|rose|neon/i.test(lower)
+    ? "#f43f5e"
+    : "#34d399";
+  const secondary = "#38bdf8";
+  const safeLabel = String(prompt || "Game9K Sprite")
+    .replace(/[<>&"']/g, "")
+    .slice(0, 34);
+  const animDurMs = Math.max(180, Math.min(4000, Number(frameCount || 1) * Number(frameDurationMs || 140)));
+  const animTag =
+    Number(frameCount) > 1
+      ? `<animateTransform attributeName="transform" type="translate" values="0 0; 0 -8; 0 0" dur="${animDurMs}ms" repeatCount="indefinite"/>`
+      : "";
+  const bgRect =
+    background === "transparent"
+      ? ""
+      : `<rect width="${w}" height="${h}" rx="24" fill="#070d19"/>`;
+
+  const cx = Math.round(w / 2);
+  const cy = Math.round(h / 2);
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+  <defs>
+    <radialGradient id="g9kGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="${accent}" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="${accent}" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  ${bgRect}
+  <circle cx="${cx}" cy="${cy}" r="${Math.round(Math.min(w, h) * 0.38)}" fill="url(#g9kGlow)"/>
+  <g>${animTag}
+    <rect x="${cx - 46}" y="${cy - 44}" width="92" height="74" rx="20" fill="${accent}" stroke="#0f172a" stroke-width="4"/>
+    <circle cx="${cx + 18}" cy="${cy - 20}" r="8" fill="#0f172a"/>
+    <circle cx="${cx + 20}" cy="${cy - 22}" r="3" fill="#ffffff"/>
+    <polygon points="${cx - 46},${cy + 8} ${cx - 76},${cy - 8} ${cx - 46},${cy + 26}" fill="${secondary}"/>
+    <rect x="${cx - 30}" y="${cy + 28}" width="18" height="22" rx="6" fill="${accent}"/>
+    <rect x="${cx + 10}" y="${cy + 28}" width="18" height="22" rx="6" fill="${accent}"/>
+  </g>
+  ${
+    isPortrait
+      ? `<text x="${cx}" y="72" text-anchor="middle" fill="${accent}" font-family="monospace" font-weight="900" font-size="20">GAME9K KOL LIVE 9:16</text>
+         <text x="${cx}" y="${h - 46}" text-anchor="middle" fill="#e2e8f0" font-family="sans-serif" font-weight="700" font-size="14">${safeLabel}</text>`
+      : `<text x="${cx}" y="${h - 16}" text-anchor="middle" fill="${accent}" font-family="monospace" font-weight="800" font-size="12">${safeLabel}</text>`
+  }
+</svg>`;
+}
 
 const BLOCKED_CHAT_PATTERNS = [
   /\b(hack|cheat|ddos|scam|lua\s*dao|ca\s*do|danh\s*bac)\b/i,
@@ -98,6 +245,8 @@ export default class OpenRouterService {
     this.siteUrl = options.siteUrl || "https://game9k.portal";
     this.appTitle = options.appTitle || "Game9K Poki Portal Studio";
     this.apiKey = options.apiKey || process.env.OPENROUTER_API_KEY || "";
+    this.managementKey =
+      options.managementKey || process.env.OPENROUTER_MANAGEMENT_KEY || "";
     this.posEconomy = options.posEconomy || null;
     this.agentOps = options.agentOps || null;
 
@@ -105,11 +254,36 @@ export default class OpenRouterService {
     this.totalSpendUsd = 0;
     this.totalTokens = 0;
     this.totalRequests = 0;
+    this.upstreamCachedReadTokens = 0;
 
     this.pkceChallenges = new Map(); // state -> { codeChallenge, callbackUrl, spendLimitUsd, createdAt }
     this.pkceSessions = new Map(); // sessionId -> { sessionId, maskedKey, spendLimitUsd, spentUsd }
     this.activePkceSessionId = null;
+    this.kolSubKeys = new Map(); // hash -> { hash, name, kolHandle, roomId, limit, usage, limit_reset, include_byok_in_limit, disabled, expires_at, createdAt }
+    this.stickySessionPrefixes = new Map(); // sessionId -> { prefixHash, hits, ttl, expiresAt }
     this.usageHistory = [];
+
+    this._seedDefaultKolSubKeys();
+  }
+
+  _seedDefaultKolSubKeys() {
+    if (this.kolSubKeys.size > 0) return;
+    const hash = "orkol_default_dino_room";
+    this.kolSubKeys.set(hash, {
+      hash,
+      label: "sk-or-v1-kol...9k01",
+      name: "KOL Room #1 — @DinoStreamVN (24/7)",
+      kolHandle: "@DinoStreamVN",
+      roomId: "kol-vn-01",
+      limit: 1.5,
+      usage: 0,
+      limit_remaining: 1.5,
+      limit_reset: "daily",
+      include_byok_in_limit: true,
+      disabled: false,
+      expires_at: "2027-12-31T23:59:59Z",
+      createdAt: new Date().toISOString(),
+    });
   }
 
   getStatus() {
@@ -139,8 +313,11 @@ export default class OpenRouterService {
       totals: {
         requests: this.totalRequests,
         tokens: this.totalTokens,
+        upstreamCachedReadTokens: this.upstreamCachedReadTokens,
         spendUsd: Number(this.totalSpendUsd.toFixed(6)),
       },
+      kolFleetKeysCount: this.kolSubKeys.size,
+      stickySessionsCount: this.stickySessionPrefixes.size,
       helicone: this.agentOps ? this.agentOps.getCacheAndLatencyStats() : null,
       modelsCount: OPENROUTER_MODEL_CATALOG.length,
     };
@@ -271,7 +448,35 @@ export default class OpenRouterService {
   // 2. PROVIDER ROUTING, FALLBACKS & SPEND GUARDRAILS
   // ==========================================================================
 
-  _checkSpendGuard() {
+  _checkSpendGuard(kolKeyHash = null) {
+    if (kolKeyHash) {
+      const kolKey = this.kolSubKeys.get(String(kolKeyHash));
+      if (!kolKey) {
+        return { ok: false, status: 404, error: `KOL sub-key "${kolKeyHash}" not found.` };
+      }
+      if (kolKey.disabled) {
+        return {
+          ok: false,
+          status: 403,
+          error: `KOL sub-key "${kolKey.name}" (${kolKey.hash}) is disabled.`,
+        };
+      }
+      if (kolKey.expires_at && Date.now() > Date.parse(kolKey.expires_at)) {
+        return {
+          ok: false,
+          status: 403,
+          error: `KOL sub-key "${kolKey.name}" has expired (${kolKey.expires_at}).`,
+        };
+      }
+      if (kolKey.limit !== null && kolKey.usage >= kolKey.limit) {
+        return {
+          ok: false,
+          status: 402,
+          error: `KOL sub-key "${kolKey.name}" reached 100% of its ${kolKey.limit_reset} cap ($${kolKey.usage.toFixed(5)} / $${kolKey.limit.toFixed(4)}). Other KOL rooms remain unaffected.`,
+        };
+      }
+    }
+
     const activeSession = this.activePkceSessionId
       ? this.pkceSessions.get(this.activePkceSessionId)
       : null;
@@ -334,17 +539,35 @@ export default class OpenRouterService {
     return { chosen, candidates: resolvedCatalog.map((c) => c.id), failoverTrace };
   }
 
-  _recordUsage({ modelSpec, promptChars, completionChars, task, zdr = true, sort = "latency" }) {
+  _recordUsage({
+    modelSpec,
+    promptChars,
+    completionChars,
+    task,
+    zdr = true,
+    sort = "latency",
+    kolKeyHash = null,
+    upstreamCacheHit = false,
+  }) {
     const promptTokens = Math.max(8, Math.ceil(promptChars / 4));
     const completionTokens = Math.max(12, Math.ceil(completionChars / 4));
     const totalTokens = promptTokens + completionTokens;
+    // OpenRouter Prompt Caching (`cache_control` + sticky `x-session-id`) discounts cached prompt tokens by up to 90%
+    const effectivePromptMultiplier = upstreamCacheHit ? 0.1 : 1.0;
+    const cachedReadTokens = upstreamCacheHit ? Math.floor(promptTokens * 0.85) : 0;
+    if (cachedReadTokens > 0) {
+      this.upstreamCachedReadTokens += cachedReadTokens;
+    }
+
     const costUsd = Number(
       (
-        (promptTokens / 1_000_000) * modelSpec.promptUsdPer1M +
+        ((promptTokens * effectivePromptMultiplier) / 1_000_000) * modelSpec.promptUsdPer1M +
         (completionTokens / 1_000_000) * modelSpec.completionUsdPer1M
       ).toFixed(6)
     );
-    const effectiveCost = Math.max(0.000025, costUsd);
+    const effectiveCost = upstreamCacheHit
+      ? Math.max(0.000008, costUsd)
+      : Math.max(0.000025, costUsd);
 
     this.totalRequests += 1;
     this.totalTokens += totalTokens;
@@ -355,6 +578,14 @@ export default class OpenRouterService {
       s.spentUsd = Number((s.spentUsd + effectiveCost).toFixed(6));
     }
 
+    if (kolKeyHash && this.kolSubKeys.has(String(kolKeyHash))) {
+      const k = this.kolSubKeys.get(String(kolKeyHash));
+      k.usage = Number((k.usage + effectiveCost).toFixed(6));
+      if (k.limit !== null) {
+        k.limit_remaining = Number(Math.max(0, k.limit - k.usage).toFixed(6));
+      }
+    }
+
     const entry = {
       id: `or_${randomBytes(5).toString("hex")}`,
       timestamp: new Date().toISOString(),
@@ -362,6 +593,9 @@ export default class OpenRouterService {
       task,
       sort,
       zdr: Boolean(zdr),
+      kolKeyHash: kolKeyHash || null,
+      upstreamCacheHit: Boolean(upstreamCacheHit),
+      cachedReadTokens,
       promptTokens,
       completionTokens,
       totalTokens,
@@ -384,11 +618,18 @@ export default class OpenRouterService {
     sort = "latency",
     zdr = true,
     jsonSchema = null,
+    sessionId = null,
+    cacheControl = null,
+    promptCacheOptions = null,
   } = {}) {
+    const cleanSessionId = sessionId ? String(sessionId).slice(0, 256) : undefined;
     return {
       model,
       ...(models.length > 0 ? { models } : {}),
       messages,
+      ...(cleanSessionId ? { session_id: cleanSessionId } : {}),
+      ...(cacheControl ? { cache_control: cacheControl } : {}),
+      ...(promptCacheOptions ? { prompt_cache_options: promptCacheOptions } : {}),
       provider: {
         allow_fallbacks: true,
         require_parameters: Boolean(jsonSchema),
@@ -462,8 +703,46 @@ export default class OpenRouterService {
       }
     }
 
-    const guard = this._checkSpendGuard();
+    const guard = this._checkSpendGuard(payload.kolKeyHash);
     if (!guard.ok) return guard;
+
+    const sessionId = payload.sessionId || payload.session_id || null;
+    const cacheControl =
+      payload.cache_control ||
+      (payload.enablePromptCache || sessionId ? { type: "ephemeral" } : null);
+    const promptCacheOptions =
+      payload.prompt_cache_options ||
+      (payload.cacheTtl
+        ? {
+            mode: payload.cacheMode || "explicit",
+            ttl: payload.cacheTtl === "12h" ? "12h" : "30m",
+          }
+        : null);
+
+    // Check sticky-session upstream KV-cache prefix (`x-session-id` + `cache_control`)
+    let upstreamCacheHit = false;
+    if (sessionId && cacheControl) {
+      const systemPrefix =
+        messages
+          .filter((m) => m.role === "system")
+          .map((m) => String(m.content || ""))
+          .join("|") || "g9k_default_system_prefix";
+      const prefixHash = sha256Base64Url(systemPrefix);
+      const prev = this.stickySessionPrefixes.get(String(sessionId));
+      const ttlMs = promptCacheOptions?.ttl === "12h" ? 12 * 3600_000 : 30 * 60_000;
+      if (prev && prev.prefixHash === prefixHash && Date.now() < prev.expiresAt) {
+        upstreamCacheHit = true;
+        prev.hits += 1;
+      } else {
+        this.stickySessionPrefixes.set(String(sessionId), {
+          sessionId: String(sessionId),
+          prefixHash,
+          hits: 0,
+          ttl: promptCacheOptions?.ttl || "30m",
+          expiresAt: Date.now() + ttlMs,
+        });
+      }
+    }
 
     const route = this._selectModelForStrategy({
       model: payload.model || "openrouter/auto",
@@ -480,6 +759,9 @@ export default class OpenRouterService {
       sort,
       zdr,
       jsonSchema: payload.jsonSchema || null,
+      sessionId,
+      cacheControl,
+      promptCacheOptions,
     });
 
     const trace = this.agentOps
@@ -497,6 +779,7 @@ export default class OpenRouterService {
             Authorization: `Bearer ${this.apiKey}`,
             "HTTP-Referer": this.siteUrl,
             "X-Title": this.appTitle,
+            ...(sessionId ? { "x-session-id": String(sessionId).slice(0, 256) } : {}),
             "Content-Type": "application/json",
           },
           body: JSON.stringify(requestEnvelope),
@@ -511,15 +794,21 @@ export default class OpenRouterService {
             task,
             zdr,
             sort,
+            kolKeyHash: payload.kolKeyHash || null,
+            upstreamCacheHit,
           });
           const out = {
             ok: true,
             live: true,
             cached: false,
+            upstreamCacheHit,
+            sessionId: sessionId || null,
             traceId: trace?.traceId || null,
             selectedModel: data?.model || route.chosen.id,
             failoverTrace: route.failoverTrace,
             providerPolicy: requestEnvelope.provider,
+            cacheControl: requestEnvelope.cache_control || null,
+            promptCacheOptions: requestEnvelope.prompt_cache_options || null,
             content,
             usage,
             budget: this.getStatus().budget,
@@ -559,16 +848,22 @@ export default class OpenRouterService {
       task,
       zdr,
       sort,
+      kolKeyHash: payload.kolKeyHash || null,
+      upstreamCacheHit,
     });
 
     const out = {
       ok: true,
       live: false,
       cached: false,
+      upstreamCacheHit,
+      sessionId: sessionId || null,
       traceId: trace?.traceId || null,
       selectedModel: route.chosen.id,
       failoverTrace: route.failoverTrace,
       providerPolicy: requestEnvelope.provider,
+      cacheControl: requestEnvelope.cache_control || null,
+      promptCacheOptions: requestEnvelope.prompt_cache_options || null,
       content: reply,
       usage,
       budget: this.getStatus().budget,
@@ -909,5 +1204,395 @@ export default class OpenRouterService {
       totalTiers: tiers.length,
       tiers,
     };
+  }
+
+  // ==========================================================================
+  // 6. OPENROUTER AUDIO SPEECH TTS (`/api/v1/audio/speech` — ZERO `<video>`)
+  // ==========================================================================
+
+  async speakShoutcast(payload = {}) {
+    const startedAt = performance.now();
+    const guard = this._checkSpendGuard(payload.kolKeyHash);
+    if (!guard.ok) return guard;
+
+    const modelId = payload.model || "mistralai/voxtral-mini-tts-2603";
+    const voice = payload.voice || "en_paul_neutral";
+    const rawCheck = `${payload.input || ""} ${payload.nickname || ""} ${payload.comment || ""}`.trim();
+    const unsafe = BLOCKED_CHAT_PATTERNS.some((rx) => rx.test(rawCheck));
+
+    const safeNickname = unsafe
+      ? "TayĐuaẨnDanh"
+      : String(payload.nickname || "VIP_KhanhLe9K").slice(0, 24);
+    const tier = String(payload.giftTier || "meteor").toUpperCase();
+    const spokenText = unsafe
+      ? "Cảnh báo kiểm duyệt Nghị định 147: bình luận đã được lọc an toàn!"
+      : payload.input
+      ? String(payload.input).slice(0, 240)
+      : `Cú lật kèo kinh điển! ${safeNickname} vừa kích hoạt ${tier} trên đường đua Game 9K!`;
+
+    const modelSpec =
+      OPENROUTER_MODEL_CATALOG.find((m) => m.id === modelId) ||
+      OPENROUTER_MODEL_CATALOG.find((m) => m.category === "audio_speech");
+
+    const trace = this.agentOps
+      ? this.agentOps.startTrace({
+          name: "openrouter_audio_speech_tts",
+          tags: ["tts", modelId, voice],
+        })
+      : null;
+
+    let audioBuffer = null;
+    let mimeType = "audio/wav";
+    let generationId = `gen_tts_${randomBytes(6).toString("hex")}`;
+    let live = false;
+
+    if (this.apiKey && !String(this.apiKey).startsWith("or_pkce_sbx_")) {
+      try {
+        const res = await fetch(`${this.baseUrl}/audio/speech`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            "HTTP-Referer": this.siteUrl,
+            "X-Title": this.appTitle,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: modelId,
+            input: spokenText,
+            voice,
+            response_format: payload.response_format || "mp3",
+          }),
+        });
+        if (res.ok) {
+          audioBuffer = Buffer.from(await res.arrayBuffer());
+          mimeType =
+            (payload.response_format || "mp3") === "wav" ? "audio/wav" : "audio/mpeg";
+          generationId = res.headers.get("x-generation-id") || generationId;
+          live = true;
+        }
+      } catch {
+        // Fallback to deterministic Web Audio WAV synthesizer
+      }
+    }
+
+    if (!audioBuffer) {
+      audioBuffer = synthesizeShoutcastWavBuffer(spokenText, { hype: !unsafe });
+      mimeType = "audio/wav";
+    }
+
+    const audioBase64 = audioBuffer.toString("base64");
+    const usage = this._recordUsage({
+      modelSpec,
+      promptChars: spokenText.length,
+      completionChars: Math.ceil(audioBuffer.length / 60),
+      task: "audio_speech_tts",
+      zdr: true,
+      sort: "latency",
+      kolKeyHash: payload.kolKeyHash || null,
+    });
+
+    if (this.agentOps && trace) {
+      this.agentOps.addSpan(trace.traceId, {
+        name: "voxtral_tts_synthesis",
+        kind: "audio_speech",
+        model: modelSpec.id,
+        input: { spokenText, voice },
+        output: { generationId, bytes: audioBuffer.length, mimeType },
+        latencyMs: Math.max(1.5, performance.now() - startedAt),
+        tokens: usage.totalTokens,
+        costUsd: usage.costUsd,
+      });
+      this.agentOps.endTrace(trace.traceId);
+    }
+
+    return {
+      ok: true,
+      live,
+      generationId,
+      traceId: trace?.traceId || null,
+      selectedModel: modelSpec.id,
+      voice,
+      moderation: {
+        safeToBroadcast: !unsafe,
+        zdrEnforced: true,
+      },
+      spokenText,
+      mimeType,
+      byteSize: audioBuffer.length,
+      audioBase64,
+      audioDataUri: `data:${mimeType};base64,${audioBase64}`,
+      usage,
+      budget: this.getStatus().budget,
+    };
+  }
+
+  // ==========================================================================
+  // 7. OPENROUTER DEDICATED IMAGE & SPRITE API (`/api/v1/images` — R2 <= 125 KB)
+  // ==========================================================================
+
+  async generateSprite(payload = {}) {
+    const startedAt = performance.now();
+    const guard = this._checkSpendGuard(payload.kolKeyHash);
+    if (!guard.ok) return guard;
+
+    const prompt = String(payload.prompt || "Golden Cyber T-Rex Racer Sprite").trim();
+    const modelId = payload.model || "bytedance-seed/seedream-4.5";
+    const aspectRatio = payload.aspect_ratio || payload.aspectRatio || "1:1";
+    const background = payload.background || "transparent";
+    const outputFormat = payload.output_format || payload.outputFormat || "svg";
+    const frameCount = Math.max(1, Math.min(64, Number(payload.frame_count || payload.frameCount || 1)));
+    const frameDurationMs = Math.max(
+      20,
+      Math.min(2000, Number(payload.frame_duration_ms || payload.frameDurationMs || 140))
+    );
+    const sort = payload.provider?.sort || payload.sort || "latency";
+
+    const modelSpec =
+      OPENROUTER_MODEL_CATALOG.find((m) => m.id === modelId) ||
+      OPENROUTER_MODEL_CATALOG.find((m) => m.category === "image_generation");
+
+    const trace = this.agentOps
+      ? this.agentOps.startTrace({
+          name: "openrouter_image_sprite_gen",
+          tags: ["image", modelId, aspectRatio, background],
+        })
+      : null;
+
+    let b64Json = "";
+    let mimeType = "image/svg+xml";
+    let svgMarkup = "";
+    let live = false;
+
+    if (this.apiKey && !String(this.apiKey).startsWith("or_pkce_sbx_")) {
+      try {
+        const res = await fetch(`${this.baseUrl}/images`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            "HTTP-Referer": this.siteUrl,
+            "X-Title": this.appTitle,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: modelId,
+            prompt,
+            aspect_ratio: aspectRatio,
+            background,
+            output_format: outputFormat,
+            ...(frameCount > 1
+              ? { frame_count: frameCount, frame_duration_ms: frameDurationMs }
+              : {}),
+            provider: { sort, allow_fallbacks: true },
+          }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          const firstImg = json?.data?.[0];
+          if (firstImg?.b64_json) {
+            b64Json = firstImg.b64_json;
+            mimeType =
+              outputFormat === "png"
+                ? "image/png"
+                : outputFormat === "webp"
+                ? "image/webp"
+                : outputFormat === "gif"
+                ? "image/gif"
+                : "image/svg+xml";
+            live = true;
+          }
+        }
+      } catch {
+        // Fallback to deterministic R2-safe vector sprite synthesizer
+      }
+    }
+
+    if (!b64Json) {
+      svgMarkup = synthesizeGame9KSpriteSvg({
+        prompt,
+        aspectRatio,
+        background,
+        frameCount,
+        frameDurationMs,
+      });
+      b64Json = Buffer.from(svgMarkup, "utf8").toString("base64");
+      mimeType = "image/svg+xml";
+    }
+
+    const byteSize = Buffer.from(b64Json, "base64").length;
+    const kbSize = Number((byteSize / 1024).toFixed(2));
+    const r2BudgetSafe = kbSize <= 125;
+
+    const usage = this._recordUsage({
+      modelSpec,
+      promptChars: prompt.length + 48,
+      completionChars: 256,
+      task: "image_sprite_gen",
+      zdr: true,
+      sort,
+      kolKeyHash: payload.kolKeyHash || null,
+    });
+
+    if (this.agentOps && trace) {
+      this.agentOps.addSpan(trace.traceId, {
+        name: "seedream_sprite_generation",
+        kind: "image_generation",
+        model: modelSpec.id,
+        input: { prompt, aspectRatio, background, outputFormat, frameCount },
+        output: { byteSize, kbSize, r2BudgetSafe },
+        latencyMs: Math.max(2.0, performance.now() - startedAt),
+        tokens: usage.totalTokens,
+        costUsd: usage.costUsd,
+      });
+      this.agentOps.endTrace(trace.traceId);
+    }
+
+    return {
+      ok: true,
+      live,
+      traceId: trace?.traceId || null,
+      selectedModel: modelSpec.id,
+      aspectRatio,
+      background,
+      outputFormat: live ? outputFormat : "svg",
+      frameCount,
+      byteSize,
+      kbSize,
+      r2BudgetSafe,
+      svgMarkup: svgMarkup || null,
+      data: [{ b64_json: b64Json }],
+      dataUri: `data:${mimeType};base64,${b64Json}`,
+      usage,
+      budget: this.getStatus().budget,
+    };
+  }
+
+  // ==========================================================================
+  // 8. MANAGEMENT API SUB-KEYS FOR KOL FLEET (`/api/v1/keys`)
+  // ==========================================================================
+
+  listKolKeys() {
+    return {
+      ok: true,
+      managementKeyConfigured: Boolean(this.managementKey),
+      data: Array.from(this.kolSubKeys.values()),
+    };
+  }
+
+  async createKolKey({
+    name = "KOL Live Room Key",
+    kolHandle = "@KOL_Partner",
+    roomId = "kol-room-new",
+    limit = 2.0,
+    limit_reset = "daily",
+    include_byok_in_limit = true,
+    expires_at = "2027-12-31T23:59:59Z",
+  } = {}) {
+    const cleanLimit = limit === null ? null : Math.max(0.00001, Number(limit) || 2.0);
+    const cleanReset = ["daily", "weekly", "monthly"].includes(limit_reset)
+      ? limit_reset
+      : "daily";
+
+    if (this.managementKey) {
+      try {
+        const res = await fetch(`${this.baseUrl}/keys`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.managementKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            limit: cleanLimit,
+            limit_reset: cleanReset,
+            include_byok_in_limit: Boolean(include_byok_in_limit),
+            expires_at,
+          }),
+        });
+        if (res.ok) {
+          const upstream = await res.json();
+          const d = upstream?.data || upstream;
+          if (d?.hash) {
+            const record = {
+              hash: d.hash,
+              label: maskToken(d.key || d.label || d.hash),
+              name: d.name || name,
+              kolHandle,
+              roomId,
+              limit: cleanLimit,
+              usage: Number(d.usage || 0),
+              limit_remaining: cleanLimit,
+              limit_reset: cleanReset,
+              include_byok_in_limit: Boolean(include_byok_in_limit),
+              disabled: Boolean(d.disabled),
+              expires_at,
+              createdAt: new Date().toISOString(),
+            };
+            this.kolSubKeys.set(record.hash, record);
+            return { ok: true, live: true, key: d.key || null, data: record };
+          }
+        }
+      } catch {
+        // Fallback to local KOL fleet provisioning ledger
+      }
+    }
+
+    const hash = `orkol_${randomBytes(6).toString("hex")}`;
+    const rawProvisionedKey = `sk-or-v1-kol-${randomBytes(12).toString("hex")}`;
+    const record = {
+      hash,
+      label: maskToken(rawProvisionedKey),
+      name: String(name),
+      kolHandle: String(kolHandle),
+      roomId: String(roomId),
+      limit: cleanLimit,
+      usage: 0,
+      limit_remaining: cleanLimit,
+      limit_reset: cleanReset,
+      include_byok_in_limit: Boolean(include_byok_in_limit),
+      disabled: false,
+      expires_at,
+      createdAt: new Date().toISOString(),
+    };
+    this.kolSubKeys.set(hash, record);
+    return {
+      ok: true,
+      live: false,
+      key: rawProvisionedKey,
+      data: record,
+    };
+  }
+
+  async updateKolKey(keyHash, patch = {}) {
+    const existing = this.kolSubKeys.get(String(keyHash));
+    if (!existing) {
+      return { ok: false, status: 404, error: `KOL sub-key "${keyHash}" not found.` };
+    }
+    if (patch.name !== undefined) existing.name = String(patch.name);
+    if (patch.disabled !== undefined) existing.disabled = Boolean(patch.disabled);
+    if (patch.limit !== undefined) {
+      existing.limit = patch.limit === null ? null : Math.max(0.00001, Number(patch.limit));
+      if (existing.limit !== null) {
+        existing.limit_remaining = Number(Math.max(0, existing.limit - existing.usage).toFixed(6));
+      }
+    }
+    if (patch.limit_reset !== undefined) existing.limit_reset = String(patch.limit_reset);
+    if (patch.include_byok_in_limit !== undefined) {
+      existing.include_byok_in_limit = Boolean(patch.include_byok_in_limit);
+    }
+    if (patch.resetUsage === true) {
+      existing.usage = 0;
+      existing.limit_remaining = existing.limit;
+      existing.lastResetAt = new Date().toISOString();
+    }
+    return { ok: true, data: existing };
+  }
+
+  async revokeKolKey(keyHash) {
+    const existing = this.kolSubKeys.get(String(keyHash));
+    if (!existing) {
+      return { ok: false, status: 404, error: `KOL sub-key "${keyHash}" not found.` };
+    }
+    this.kolSubKeys.delete(String(keyHash));
+    return { ok: true, deletedHash: String(keyHash) };
   }
 }

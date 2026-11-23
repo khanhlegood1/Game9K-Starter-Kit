@@ -108,7 +108,7 @@ export function createGame9KServer(options = {}) {
         ? "gemini-decision-1"
         : "game9k-calibrated-decisions",
       sdkCapabilities: {
-        version: "6.0.0",
+        version: "7.0.0",
         pokiPortalSdk: true,
         agentOpsSuite: {
           enabled: true,
@@ -125,6 +125,10 @@ export function createGame9KServer(options = {}) {
           oauthPkceS256: true,
           zdrPrivacy: true,
           agentProtocolV1: true,
+          audioSpeechTts: true,
+          dedicatedSpriteImages: true,
+          kolFleetSubKeys: true,
+          upstreamPromptCaching: true,
         },
         e2bRuntime: {
           enabled: true,
@@ -992,6 +996,41 @@ export function createGame9KServer(options = {}) {
       res.write(`data: ${JSON.stringify({ type: "error", error: out.error, status: out.status })}\n\n`);
     }
     res.end();
+  });
+
+  app.post("/api/openrouter/audio/speech", async (req, res) => {
+    const out = await openRouterService.speakShoutcast(req.body || {});
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    res.setHeader("X-Generation-Id", out.generationId);
+    return res.json(out);
+  });
+
+  app.post("/api/openrouter/images/generate", async (req, res) => {
+    const out = await openRouterService.generateSprite(req.body || {});
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    return res.json(out);
+  });
+
+  app.get("/api/openrouter/kol-keys", (_req, res) => {
+    return res.json(openRouterService.listKolKeys());
+  });
+
+  app.post("/api/openrouter/kol-keys", async (req, res) => {
+    const out = await openRouterService.createKolKey(req.body || {});
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    return res.status(201).json(out);
+  });
+
+  app.patch("/api/openrouter/kol-keys/:hash", async (req, res) => {
+    const out = await openRouterService.updateKolKey(req.params.hash, req.body || {});
+    if (!out.ok) return res.status(out.status || 404).json(out);
+    return res.json(out);
+  });
+
+  app.delete("/api/openrouter/kol-keys/:hash", async (req, res) => {
+    const out = await openRouterService.revokeKolKey(req.params.hash);
+    if (!out.ok) return res.status(out.status || 404).json(out);
+    return res.json(out);
   });
 
   app.get("/api/agentops/dashboard", (_req, res) => {

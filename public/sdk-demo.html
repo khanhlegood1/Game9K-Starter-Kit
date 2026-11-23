@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game9K SDK Studio v6.0 — Poki Portal × Xsolla × Splice × POS/KDS × E2B × OpenRouter × AgentOps</title>
+  <title>Game9K SDK Studio v7.0 — Poki Portal × Xsolla × Splice × POS/KDS × E2B × OpenRouter Multimodal v7 × AgentOps</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
@@ -53,7 +53,7 @@
           <div class="flex items-center flex-wrap gap-2">
             <span class="font-black text-sm sm:text-base text-white tracking-tight">GAME9K SDK STUDIO</span>
             <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
-              Poki Portal SDK v6.0 · Xsolla · Splice · POS/KDS · E2B · OpenRouter · AgentOps
+              Poki Portal SDK v7.0 · Xsolla · Splice · POS/KDS · E2B · OpenRouter Multimodal · AgentOps
             </span>
             <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-sky-500/15 text-sky-300 border border-sky-500/30">
               User ID: <strong id="hdr-explorer-id">------</strong>
@@ -88,6 +88,9 @@
           </button>
           <button data-main-tab="agentops" class="main-tab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white">
             📊 6. AgentOps · Replay · Cache &amp; Stream
+          </button>
+          <button data-main-tab="orv7" class="main-tab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white">
+            🎙️🎨 7. OpenRouter v7 · Voice TTS · Sprite &amp; KOL Keys
           </button>
         </div>
 
@@ -804,6 +807,94 @@ ctx.fillStyle = "#f43f5e"; // Morph Turbo Neon Mode!
     </section>
   </main>
 
+  <!-- ========================================================================
+       TAB 7: OPENROUTER MULTIMODAL v7.0 (VOICE TTS · TRANSPARENT SPRITE/9:16 · KOL SUB-KEYS · STICKY CACHE)
+       ======================================================================== -->
+  <main id="panel-orv7" class="hidden max-w-[1460px] mx-auto w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">
+
+    <!-- Col 1: OpenRouter Audio Speech TTS (`/api/v1/audio/speech`) + Sticky `x-session-id` Cache -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-rose-400">OPENROUTER AUDIO SPEECH · STICKY CACHE</div>
+          <h2 class="text-sm font-black text-white">MC Giọng Nói Thật (Web Audio) &amp; Sticky Cache 90%</h2>
+        </div>
+        <span id="v7-tts-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-800 text-rose-300">ZERO &lt;video&gt;</span>
+      </div>
+
+      <input id="v7-tts-input" value="Cú lật kèo chấn động! VIP Khánh Lê vừa tung Mưa Thiên Thạch 5x!" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono" />
+
+      <div class="flex gap-2 text-xs">
+        <button id="btn-v7-tts" class="flex-1 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-stone-950 font-black">
+          🔊 Phát Giọng MC KOL (TTS)
+        </button>
+        <button id="btn-v7-sticky" class="px-3 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-300 font-bold">
+          ⚡ Sticky Cache
+        </button>
+      </div>
+
+      <pre id="v7-tts-log" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono text-[10px] text-rose-200 overflow-auto max-h-72">// Bấm "Phát Giọng MC KOL" để gọi /api/openrouter/audio/speech (Voxtral Mini TTS) & phát trực tiếp qua Web Audio API. Bấm "Sticky Cache" 2 lần với câu hỏi khác nhau để kiểm chứng giảm 90% phí System Prompt!</pre>
+    </section>
+
+    <!-- Col 2: OpenRouter Dedicated Image & Sprite API (`/api/v1/images`) -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-amber-400">OPENROUTER IMAGE API · TRANSPARENT &amp; 9:16</div>
+          <h2 class="text-sm font-black text-white">Sinh Sprite Nền Trong Suốt &amp; Poster TikTok 9:16</h2>
+        </div>
+        <span id="v7-img-size" class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-300">R2 &le; 125 KB</span>
+      </div>
+
+      <input id="v7-sprite-prompt" value="Golden Cyber T-Rex VIP Crown Racer" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono" />
+
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <select id="v7-aspect-select" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-amber-300">
+          <option value="1:1">1:1 · Sprite Nền Trong Suốt</option>
+          <option value="9:16">9:16 · Poster Dọc TikTok Live</option>
+          <option value="16:9">16:9 · Banner Happy Hour</option>
+        </select>
+        <select id="v7-frames-select" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-sky-300">
+          <option value="4">frame_count: 4 (Animated)</option>
+          <option value="1">frame_count: 1 (Static)</option>
+        </select>
+      </div>
+
+      <button id="btn-v7-gen-sprite" class="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs">
+        🎨 Sinh Sprite / Poster Ngay
+      </button>
+
+      <div id="v7-sprite-stage" class="flex-1 rounded-xl border border-slate-700 p-3 flex items-center justify-center min-h-[210px]" style="background-image: linear-gradient(45deg, #0f172a 25%, transparent 25%), linear-gradient(-45deg, #0f172a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #0f172a 75%), linear-gradient(-45deg, transparent 75%, #0f172a 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; background-color: #020617;">
+        <span class="text-xs font-mono text-slate-400">// Bấm "Sinh Sprite / Poster Ngay" để hiển thị tài nguyên nền trong suốt!</span>
+      </div>
+    </section>
+
+    <!-- Col 3: OpenRouter Management API Sub-Keys for KOL Fleet (`/api/v1/keys`) -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-emerald-400">MANAGEMENT API · PER-KOL FLEET SUB-KEYS</div>
+          <h2 class="text-sm font-black text-white">Ví Hạn Mức Ngày Độc Lập Cho Từng Phòng KOL</h2>
+        </div>
+        <button id="btn-v7-new-kol" class="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black text-[11px]">
+          + Cấp Khóa KOL
+        </button>
+      </div>
+
+      <div id="v7-kol-list" class="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs">
+        <div class="text-slate-400 font-mono text-[11px]">// Đang tải danh sách Sub-Key KOL...</div>
+      </div>
+
+      <div class="flex gap-2 text-xs">
+        <button id="btn-v7-test-isolation" class="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black">
+          🛡️ Test Cô Lập Trần 402 Giữa 2 Phòng KOL
+        </button>
+      </div>
+
+      <pre id="v7-kol-log" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono text-[10px] text-emerald-300 overflow-auto max-h-48">// Cấp khóa riêng (limit_reset: "daily", include_byok_in_limit: true) để 1 phòng KOL đông đột biến không bao giờ làm cạn quỹ AI của các phòng khác!</pre>
+    </section>
+  </main>
+
   <script src="/sdk/game9k-sdk.js"></script>
   <script>
     const SNIPPETS = {
@@ -844,6 +935,7 @@ const kds = await client.getKdsTickets();`
       e2b: document.getElementById("panel-e2b"),
       openrouter: document.getElementById("panel-openrouter"),
       agentops: document.getElementById("panel-agentops"),
+      orv7: document.getElementById("panel-orv7"),
     };
     document.querySelectorAll(".main-tab").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -862,6 +954,7 @@ const kds = await client.getKdsTickets();`
         if (target === "e2b") ensureE2BReady();
         if (target === "openrouter") refreshOpenRouterTab();
         if (target === "agentops") refreshAgentOpsTab();
+        if (target === "orv7") refreshOrV7Tab();
       });
     });
 
@@ -1868,9 +1961,160 @@ tick();
       });
       const dispatched = await window.PokiSDK.agentOps.dispatchWebhook(
         "agentops.eval_passed",
-        { gameId: "dino-race", sdkVersion: "6.0.0", status: "GO_FOR_LAUNCH" }
+        { gameId: "dino-race", sdkVersion: "7.0.0", status: "GO_FOR_LAUNCH" }
       );
       document.getElementById("ao-ops-output").textContent = JSON.stringify(dispatched, null, 2);
+    });
+
+    // ========================================================================
+    // TAB 7 CONTROLLER: OPENROUTER v7 (VOICE TTS · SPRITE 9:16 · KOL SUB-KEYS · STICKY CACHE)
+    // ========================================================================
+    let stickyTurnCounter = 0;
+    let kolPartnerCounter = 1;
+
+    async function renderV7Sprite() {
+      const prompt = document.getElementById("v7-sprite-prompt").value;
+      const aspectRatio = document.getElementById("v7-aspect-select").value;
+      const frameCount = Number(document.getElementById("v7-frames-select").value || 1);
+      const out = await window.PokiSDK.ai.generateSprite(prompt, {
+        aspect_ratio: aspectRatio,
+        background: aspectRatio === "1:1" ? "transparent" : "opaque",
+        frame_count: frameCount,
+      });
+      if (out?.ok) {
+        document.getElementById("v7-img-size").textContent = `${out.kbSize} KB · R2 SAFE=${out.r2BudgetSafe}`;
+        document.getElementById("v7-sprite-stage").innerHTML = `
+          <img src="${out.dataUri}" alt="Generated Game9K Sprite" class="max-h-48 rounded-lg shadow-lg" />
+        `;
+      }
+    }
+
+    async function refreshOrV7Tab() {
+      const list = await window.PokiSDK.ai.listKolKeys();
+      const box = document.getElementById("v7-kol-list");
+      const items = list?.data || [];
+      box.innerHTML = items
+        .map(
+          (k) => `
+          <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+            <div>
+              <div class="font-bold text-white text-[11.5px]">${k.name} <span class="text-sky-300 font-mono text-[10px]">(${k.kolHandle})</span></div>
+              <div class="font-mono text-[10px] text-slate-400">Used: $${Number(k.usage || 0).toFixed(5)} / $${Number(k.limit || 0).toFixed(4)} · reset=${k.limit_reset} · BYOK=${k.include_byok_in_limit}</div>
+            </div>
+            <button data-reset-kol="${k.hash}" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-mono text-emerald-300">Reset</button>
+          </div>`
+        )
+        .join("");
+      box.querySelectorAll("[data-reset-kol]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const h = btn.getAttribute("data-reset-kol");
+          await window.PokiSDK.ai.updateKolKey(h, { resetUsage: true, disabled: false });
+          await refreshOrV7Tab();
+        });
+      });
+    }
+
+    document.getElementById("btn-v7-tts").addEventListener("click", async () => {
+      const input = document.getElementById("v7-tts-input").value;
+      const out = await window.PokiSDK.ai.speakShoutcast(input, { autoPlay: true });
+      document.getElementById("v7-tts-badge").textContent = out.generationId || "PLAYED";
+      document.getElementById("v7-tts-log").textContent = JSON.stringify(
+        {
+          ok: out.ok,
+          generationId: out.generationId,
+          selectedModel: out.selectedModel,
+          spokenText: out.spokenText,
+          mimeType: out.mimeType,
+          byteSize: out.byteSize,
+          moderation: out.moderation,
+          usage: out.usage,
+        },
+        null,
+        2
+      );
+    });
+
+    document.getElementById("btn-v7-sticky").addEventListener("click", async () => {
+      stickyTurnCounter += 1;
+      const messages = [
+        {
+          role: "system",
+          content:
+            "Luật Đường Đua Game9K NĐ 147/2024: 4 làn khủng long 60 FPS, không thẻ video, ZDR bật mặc định, lọc từ khóa nhạy cảm, đồng bộ POS Z-Report.",
+        },
+        {
+          role: "user",
+          content: `Lượt bình luận trực tiếp #${stickyTurnCounter}: Khán giả đặt cược làn số ${(stickyTurnCounter % 4) + 1}!`,
+        },
+      ];
+      const out = await window.PokiSDK.ai.stickyChat("kol_room_sticky_vn01", messages, {
+        bypassCache: true,
+        cacheTtl: "30m",
+      });
+      document.getElementById("v7-tts-log").textContent = JSON.stringify(
+        {
+          turn: stickyTurnCounter,
+          sessionId: out.sessionId,
+          upstreamCacheHit: out.upstreamCacheHit,
+          cacheControl: out.cacheControl,
+          promptCacheOptions: out.promptCacheOptions,
+          cachedReadTokens: out.usage?.cachedReadTokens,
+          costUsd: out.usage?.costUsd,
+        },
+        null,
+        2
+      );
+    });
+
+    document.getElementById("btn-v7-gen-sprite").addEventListener("click", renderV7Sprite);
+
+    document.getElementById("btn-v7-new-kol").addEventListener("click", async () => {
+      kolPartnerCounter += 1;
+      const created = await window.PokiSDK.ai.createKolKey({
+        name: `KOL Room #${kolPartnerCounter} — @MinhAnhLive${kolPartnerCounter}`,
+        kolHandle: `@MinhAnhLive${kolPartnerCounter}`,
+        roomId: `kol-vn-0${kolPartnerCounter}`,
+        limit: 1.0,
+        limit_reset: "daily",
+        include_byok_in_limit: true,
+      });
+      document.getElementById("v7-kol-log").textContent = JSON.stringify(created, null, 2);
+      await refreshOrV7Tab();
+    });
+
+    document.getElementById("btn-v7-test-isolation").addEventListener("click", async () => {
+      const capped = await window.PokiSDK.ai.createKolKey({
+        name: "Phòng KOL Thử Trần ($0.00002)",
+        kolHandle: "@KolBurstTest",
+        roomId: "kol-burst",
+        limit: 0.00002,
+        limit_reset: "daily",
+        include_byok_in_limit: true,
+      });
+      const call1 = await window.PokiSDK.ai.chat("Call 1 trên khóa giới hạn thấp", {
+        kolKeyHash: capped.data.hash,
+        bypassCache: true,
+      });
+      const call2Blocked = await window.PokiSDK.ai
+        .chat("Call 2 chạm trần 402", {
+          kolKeyHash: capped.data.hash,
+          bypassCache: true,
+        })
+        .catch((err) => ({ ok: false, blockedBy402: err.message }));
+      const healthyRoom = await window.PokiSDK.ai.chat("Phòng @DinoStreamVN vẫn chạy 24/7 bình thường!", {
+        kolKeyHash: "orkol_default_dino_room",
+        bypassCache: true,
+      });
+      document.getElementById("v7-kol-log").textContent = JSON.stringify(
+        {
+          burstRoomCall1: { ok: call1.ok, costUsd: call1.usage?.costUsd },
+          burstRoomCall2: call2Blocked,
+          otherKolRoomUnaffected: { ok: healthyRoom.ok, content: healthyRoom.content },
+        },
+        null,
+        2
+      );
+      await refreshOrV7Tab();
     });
 
     // Mini animated dinosaur sprint preview on Canvas
