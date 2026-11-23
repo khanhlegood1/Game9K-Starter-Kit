@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game9K SDK Studio v7.0 — Poki Portal × Xsolla × Splice × POS/KDS × E2B × OpenRouter Multimodal v7 × AgentOps</title>
+  <title>Game9K SDK Studio v8.0 — Poki Portal × Xsolla × Splice × POS/KDS × E2B × OpenRouter v7 × AgentOps × Cloud/Solana</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
@@ -53,7 +53,7 @@
           <div class="flex items-center flex-wrap gap-2">
             <span class="font-black text-sm sm:text-base text-white tracking-tight">GAME9K SDK STUDIO</span>
             <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
-              Poki Portal SDK v7.0 · Xsolla · Splice · POS/KDS · E2B · OpenRouter Multimodal · AgentOps
+              Poki Portal SDK v8.0 · Xsolla · Splice · POS/KDS · E2B · OpenRouter v7 · AgentOps · Cloud R2/Solana
             </span>
             <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-sky-500/15 text-sky-300 border border-sky-500/30">
               User ID: <strong id="hdr-explorer-id">------</strong>
@@ -91,6 +91,9 @@
           </button>
           <button data-main-tab="orv7" class="main-tab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white">
             🎙️🎨 7. OpenRouter v7 · Voice TTS · Sprite &amp; KOL Keys
+          </button>
+          <button data-main-tab="cloud" class="main-tab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white">
+            ☁️⛓️ 8. Cloud R2 · Supabase · Solana &amp; NĐ 147
           </button>
         </div>
 
@@ -895,6 +898,83 @@ ctx.fillStyle = "#f43f5e"; // Morph Turbo Neon Mode!
     </section>
   </main>
 
+  <!-- ========================================================================
+       TAB 8: CLOUDFLARE R2 SIGV4 · SUPABASE DUAL-WRITE · SOLANA ED25519 · NĐ 147 U18 GUARD
+       ======================================================================== -->
+  <main id="panel-cloud" class="hidden max-w-[1460px] mx-auto w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">
+
+    <!-- Col 1: Cloudflare R2 AWS Signature V4 Publisher & Supabase Cloud Save -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-orange-400">CLOUDFLARE R2 SIGV4 · SUPABASE POSTGREST</div>
+          <h2 class="text-sm font-black text-white">Đẩy Gói &le; 125 KB Gzip Lên R2 &amp; Cloud Save</h2>
+        </div>
+        <span id="v8-r2-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-800 text-orange-300">AWS4-HMAC-SHA256</span>
+      </div>
+
+      <div class="flex gap-2 text-xs">
+        <select id="v8-r2-slug" class="bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 font-mono text-amber-300">
+          <option value="dino-race">dino-race (G2 Flagship)</option>
+          <option value="starter-template">starter-template (G4)</option>
+        </select>
+        <button id="btn-v8-r2-pub" class="flex-1 py-2 rounded-xl bg-orange-500 hover:bg-orange-400 text-stone-950 font-black">
+          ☁️ Publish Lên Cloudflare R2
+        </button>
+      </div>
+
+      <button id="btn-v8-supa-sync" class="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs">
+        ⚡ Đồng Bộ Supabase Cloud Save + Global Leaderboard
+      </button>
+
+      <pre id="v8-r2-log" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono text-[10px] text-orange-200 overflow-auto max-h-72">// Kiểm tra cổng <= 125 KB gzip, ký xác thực AWS Signature V4 (immutable CDN 1 năm) & đồng bộ Supabase Dual-Write!</pre>
+    </section>
+
+    <!-- Col 2: Solana Treasury Milestone Ed25519 Attestation & Verifier -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-purple-400">SOLANA MILESTONE VAULT · ED25519 PROOF</div>
+          <h2 class="text-sm font-black text-white">Mở Khóa Chặng Token $G9K &amp; Xác Thực Chữ Ký</h2>
+        </div>
+        <span id="v8-sol-total" class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/20 text-purple-300">0 / 100,000 $G9K</span>
+      </div>
+
+      <div class="flex gap-2 text-xs">
+        <button id="btn-v8-sol-eval" class="flex-1 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black">
+          ⛓️ Ký Ed25519 Các Chặng Đủ KPI
+        </button>
+        <button id="btn-v8-sol-verify" class="px-3 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-300 font-bold">
+          ✔ Verify Sig
+        </button>
+      </div>
+
+      <pre id="v8-sol-log" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono text-[10px] text-purple-200 overflow-auto max-h-80">// Đánh giá 3 chặng KPI (R2 Bundle, KOL Live Telemetry, POS Revenue) & ký chứng thực Ed25519 từ khóa công khai Kho bạc Solana!</pre>
+    </section>
+
+    <!-- Col 3: Vietnam Decree 147/2024/NĐ-CP Under-18 Playtime Guard (60m / 180m) -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-rose-400">NGHỊ ĐỊNH 147/2024/NĐ-CP · U18 GUARD</div>
+          <h2 class="text-sm font-black text-white">Bộ Đếm 60 Phút/Game &amp; 180 Phút/Ngày (U18)</h2>
+        </div>
+        <span id="v8-u18-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-300">UNLOCKED</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <button id="btn-v8-u18-add30" class="py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black">
+          ⏱️ +35 Phút Chơi U18
+        </button>
+        <button id="btn-v8-u18-reset" class="py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold">
+          🔓 Reset Phiên U18
+        </button>
+      </div>
+
+      <pre id="v8-u18-log" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono text-[10px] text-rose-200 overflow-auto max-h-80">// Bấm "+35 Phút Chơi U18" 2 lần (70 phút >= trần 60 phút/game NĐ 147/2024) để kiểm chứng tự động khóa vòng lặp 60 FPS & phát lệnh UNDER18_LIMIT_LOCK!</pre>
+    </section>
+  </main>
+
   <script src="/sdk/game9k-sdk.js"></script>
   <script>
     const SNIPPETS = {
@@ -936,6 +1016,7 @@ const kds = await client.getKdsTickets();`
       openrouter: document.getElementById("panel-openrouter"),
       agentops: document.getElementById("panel-agentops"),
       orv7: document.getElementById("panel-orv7"),
+      cloud: document.getElementById("panel-cloud"),
     };
     document.querySelectorAll(".main-tab").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -955,6 +1036,7 @@ const kds = await client.getKdsTickets();`
         if (target === "openrouter") refreshOpenRouterTab();
         if (target === "agentops") refreshAgentOpsTab();
         if (target === "orv7") refreshOrV7Tab();
+        if (target === "cloud") refreshCloudTab();
       });
     });
 
@@ -2115,6 +2197,94 @@ tick();
         2
       );
       await refreshOrV7Tab();
+    });
+
+    // ========================================================================
+    // TAB 8 CONTROLLER: CLOUDFLARE R2 · SUPABASE · SOLANA ED25519 · NĐ 147 U18
+    // ========================================================================
+    let lastSignedAttestation = null;
+
+    async function refreshCloudTab() {
+      const st = await window.PokiSDK.cloud.getStatus();
+      document.getElementById("v8-r2-log").textContent = JSON.stringify(st, null, 2);
+    }
+
+    document.getElementById("btn-v8-r2-pub").addEventListener("click", async () => {
+      const slug = document.getElementById("v8-r2-slug").value;
+      const pub = await window.PokiSDK.cloud.publishToR2(slug);
+      document.getElementById("v8-r2-badge").textContent = pub.deployment
+        ? `${pub.deployment.gzipKb} KB GZIP OK`
+        : "ERROR";
+      document.getElementById("v8-r2-log").textContent = JSON.stringify(pub, null, 2);
+    });
+
+    document.getElementById("btn-v8-supa-sync").addEventListener("click", async () => {
+      const saveRes = await window.PokiSDK.cloud.syncSupabaseSave("dino-race", {
+        bestLapSec: 38.4,
+        unlockedSkins: ["golden_croc_skin"],
+      });
+      const lbRes = await window.PokiSDK.cloud.submitSupabaseScore("dino-race", {
+        nickname: "VIP_KhanhLe9K",
+        score: 4850,
+      });
+      document.getElementById("v8-r2-log").textContent = JSON.stringify(
+        { cloudSave: saveRes, globalLeaderboard: lbRes },
+        null,
+        2
+      );
+    });
+
+    document.getElementById("btn-v8-sol-eval").addEventListener("click", async () => {
+      const res = await window.PokiSDK.cloud.evaluateSolanaMilestones({
+        gameSlug: "dino-race",
+        forceSimulateKpi: true,
+      });
+      document.getElementById("v8-sol-total").textContent =
+        `${res.totalUnlockedG9K.toLocaleString()} / 100,000 $G9K`;
+      const firstSigned = (res.tranches || []).find((t) => t.attestation);
+      if (firstSigned) lastSignedAttestation = firstSigned.attestation;
+      document.getElementById("v8-sol-log").textContent = JSON.stringify(res, null, 2);
+    });
+
+    document.getElementById("btn-v8-sol-verify").addEventListener("click", async () => {
+      if (!lastSignedAttestation) {
+        document.getElementById("v8-sol-log").textContent =
+          "// Hãy bấm 'Ký Ed25519 Các Chặng Đủ KPI' trước!";
+        return;
+      }
+      const verified = await window.PokiSDK.cloud.verifySolanaSignature(
+        lastSignedAttestation.message,
+        lastSignedAttestation.signatureHex
+      );
+      document.getElementById("v8-sol-log").textContent = JSON.stringify(
+        { verification: verified, attestation: lastSignedAttestation },
+        null,
+        2
+      );
+    });
+
+    document.getElementById("btn-v8-u18-add30").addEventListener("click", async () => {
+      const hb = await window.PokiSDK.cloud.heartbeatPlaytime({
+        playerId: "demo_u18_explorer",
+        gameId: "dino-race",
+        ageGroup: "under18",
+        elapsedSec: 2100, // 35 minutes
+      });
+      const badge = document.getElementById("v8-u18-badge");
+      badge.textContent = hb.shouldLockUnder18 ? `LOCKED (${hb.lockReason})` : "UNLOCKED";
+      badge.className = hb.shouldLockUnder18
+        ? "px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-500/25 text-rose-300 border border-rose-400/50"
+        : "px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-300";
+      document.getElementById("v8-u18-log").textContent = JSON.stringify(hb, null, 2);
+    });
+
+    document.getElementById("btn-v8-u18-reset").addEventListener("click", async () => {
+      const out = await window.PokiSDK.cloud.resetPlaytime("demo_u18_explorer");
+      const badge = document.getElementById("v8-u18-badge");
+      badge.textContent = "UNLOCKED";
+      badge.className =
+        "px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-300";
+      document.getElementById("v8-u18-log").textContent = JSON.stringify(out, null, 2);
     });
 
     // Mini animated dinosaur sprint preview on Canvas

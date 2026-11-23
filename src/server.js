@@ -29,6 +29,7 @@ import SpliceSpecService from "./services/SpliceSpecService.js";
 import E2BSandboxService from "./services/E2BSandboxService.js";
 import OpenRouterService from "./services/OpenRouterService.js";
 import AgentOpsService from "./services/AgentOpsService.js";
+import CloudEdgeLaunchService from "./services/CloudEdgeLaunchService.js";
 import { IpRateLimiter } from "./lib/rateLimiter.js";
 import { validateGamePackage } from "./lib/manifestValidator.js";
 
@@ -46,6 +47,11 @@ export function createGame9KServer(options = {}) {
   });
   const posService = new PosEconomyService(options.pos || {});
   const agentOpsService = new AgentOpsService(options.agentOps || {});
+  const cloudEdgeService = new CloudEdgeLaunchService({
+    ...(options.cloudEdge || {}),
+    liveRoomHub,
+    posService,
+  });
   const openRouterService = new OpenRouterService({
     ...(options.openRouter || {}),
     posEconomy: posService,
@@ -108,8 +114,15 @@ export function createGame9KServer(options = {}) {
         ? "gemini-decision-1"
         : "game9k-calibrated-decisions",
       sdkCapabilities: {
-        version: "7.0.0",
+        version: "8.0.0",
         pokiPortalSdk: true,
+        cloudEdgeSuite: {
+          enabled: true,
+          cloudflareR2SigV4: true,
+          supabaseDualWrite: true,
+          solanaEd25519Milestones: true,
+          nd147Under18PlaytimeGuard: true,
+        },
         agentOpsSuite: {
           enabled: true,
           traceReplay: true,
@@ -1086,6 +1099,54 @@ export function createGame9KServer(options = {}) {
   });
 
   // ==========================================================================
+  // REST API: CLOUDFLARE R2 · SUPABASE · SOLANA ED25519 · NĐ 147 U18 GUARD (v8.0)
+  // ==========================================================================
+
+  app.get("/api/cloud/status", (_req, res) => {
+    return res.json(cloudEdgeService.getStatus());
+  });
+
+  app.post("/api/cloud/r2/publish", async (req, res) => {
+    const out = await cloudEdgeService.publishGameToR2(req.body || {});
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    return res.json(out);
+  });
+
+  app.post("/api/cloud/supabase/save", async (req, res) => {
+    const out = await cloudEdgeService.syncCloudSave(
+      req.body?.gameId || "dino-race",
+      req.body?.playerId || "guest",
+      req.body?.data || {}
+    );
+    return res.json(out);
+  });
+
+  app.post("/api/cloud/supabase/leaderboard", async (req, res) => {
+    const out = await cloudEdgeService.submitGlobalScore(
+      req.body?.gameId || "dino-race",
+      req.body || {}
+    );
+    return res.json(out);
+  });
+
+  app.post("/api/cloud/solana/milestones", (req, res) => {
+    return res.json(cloudEdgeService.evaluateAndSignMilestones(req.body || {}));
+  });
+
+  app.post("/api/cloud/solana/verify", (req, res) => {
+    const out = cloudEdgeService.verifyMilestoneSignature(req.body || {});
+    return res.status(out.ok ? 200 : 400).json(out);
+  });
+
+  app.post("/api/cloud/nd147/heartbeat", (req, res) => {
+    return res.json(cloudEdgeService.heartbeatPlaytime(req.body || {}));
+  });
+
+  app.post("/api/cloud/nd147/reset", (req, res) => {
+    return res.json(cloudEdgeService.resetPlaytime(req.body?.playerId || "guest_u18"));
+  });
+
+  // ==========================================================================
   // SOCKET.IO REAL-TIME MULTI-TENANT BRIDGE
   // ==========================================================================
 
@@ -1200,6 +1261,7 @@ export function createGame9KServer(options = {}) {
     e2bService,
     openRouterService,
     agentOpsService,
+    cloudEdgeService,
   };
 }
 

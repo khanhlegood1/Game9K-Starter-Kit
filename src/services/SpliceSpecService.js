@@ -60,7 +60,7 @@ export function removeCircularReferences(obj, seen = new WeakSet()) {
 export default class SpliceSpecService {
   constructor(options = {}) {
     this.portalTitle = options.portalTitle || "Game9K Poki Portal & Live-Ops Gateway API";
-    this.portalVersion = options.portalVersion || "7.0.0";
+    this.portalVersion = options.portalVersion || "8.0.0";
     this.state = getGlobalState();
   }
 
@@ -75,7 +75,7 @@ export default class SpliceSpecService {
         title: this.portalTitle,
         version: this.portalVersion,
         description:
-          "Unified OpenAPI 3.1 Contract for Game9K Portal SDK v7.0 — Poki Lifecycle RPC, Xsolla SDK 3, POS/KDS, E2B Sandboxes, OpenRouter Multimodal (Audio Speech TTS, Transparent Sprite/Poster Images, KOL Sub-Keys, Sticky Prompt Caching), and AgentOps Observability.",
+          "Unified OpenAPI 3.1 Contract for Game9K Portal SDK v8.0 — Poki Lifecycle RPC, Xsolla SDK 3, POS/KDS, E2B Sandboxes, OpenRouter Multimodal v7, AgentOps Observability, and Cloud/Edge Launchpad (Cloudflare R2 SigV4, Supabase, Solana Ed25519 Milestones & NĐ 147 U18 Guard).",
         license: { name: "MIT" },
       },
       servers: [
@@ -365,6 +365,38 @@ export default class SpliceSpecService {
             tags: ["OpenRouter Multimodal v7"],
             summary: "Provision isolated per-KOL OpenRouter sub-key with daily/monthly reset & BYOK cap",
             responses: { 201: { description: "Provisioned KOL sub-key & hash" } },
+          },
+        },
+        "/api/cloud/status": {
+          get: {
+            operationId: "getCloudEdgeStatus",
+            tags: ["Cloud & Edge v8"],
+            summary: "Inspect Cloudflare R2, Supabase Dual-Write, Solana Ed25519 Authority & NĐ 147 U18 Guard status",
+            responses: { 200: { description: "Cloud/Edge status snapshot" } },
+          },
+        },
+        "/api/cloud/r2/publish": {
+          post: {
+            operationId: "publishBundleToCloudflareR2",
+            tags: ["Cloud & Edge v8"],
+            summary: "Validate <= 125 KB gzip & publish immutable game bundle via AWS Signature V4 to Cloudflare R2",
+            responses: { 200: { description: "Signed R2 deployment receipt & CDN URL" } },
+          },
+        },
+        "/api/cloud/solana/milestones": {
+          post: {
+            operationId: "evaluateSolanaMilestones",
+            tags: ["Cloud & Edge v8"],
+            summary: "Evaluate Game9K KPI gates & sign eligible Solana $G9K token tranches with Ed25519",
+            responses: { 200: { description: "Ed25519 signed milestone attestations" } },
+          },
+        },
+        "/api/cloud/nd147/heartbeat": {
+          post: {
+            operationId: "heartbeatNd147Playtime",
+            tags: ["Cloud & Edge v8"],
+            summary: "Enforce Vietnam Decree 147/2024/NĐ-CP Under-18 playtime limits (60m per game / 180m daily)",
+            responses: { 200: { description: "Playtime ledger state & UNDER18_LIMIT_LOCK command" } },
           },
         },
       },

@@ -1,8 +1,8 @@
 /**
  * game9k-sdk.js
- * Official Unified Browser SDK for Game9K Starter Kit (v7.0.0)
+ * Official Unified Browser SDK for Game9K Starter Kit (v8.0.0)
  *
- * Unifies eleven production modules under the Poki Portal SDK Sandbox Bridge (`<iframe sandbox="allow-scripts">`):
+ * Unifies twelve production modules under the Poki Portal SDK Sandbox Bridge (`<iframe sandbox="allow-scripts">`):
  *   1. Poki Portal SDK (`window.PokiSDK` + `window.Game9K.poki`)
  *   2. Xsolla SDK 3 — 4-Step Game Monetization (`window.XsollaSDK` + `window.Game9K.xsolla`)
  *   3. Splice Spec-to-SDK & Mock Gateway (`window.SpliceSDK` + `PokiSDK.splice`)
@@ -13,7 +13,8 @@
  *   8. Open Computer Use Vision/Grounding/Action Agent (`window.ComputerUseSDK` + `PokiSDK.computerUse`)
  *   9. OpenRouter Multimodal v7 (Audio Speech TTS, Transparent Sprite/9:16 Poster Images, KOL Sub-Keys, Sticky Prompt Cache, OAuth PKCE & Vercel Stream) (`window.OpenRouterSDK` + `PokiSDK.ai`)
  *  10. AgentOps Observability, Helicone Cache, Chidori Reactive Bus, SID Capsule & Steamship Webhooks (`window.AgentOpsSDK` + `PokiSDK.agentOps`)
- *  11. Game9K Core Quota-Safe `SafeStorage` & Multi-Platform KOL Stream Bridge (`window.TikTokBridge`)
+ *  11. Cloud & Edge Launchpad (Cloudflare R2 SigV4, Supabase Dual-Write, Solana Ed25519 Milestones & NĐ 147 U18 Guard) (`window.CloudEdgeSDK` + `PokiSDK.cloud`)
+ *  12. Game9K Core Quota-Safe `SafeStorage` & Multi-Platform KOL Stream Bridge (`window.TikTokBridge`)
  */
 (function initGame9KGlobal(global) {
   "use strict";
@@ -2225,6 +2226,10 @@
     get agentOps() {
       return this.sdk.agentOps;
     }
+
+    get cloud() {
+      return this.sdk.cloud;
+    }
   }
 
   // ==========================================================================
@@ -3346,13 +3351,115 @@
   }
 
   // ==========================================================================
+  // 4I. CLOUDFLARE R2 SIGV4 · SUPABASE · SOLANA ED25519 · NĐ 147 U18 GUARD (`PokiSDK.cloud`)
+  // ==========================================================================
+  class Game9KCloudEdgeAdapter {
+    constructor(sdk) {
+      this.sdk = sdk;
+    }
+
+    _call(rpcAction, method, path, body = null) {
+      if (this.sdk.isEmbedded && this.sdk.portalHostConnected) {
+        return this.sdk._portalRpc(rpcAction, { ...(body || {}), path, method }).catch(() =>
+          this.sdk.splice.request(path, {
+            method,
+            ...(body ? { body: JSON.stringify(body) } : {}),
+          })
+        );
+      }
+      return this.sdk.splice.request(path, {
+        method,
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+    }
+
+    getStatus() {
+      return this._call("cloud_status", "GET", "/api/cloud/status");
+    }
+
+    publishToR2(gameSlug = "dino-race", opts = {}) {
+      return this._call("cloud_r2_publish", "POST", "/api/cloud/r2/publish", {
+        gameSlug,
+        ...opts,
+      });
+    }
+
+    syncSupabaseSave(gameId = "dino-race", data = {}, playerId = null) {
+      return this._call("cloud_supabase_save", "POST", "/api/cloud/supabase/save", {
+        gameId,
+        playerId: playerId || this.sdk.playerId,
+        data,
+      });
+    }
+
+    submitSupabaseScore(gameId = "dino-race", scorePayload = {}) {
+      return this._call(
+        "cloud_supabase_leaderboard",
+        "POST",
+        "/api/cloud/supabase/leaderboard",
+        {
+          gameId,
+          playerId: scorePayload.playerId || this.sdk.playerId,
+          ...scorePayload,
+        }
+      );
+    }
+
+    evaluateSolanaMilestones(opts = {}) {
+      return this._call(
+        "cloud_solana_milestones",
+        "POST",
+        "/api/cloud/solana/milestones",
+        opts
+      );
+    }
+
+    verifySolanaSignature(message, signatureHex) {
+      return this._call("cloud_solana_verify", "POST", "/api/cloud/solana/verify", {
+        message,
+        signatureHex,
+      });
+    }
+
+    async heartbeatPlaytime(opts = {}) {
+      const res = await this._call(
+        "cloud_nd147_heartbeat",
+        "POST",
+        "/api/cloud/nd147/heartbeat",
+        {
+          playerId: opts.playerId || this.sdk.playerId,
+          gameId: opts.gameId || this.sdk.gameId,
+          ...opts,
+        }
+      );
+      if (res?.shouldLockUnder18) {
+        this.sdk.legalLocked = true;
+        this.sdk.poki.gameplayStop("nd147_under18_limit");
+        this.sdk._setPaused(true, "nd147_under18_limit");
+      }
+      return res;
+    }
+
+    async resetPlaytime(playerId = null) {
+      const res = await this._call("cloud_nd147_reset", "POST", "/api/cloud/nd147/reset", {
+        playerId: playerId || this.sdk.playerId,
+      });
+      if (res?.ok) {
+        this.sdk.legalLocked = false;
+        this.sdk._setPaused(false, "nd147_under18_limit");
+      }
+      return res;
+    }
+  }
+
+  // ==========================================================================
   // 5. GAME9K CORE BRIDGE (Sandbox PostMessage RPC, Telemetry <= 20Hz, Legal Lock)
   // ==========================================================================
   class Game9KSDK {
     constructor() {
       this.gameId = "dino-race";
-      this.version = "7.0.0";
-      this.sdkVersion = "7.0.0";
+      this.version = "8.0.0";
+      this.sdkVersion = "8.0.0";
       this.playerId = this._resolveGuestId();
       this.isEmbedded = Boolean(global.parent && global.parent !== global);
       this.portalHostConnected = false;
@@ -3380,6 +3487,7 @@
       this.ai = new Game9KOpenRouterAdapter(this);
       this.openRouter = this.ai;
       this.agentOps = new Game9KAgentOpsAdapter(this);
+      this.cloud = new Game9KCloudEdgeAdapter(this);
       this.xsolla = new Game9KXsollaClient(this);
       this.commerce = this.xsolla;
       this.poki = new Game9KPokiAdapter(this);
@@ -3731,6 +3839,7 @@
   global.ComputerUseSDK = sdkInstance.computerUse;
   global.OpenRouterSDK = sdkInstance.ai;
   global.AgentOpsSDK = sdkInstance.agentOps;
+  global.CloudEdgeSDK = sdkInstance.cloud;
   global.LiveStreamBridge = sdkInstance.stream;
   global.TikTokBridge = sdkInstance.stream;
 })(typeof window !== "undefined" ? window : globalThis);

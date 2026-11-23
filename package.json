@@ -20,6 +20,7 @@
     "doctor": "node cli/g9k.js doctor",
     "decide": "node cli/g9k.js decide",
     "codegen": "node cli/g9k.js codegen",
+    "deploy": "node cli/g9k.js deploy",
     "test": "node --test test/*.test.js"
   },
   "keywords": [

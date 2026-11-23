@@ -234,6 +234,34 @@ const turn2 = await PokiSDK.ai.stickyChat("kol_room_vn01", [
 console.log(turn2.upstreamCacheHit, turn2.usage.cachedReadTokens);
 ```
 
+---
+
+## 9. Cloud & Edge Production Launchpad v8.0 (`PokiSDK.cloud` + `npm run deploy`)
+
+Khép kín vòng đời xuất bản sản phẩm thật lên **Cloudflare R2 (`AWS4-HMAC-SHA256`)**, **Supabase PostgREST**, **Kho bạc Token Solana (`Ed25519`)**, và **Bộ đếm giờ chơi U18 Nghị định 147/2024/NĐ-CP**:
+
+```javascript
+// 1. Kiểm định <= 125 KB gzip & xuất bản gói đơn tệp lên Cloudflare R2 CDN (immutable 1 năm):
+const r2 = await PokiSDK.cloud.publishToR2("dino-race");
+console.log(r2.deployment.cdnUrl, r2.deployment.sigV4Signature);
+
+// 2. Đồng bộ Cloud Save & Bảng xếp hạng toàn cầu qua Supabase Dual-Write:
+await PokiSDK.cloud.syncSupabaseSave("dino-race", { bestLapSec: 37.9 });
+await PokiSDK.cloud.submitSupabaseScore("dino-race", { nickname: "VIP_KhanhLe", score: 5200 });
+
+// 3. Ký & xác thực mật mã Ed25519 mở khóa các chặng Token $G9K trên Solana:
+const milestones = await PokiSDK.cloud.evaluateSolanaMilestones({ gameSlug: "dino-race" });
+const sigCheck = await PokiSDK.cloud.verifySolanaSignature(
+  milestones.tranches[0].attestation.message,
+  milestones.tranches[0].attestation.signatureHex
+);
+
+// 4. Bộ đếm giờ chơi U18 theo NĐ 147/2024/NĐ-CP (60 phút/game & 180 phút/ngày -> tự khóa vòng lặp):
+const guard = await PokiSDK.cloud.heartbeatPlaytime({ ageGroup: "under18", elapsedSec: 3600 });
+console.log(guard.shouldLockUnder18, guard.portalPostMessageCmd); // true, "UNDER18_LIMIT_LOCK"
+```
+
+
 
 
 
