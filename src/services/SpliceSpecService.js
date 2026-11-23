@@ -60,7 +60,7 @@ export function removeCircularReferences(obj, seen = new WeakSet()) {
 export default class SpliceSpecService {
   constructor(options = {}) {
     this.portalTitle = options.portalTitle || "Game9K Poki Portal & Live-Ops Gateway API";
-    this.portalVersion = options.portalVersion || "3.0.0";
+    this.portalVersion = options.portalVersion || "4.0.0";
     this.state = getGlobalState();
   }
 
@@ -75,7 +75,7 @@ export default class SpliceSpecService {
         title: this.portalTitle,
         version: this.portalVersion,
         description:
-          "Unified OpenAPI 3.1 Contract for Game9K Portal SDK v3.0 — Poki Lifecycle RPC, Xsolla SDK 3 4-Step Commerce, Counter POS/KDS Live Fulfillment, and KOL Stream Gateway.",
+          "Unified OpenAPI 3.1 Contract for Game9K Portal SDK v4.0 — Poki Lifecycle RPC, Xsolla SDK 3, Counter POS/KDS, E2B Runtime Sandboxes, Code Interpreter, Fragments & Open Computer Use.",
         license: { name: "MIT" },
       },
       servers: [
@@ -247,6 +247,38 @@ export default class SpliceSpecService {
             tags: ["Shifts & Z-Report"],
             summary: "Compute End-of-Day / KOL Stream Z-Report & Solana Milestone Readiness",
             responses: { 200: { description: "Full Z-Report reconciliation" } },
+          },
+        },
+        "/api/e2b/sandboxes": {
+          post: {
+            operationId: "createE2BSandbox",
+            tags: ["E2B Runtime"],
+            summary: "Boot or resume an isolated E2B Portal Sandbox from a pre-built template snapshot",
+            responses: { 201: { description: "Sandbox started with lifecycleId & envd token" } },
+          },
+        },
+        "/api/e2b/interpreter/run": {
+          post: {
+            operationId: "runCodeInterpreter",
+            tags: ["E2B Code Interpreter"],
+            summary: "Execute stateful multi-cell JS/Math code with stdout/stderr & SVG chart extraction",
+            responses: { 200: { description: "Execution text, logs & chart results" } },
+          },
+        },
+        "/api/e2b/fragments": {
+          post: {
+            operationId: "deployFragment",
+            tags: ["E2B Fragments"],
+            summary: "Deploy a playable Poki HTML5 or KOL Live Fragment from FragmentSchema",
+            responses: { 200: { description: "Playable fragment preview URL or cell results" } },
+          },
+        },
+        "/api/e2b/computer-use/step": {
+          post: {
+            operationId: "stepComputerUseAgent",
+            tags: ["Open Computer Use"],
+            summary: "Run Vision/Grounding + drawBigDot + Click/Key action step in sandbox",
+            responses: { 200: { description: "Grounded coordinate dot & executed tool call" } },
           },
         },
       },

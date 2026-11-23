@@ -26,6 +26,7 @@ import ProjectDecisionsService, {
 import XsollaCommerceService from "./services/XsollaCommerceService.js";
 import PosEconomyService from "./services/PosEconomyService.js";
 import SpliceSpecService from "./services/SpliceSpecService.js";
+import E2BSandboxService from "./services/E2BSandboxService.js";
 import { IpRateLimiter } from "./lib/rateLimiter.js";
 import { validateGamePackage } from "./lib/manifestValidator.js";
 
@@ -48,6 +49,7 @@ export function createGame9KServer(options = {}) {
     posEconomy: posService,
   });
   const spliceService = new SpliceSpecService(options.splice || {});
+  const e2bService = new E2BSandboxService(options.e2b || {});
 
   const io = new Server(httpServer, {
     cors: {
@@ -61,6 +63,7 @@ export function createGame9KServer(options = {}) {
   // Middleware: allow cross-origin & iframe preview embedding without host/frame blocks
   app.use(cors({ origin: true }));
   app.use("/api/decisions", express.json({ limit: "28mb" }));
+  app.use("/api/e2b", express.json({ limit: "4mb" }));
   app.use(
     express.json({
       limit: "256kb",
@@ -91,8 +94,17 @@ export function createGame9KServer(options = {}) {
         ? "gemini-decision-1"
         : "game9k-calibrated-decisions",
       sdkCapabilities: {
-        version: "3.0.0",
+        version: "4.0.0",
         pokiPortalSdk: true,
+        e2bRuntime: {
+          enabled: true,
+          templates: e2bService.listTemplates().map((t) => t.templateId),
+          codeInterpreter: true,
+          fragments: true,
+          morphLazyEdit: true,
+          openComputerUse: true,
+          volumeContentJwt: true,
+        },
         spliceSpecEngine: {
           enabled: true,
           openApiSpecUrl: "/api/openapi.json",
@@ -658,6 +670,174 @@ export function createGame9KServer(options = {}) {
   });
 
   // ==========================================================================
+  // REST API: E2B RUNTIME, CODE INTERPRETER, FRAGMENTS & OPEN COMPUTER USE
+  // ==========================================================================
+
+  app.get("/api/e2b/templates", (_req, res) => {
+    return res.json({
+      ok: true,
+      templates: e2bService.listTemplates(),
+    });
+  });
+
+  app.get("/api/e2b/sandboxes", (_req, res) => {
+    return res.json({
+      ok: true,
+      sandboxes: e2bService.listSandboxes(),
+      recentEvents: e2bService.events.slice(0, 20),
+    });
+  });
+
+  app.post("/api/e2b/sandboxes", (req, res) => {
+    const created = e2bService.createSandbox(req.body || {});
+    return res.status(201).json(created);
+  });
+
+  app.get("/api/e2b/sandboxes/:sandboxId", (req, res) => {
+    const out = e2bService.getSandbox(req.params.sandboxId);
+    if (!out.ok) return res.status(out.status || 404).json(out);
+    return res.json(out);
+  });
+
+  app.post("/api/e2b/sandboxes/:sandboxId/pause", (req, res) => {
+    const out = e2bService.pauseSandbox(req.params.sandboxId);
+    if (!out.ok) {
+      if (out.retryAfterSec) res.setHeader("Retry-After", String(out.retryAfterSec));
+      return res.status(out.status || 400).json(out);
+    }
+    return res.json(out);
+  });
+
+  app.post("/api/e2b/sandboxes/:sandboxId/resume", (req, res) => {
+    const out = e2bService.resumeSandbox(req.params.sandboxId);
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    return res.json(out);
+  });
+
+  app.post("/api/e2b/sandboxes/:sandboxId/checkpoint", (req, res) => {
+    const out = e2bService.checkpointSandbox(req.params.sandboxId);
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    return res.json(out);
+  });
+
+  app.post("/api/e2b/sandboxes/:sandboxId/fork", (req, res) => {
+    const out = e2bService.forkSandbox(req.params.sandboxId, req.body || {});
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    return res.status(201).json(out);
+  });
+
+  app.post("/api/e2b/sandboxes/:sandboxId/timeout", (req, res) => {
+    const out = e2bService.setSandboxTimeout(
+      req.params.sandboxId,
+      req.body?.timeoutMs ?? 60_000
+    );
+    if (!out.ok) return res.status(out.status || 404).json(out);
+    return res.json(out);
+  });
+
+  app.delete("/api/e2b/sandboxes/:sandboxId", (req, res) => {
+    const out = e2bService.killSandbox(req.params.sandboxId);
+    if (!out.ok) return res.status(out.status || 404).json(out);
+    return res.json(out);
+  });
+
+  app.post("/api/e2b/sandboxes/:sandboxId/files", (req, res) => {
+    const out = e2bService.writeSandboxFile(
+      req.params.sandboxId,
+      req.body?.path || req.body?.file_path || "index.html",
+      req.body?.content ?? ""
+    );
+    if (!out.ok) return res.status(out.status || 404).json(out);
+    return res.json(out);
+  });
+
+  app.get("/api/e2b/sandboxes/:sandboxId/files", (req, res) => {
+    const out = e2bService.readSandboxFile(
+      req.params.sandboxId,
+      String(req.query.path || "index.html")
+    );
+    if (!out.ok) return res.status(out.status || 404).json(out);
+    return res.json(out);
+  });
+
+  app.post("/api/e2b/sandboxes/:sandboxId/morph-edit", (req, res) => {
+    const out = e2bService.applyMorphEdit(req.params.sandboxId, req.body || {});
+    if (!out.ok) return res.status(out.status || 404).json(out);
+    return res.json(out);
+  });
+
+  // Stateful Code Interpreter (`@e2b/code-interpreter` style)
+  app.post("/api/e2b/interpreter/run", (req, res) => {
+    const out = e2bService.runCode(req.body?.sandboxId, req.body?.code || "", {
+      contextId: req.body?.contextId || "ctx_default",
+      timeoutMs: req.body?.timeoutMs || 500,
+      autoResume: req.body?.autoResume !== false,
+    });
+    return res.status(out.status || 200).json(out);
+  });
+
+  // Fragments Deployer & Client-Proxy Live HTML Preview (`lexuankhanh1612/fragments`)
+  app.post("/api/e2b/fragments", (req, res) => {
+    const out = e2bService.deployFragment(req.body || {});
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    return res.json(out);
+  });
+
+  app.get("/api/e2b/preview/:sandboxId", (req, res) => {
+    const fileRes = e2bService.readSandboxFile(
+      req.params.sandboxId,
+      String(req.query.file || "index.html")
+    );
+    if (!fileRes.ok) {
+      return res.status(fileRes.status || 404).send(`<h3>${fileRes.error}</h3>`);
+    }
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    if (fileRes.autoResumed) {
+      res.setHeader("X-E2B-Auto-Resumed", "true");
+    }
+    return res.send(fileRes.content);
+  });
+
+  // Audience-Scoped Persistent Volumes (`e2b-dev/runtime` Volume Content JWT)
+  app.post("/api/e2b/volumes", (req, res) => {
+    return res.status(201).json(e2bService.createVolume(req.body?.name || "studio-assets"));
+  });
+
+  app.put("/api/e2b/volumecontent/:volumeId/*", (req, res) => {
+    const filePath = String(req.params[0] || "save.json");
+    const bearer = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+    const reqDomain = req.headers["x-e2b-content-domain"]
+      ? String(req.headers["x-e2b-content-domain"])
+      : null;
+    const out = e2bService.writeVolumeFile(
+      req.params.volumeId,
+      filePath,
+      typeof req.body === "string" ? req.body : JSON.stringify(req.body || {}),
+      bearer,
+      reqDomain
+    );
+    if (!out.ok) return res.status(out.status || 403).json(out);
+    return res.json(out);
+  });
+
+  app.get("/api/e2b/volumecontent/:volumeId/*", (req, res) => {
+    const filePath = String(req.params[0] || "save.json");
+    const bearer = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+    const reqDomain = req.headers["x-e2b-content-domain"]
+      ? String(req.headers["x-e2b-content-domain"])
+      : null;
+    const out = e2bService.readVolumeFile(req.params.volumeId, filePath, bearer, reqDomain);
+    if (!out.ok) return res.status(out.status || 403).json(out);
+    return res.json(out);
+  });
+
+  // Open Computer Use Vision + Grounding + Action Loop (`e2b-dev/open-computer-use`)
+  app.post("/api/e2b/computer-use/step", (req, res) => {
+    const out = e2bService.stepComputerUseAgent(req.body?.sandboxId, req.body || {});
+    return res.json(out);
+  });
+
+  // ==========================================================================
   // SOCKET.IO REAL-TIME MULTI-TENANT BRIDGE
   // ==========================================================================
 
@@ -769,6 +949,7 @@ export function createGame9KServer(options = {}) {
     xsollaService,
     posService,
     spliceService,
+    e2bService,
   };
 }
 

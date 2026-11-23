@@ -155,15 +155,19 @@ function runCapabilities(opts) {
     command: "capabilities",
     data: {
       cli: "g9k",
-      version: "3.0.0",
+      version: "4.0.0",
       commands: ["capabilities", "validate", "build", "verify", "doctor", "decide", "codegen"],
       sdk: {
-        version: "3.0.0",
+        version: "4.0.0",
         standards: [
           "poki-portal-sdk",
           "xsolla-sdk-3",
           "splice-spec-to-sdk",
           "pos-kds-economy",
+          "e2b-runtime-sandboxes",
+          "e2b-code-interpreter",
+          "e2b-fragments-morph",
+          "open-computer-use",
           "game9k-sandbox-bridge",
         ],
         xsolla_steps: [
@@ -488,7 +492,7 @@ function runCodegen(opts) {
   const generated = splice.generateSDK(
     {
       packageName: `@game9k/${gameSlug}-portal-sdk`,
-      packageVersion: "3.0.0",
+      packageVersion: "4.0.0",
       gameId: gameSlug,
       language: "typescript",
     },

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game9K SDK Studio v3.0 — Poki Portal × Xsolla SDK 3 × Splice Spec-to-SDK × POS KDS</title>
+  <title>Game9K SDK Studio v4.0 — Poki Portal × Xsolla × Splice × POS/KDS × E2B Runtime &amp; Computer Use</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
@@ -53,7 +53,7 @@
           <div class="flex items-center flex-wrap gap-2">
             <span class="font-black text-sm sm:text-base text-white tracking-tight">GAME9K SDK STUDIO</span>
             <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
-              Poki Portal SDK v3.0 · Xsolla · Splice · POS/KDS
+              Poki Portal SDK v4.0 · Xsolla · Splice · POS/KDS · E2B
             </span>
             <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-sky-500/15 text-sky-300 border border-sky-500/30">
               User ID: <strong id="hdr-explorer-id">------</strong>
@@ -63,14 +63,14 @@
             </span>
           </div>
           <p class="text-[11px] text-slate-400 mt-0.5">
-            Hợp nhất <code class="text-amber-300">PokiSDK</code>, <code class="text-emerald-300">XsollaSDK</code>, <code class="text-sky-300">SpliceSDK</code> (Spec-to-SDK &amp; <code class="text-sky-300">sk_live_...</code>) và <code class="text-pink-300">Game9K.pos</code> (Stock/86, Happy Hour, KDS &amp; Z-Report).
+            Hợp nhất <code class="text-amber-300">PokiSDK</code>, <code class="text-emerald-300">XsollaSDK</code>, <code class="text-sky-300">SpliceSDK</code>, <code class="text-pink-300">Game9K.pos</code> và <code class="text-violet-300">PokiSDK.runtime / interpreter / fragments / computerUse</code>.
           </p>
         </div>
       </div>
 
       <!-- Mode Switcher Tabs + Sandbox Link -->
       <div class="flex flex-wrap items-center gap-2 text-xs">
-        <div class="flex rounded-xl bg-slate-900 p-1 border border-slate-800 gap-1">
+        <div class="flex flex-wrap rounded-xl bg-slate-900 p-1 border border-slate-800 gap-1">
           <button data-main-tab="commerce" class="main-tab px-3 py-1.5 rounded-lg font-black bg-emerald-500 text-stone-950">
             💳 1. Poki × Xsolla
           </button>
@@ -79,6 +79,9 @@
           </button>
           <button data-main-tab="pos" class="main-tab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white">
             🧾 3. POS · KDS &amp; Z-Report
+          </button>
+          <button data-main-tab="e2b" class="main-tab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white">
+            🧪 4. E2B · Fragments &amp; Computer Use
           </button>
         </div>
 
@@ -398,7 +401,7 @@
 
       <div class="grid grid-cols-2 gap-2 text-xs">
         <input id="sdk-pkg-name" value="@game9k/dino-race-portal-sdk" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-emerald-300" />
-        <input id="sdk-pkg-ver" value="3.0.0" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-sky-300" />
+        <input id="sdk-pkg-ver" value="4.0.0" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-sky-300" />
       </div>
 
       <button id="btn-generate-sdk" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-sky-500 hover:brightness-110 text-white font-black text-xs">
@@ -493,6 +496,133 @@
     </section>
   </main>
 
+  <!-- ========================================================================
+       TAB 4: E2B RUNTIME · CODE INTERPRETER · FRAGMENTS & OPEN COMPUTER USE
+       ======================================================================== -->
+  <main id="panel-e2b" class="hidden max-w-[1460px] mx-auto w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">
+
+    <!-- Col 1: E2B Runtime Control Plane + Stateful Code Interpreter -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-violet-400">E2B RUNTIME · CONTROL &amp; DATA PLANE</div>
+          <h2 class="text-sm font-black text-white">Snapshot Sandboxes &amp; Stateful Interpreter</h2>
+        </div>
+        <span id="e2b-sbx-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-800 text-slate-300">IDLE</span>
+      </div>
+
+      <div class="grid grid-cols-3 gap-1.5 text-[11px]">
+        <button id="btn-e2b-boot" class="py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black">▶ Boot</button>
+        <button id="btn-e2b-pause" class="py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 font-bold">⏸ Pause</button>
+        <button id="btn-e2b-resume" class="py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold">▶ Resume</button>
+        <button id="btn-e2b-ckpt" class="py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold">📸 Checkpoint</button>
+        <button id="btn-e2b-fork" class="col-span-2 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-black">🔀 Fork Sandbox Branch</button>
+      </div>
+
+      <div id="e2b-runtime-meta" class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 font-mono text-[10.5px] text-slate-300 space-y-1">
+        <div>sandboxId: <span class="text-emerald-300">—</span></div>
+        <div>lifecycleId: <span class="text-sky-300">—</span> · envdFrozen: <span class="text-amber-300">false</span></div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-800 space-y-2 flex-1 flex flex-col">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-black text-emerald-300">@e2b/code-interpreter · Stateful Kernel</span>
+          <button id="btn-e2b-run-code" class="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black text-[11px]">
+            ⚡ Run Cell + Extract Chart
+          </button>
+        </div>
+        <textarea id="e2b-code-input" rows="5" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 font-mono text-[10.5px] text-emerald-200">globalThis.wave = (globalThis.wave || 0) + 1;
+const pts = [1, 2, 3, 4, 5].map(s => ({ label: "W" + (wave * s), value: Math.round(120 * Math.pow(1.28, s) + wave * 15) }));
+console.log("Simulated wave #" + wave, "peak XP:", pts[4].value);
+emitChart({ type: "bar", title: "Dino Race Economy Curve (Run #" + wave + ")", points: pts });
+pts[4].value;</textarea>
+        <pre id="e2b-code-stdout" class="bg-slate-950 border border-slate-800 rounded-xl p-2 font-mono text-[10px] text-sky-300 max-h-24 overflow-auto">// Nhấn "Run Cell + Extract Chart" — biến `wave` được giữ nguyên qua từng lần chạy!</pre>
+        <div id="e2b-chart-output" class="rounded-xl overflow-hidden border border-slate-800 bg-slate-950 min-h-[120px] flex items-center justify-center text-[11px] text-slate-500">
+          SVG Chart Extractor sẵn sàng...
+        </div>
+      </div>
+    </section>
+
+    <!-- Col 2: Fragments Deployer & Morph Lazy Edit (`// ... existing code ...`) -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-sky-400">LEXUANKHANH1612/FRAGMENTS · MORPH PATCH</div>
+          <h2 class="text-sm font-black text-white">Live Poki Mini-Game Fragment &amp; Lazy Edit</h2>
+        </div>
+        <select id="e2b-frag-tpl" class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-[11px] font-mono text-emerald-300">
+          <option value="poki-canvas-mini">poki-canvas-mini</option>
+          <option value="kol-stream-overlay">kol-stream-overlay</option>
+        </select>
+      </div>
+
+      <div class="flex gap-2 text-xs">
+        <button id="btn-frag-deploy" class="flex-1 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-stone-950 font-black">
+          🚀 Deploy Playable Fragment
+        </button>
+        <button id="btn-frag-morph" class="flex-1 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black">
+          🪄 Morph Patch (`// ... existing code ...`)
+        </button>
+      </div>
+
+      <div class="rounded-xl overflow-hidden border border-slate-700 bg-slate-950 h-60 relative">
+        <iframe id="e2b-fragment-iframe" sandbox="allow-scripts" class="w-full h-full border-0" title="E2B Playable Fragment"></iframe>
+      </div>
+
+      <div class="space-y-1.5">
+        <div class="text-[10px] font-black uppercase text-purple-300">Morph Lazy Edit Snippet (Chỉ gửi phần thay đổi)</div>
+        <pre id="e2b-morph-preview" class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono text-[10px] text-purple-200 overflow-x-auto">// ... existing code ...
+ctx.fillStyle = "#f43f5e"; // Morph Turbo Neon Mode!
+// ... existing code ...</pre>
+      </div>
+    </section>
+
+    <!-- Col 3: Open Computer Use Vision + Grounding + Action Loop -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-rose-400">E2B OPEN COMPUTER USE · SANDBOX AGENT</div>
+          <h2 class="text-sm font-black text-white">UI Grounding (<code class="text-rose-300">drawBigDot</code>) &amp; Autopilot</h2>
+        </div>
+        <button id="btn-cu-pause" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-[11px]">
+          ⏸ Pause Agent
+        </button>
+      </div>
+
+      <!-- Interactive Target Surface for Grounding + drawBigDot -->
+      <div id="e2b-cu-viewport" class="relative rounded-xl bg-slate-950 border border-slate-700 p-3 h-44 flex flex-col justify-between overflow-hidden">
+        <div class="flex items-center justify-between text-[11px] font-mono">
+          <span class="text-emerald-300 font-bold">🎮 Poki Viewport (360×176)</span>
+          <span id="cu-score-pill" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Boosts: 0</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 my-auto">
+          <button data-cu-target="Start Race" class="cu-sim-btn py-2 rounded-lg bg-emerald-600/80 hover:bg-emerald-500 text-white font-black text-xs">
+            🏁 Start Race
+          </button>
+          <button data-cu-target="Boost" class="cu-sim-btn py-2 rounded-lg bg-amber-500/90 hover:bg-amber-400 text-stone-950 font-black text-xs">
+            ⚡ Boost Nitro
+          </button>
+          <button data-cu-target="Store" class="cu-sim-btn py-2 rounded-lg bg-sky-600/80 hover:bg-sky-500 text-white font-bold text-xs">
+            🛒 Open Store
+          </button>
+          <button data-cu-target="Happy Time" class="cu-sim-btn py-2 rounded-lg bg-pink-600/80 hover:bg-pink-500 text-white font-bold text-xs">
+            🎉 Happy Time
+          </button>
+        </div>
+        <div id="cu-last-hit" class="text-[10px] font-mono text-slate-400">Chưa có thao tác Grounding...</div>
+      </div>
+
+      <div class="flex gap-2 text-xs">
+        <input id="cu-instruction" value="Click Boost button to sprint ahead" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono text-[11px]" />
+        <button id="btn-cu-step" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-black whitespace-nowrap">
+          🤖 Step Agent
+        </button>
+      </div>
+
+      <pre id="cu-agent-log" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono text-[10px] text-slate-300 overflow-auto max-h-48">// Nhấn "Step Agent" để chạy vòng lặp Grounding -> drawBigDot(x, y) -> Click!</pre>
+    </section>
+  </main>
+
   <script src="/sdk/game9k-sdk.js"></script>
   <script>
     const SNIPPETS = {
@@ -530,6 +660,7 @@ const kds = await client.getKdsTickets();`
       commerce: document.getElementById("panel-commerce"),
       splice: document.getElementById("panel-splice"),
       pos: document.getElementById("panel-pos"),
+      e2b: document.getElementById("panel-e2b"),
     };
     document.querySelectorAll(".main-tab").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -545,6 +676,7 @@ const kds = await client.getKdsTickets();`
         });
         if (target === "splice") loadSpliceSpec();
         if (target === "pos") refreshPosDashboard();
+        if (target === "e2b") ensureE2BReady();
       });
     });
 
@@ -1163,6 +1295,172 @@ const kds = await client.getKdsTickets();`
       b.addEventListener("click", () => {
         window.Game9K.pos.downloadCSV(b.getAttribute("data-csv"));
       });
+    });
+
+    // ========================================================================
+    // TAB 4 CONTROLLER: E2B RUNTIME · INTERPRETER · FRAGMENTS & COMPUTER USE
+    // ========================================================================
+    let activeFragmentSbxId = null;
+    let cuBoostCount = 0;
+
+    function renderE2BMeta(sbx) {
+      if (!sbx) return;
+      document.getElementById("e2b-sbx-badge").textContent = (sbx.status || "running").toUpperCase();
+      document.getElementById("e2b-runtime-meta").innerHTML = `
+        <div>sandboxId: <span class="text-emerald-300 font-bold">${sbx.sandboxId}</span> · snap: <span class="text-purple-300">${sbx.snapshotId || "—"}</span></div>
+        <div>lifecycleId: <span class="text-sky-300">${sbx.lifecycleId}</span> · envdFrozen: <span class="text-amber-300">${Boolean(sbx.envdFrozen)}</span></div>
+      `;
+    }
+
+    async function ensureE2BReady() {
+      if (!window.PokiSDK.runtime.activeSandboxId) {
+        const created = await window.PokiSDK.runtime.createSandbox({ templateId: "code-interpreter-v1" });
+        renderE2BMeta(created.sandbox);
+      }
+      if (!activeFragmentSbxId) {
+        await deployPlayableFragment();
+      }
+    }
+
+    document.getElementById("btn-e2b-boot").addEventListener("click", async () => {
+      const created = await window.PokiSDK.runtime.createSandbox({ templateId: "code-interpreter-v1" });
+      renderE2BMeta(created.sandbox);
+    });
+
+    document.getElementById("btn-e2b-pause").addEventListener("click", async () => {
+      const res = await window.PokiSDK.runtime.pauseSandbox();
+      if (res.sandbox) renderE2BMeta(res.sandbox);
+      else document.getElementById("e2b-code-stdout").textContent = `⚠️ ${res.error} (Retry-After: ${res.retryAfterSec}s)`;
+    });
+
+    document.getElementById("btn-e2b-resume").addEventListener("click", async () => {
+      const res = await window.PokiSDK.runtime.resumeSandbox();
+      if (res.sandbox) renderE2BMeta(res.sandbox);
+    });
+
+    document.getElementById("btn-e2b-ckpt").addEventListener("click", async () => {
+      const res = await window.PokiSDK.runtime.checkpointSandbox();
+      if (res.sandbox) renderE2BMeta(res.sandbox);
+    });
+
+    document.getElementById("btn-e2b-fork").addEventListener("click", async () => {
+      const res = await window.PokiSDK.runtime.forkSandbox();
+      if (res.sandbox) renderE2BMeta(res.sandbox);
+    });
+
+    document.getElementById("btn-e2b-run-code").addEventListener("click", async () => {
+      const code = document.getElementById("e2b-code-input").value;
+      const exec = await window.PokiSDK.interpreter.runCode(code);
+      document.getElementById("e2b-code-stdout").textContent =
+        (exec.logs?.stdout?.join("\n") || "") +
+        (exec.text ? `\n=> ${exec.text}` : "") +
+        (exec.error ? `\nERROR: ${exec.error.message}` : "");
+      const chartRes = (exec.results || []).find((r) => r.type === "chart" && r.svg);
+      if (chartRes) {
+        document.getElementById("e2b-chart-output").innerHTML = chartRes.svg;
+      }
+      const sbxInfo = await window.PokiSDK.runtime.getSandbox(exec.sandboxId);
+      if (sbxInfo?.sandbox) renderE2BMeta(sbxInfo.sandbox);
+    });
+
+    async function deployPlayableFragment() {
+      const tpl = document.getElementById("e2b-frag-tpl").value;
+      const code =
+        tpl === "poki-canvas-mini"
+          ? `<!DOCTYPE html><html><body style="margin:0;background:#040d1a;color:#34d399;font-family:monospace;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh">
+<div style="font-size:12px;margin-bottom:6px">🦖 E2B Poki Fragment (<span id="mode">Emerald Default</span>)</div>
+<canvas id="c" width="280" height="120" style="border:1px solid #1e293b;border-radius:10px;background:#020617"></canvas>
+<script>
+const c = document.getElementById("c"), ctx = c.getContext("2d");
+let x = 20, score = 0;
+c.onclick = () => { score += 10; };
+function tick() {
+  x = (x + 2.2) % 260;
+  ctx.fillStyle = "#020617";
+  ctx.fillRect(0, 0, 280, 120);
+  ctx.fillStyle = "#34d399";
+  ctx.fillRect(x, 68, 24, 24);
+  ctx.fillStyle = "#e2e8f0";
+  ctx.font = "11px monospace";
+  ctx.fillText("Tap Canvas! Score: " + score, 10, 20);
+  requestAnimationFrame(tick);
+}
+tick();
+<\/script></body></html>`
+          : undefined;
+      const out = await window.PokiSDK.fragments.deployFragment({
+        template: tpl,
+        title: "Dino Fragment Live",
+        file_path: "index.html",
+        code: code || "<!DOCTYPE html><html><body style='background:#090d16;color:#f472b6;font-family:sans-serif;padding:18px'><h3>🔥 KOL Stream Overlay Fragment</h3><p>Ready for TikTok/YouTube Gift Injection!</p></body></html>",
+      });
+      if (out.sbxId && out.url) {
+        activeFragmentSbxId = out.sbxId;
+        const sep = out.url.includes("?") ? "&" : "?";
+        document.getElementById("e2b-fragment-iframe").src = `${out.url}${sep}t=${Date.now()}`;
+      }
+    }
+
+    document.getElementById("btn-frag-deploy").addEventListener("click", deployPlayableFragment);
+
+    document.getElementById("btn-frag-morph").addEventListener("click", async () => {
+      if (!activeFragmentSbxId) await deployPlayableFragment();
+      const editSnippet = `// ... existing code ...
+  ctx.fillRect(0, 0, 280, 120);
+  ctx.fillStyle = "#f43f5e";
+  ctx.fillRect(x, 56, 30, 30);
+// ... existing code ...`;
+      document.getElementById("e2b-morph-preview").textContent = editSnippet;
+      const patched = await window.PokiSDK.fragments.applyMorphEdit(activeFragmentSbxId, {
+        file_path: "index.html",
+        instruction: "Switch Dino cube to Rose Turbo Neon mode",
+        edit: editSnippet,
+      });
+      if (patched.ok) {
+        const sep = patched.previewUrl.includes("?") ? "&" : "?";
+        document.getElementById("e2b-fragment-iframe").src = `${patched.previewUrl}${sep}t=${Date.now()}`;
+      }
+    });
+
+    document.getElementById("btn-cu-step").addEventListener("click", async () => {
+      const vp = document.getElementById("e2b-cu-viewport");
+      const vpRect = vp.getBoundingClientRect();
+      const uiElements = Array.from(vp.querySelectorAll(".cu-sim-btn")).map((btn) => {
+        const r = btn.getBoundingClientRect();
+        return {
+          label: btn.getAttribute("data-cu-target"),
+          x: Math.round(r.left - vpRect.left + r.width / 2),
+          y: Math.round(r.top - vpRect.top + r.height / 2),
+          width: Math.round(r.width),
+          height: Math.round(r.height),
+        };
+      });
+      const instruction = document.getElementById("cu-instruction").value;
+      const res = await window.PokiSDK.computerUse.stepAgent(instruction, {
+        viewport: { width: Math.round(vpRect.width), height: Math.round(vpRect.height) },
+        uiElements,
+        containerEl: vp,
+      });
+      if (res?.step) {
+        const { x, y } = res.step.grounding;
+        const matchedBtn = uiElements.find(
+          (b) => Math.abs(b.x - x) <= b.width / 2 && Math.abs(b.y - y) <= b.height / 2
+        );
+        if (matchedBtn?.label === "Boost") {
+          cuBoostCount += 1;
+          document.getElementById("cu-score-pill").textContent = `Boosts: ${cuBoostCount}`;
+        } else if (matchedBtn?.label === "Happy Time") {
+          window.PokiSDK.happyTime(0.9);
+        }
+        document.getElementById("cu-last-hit").textContent =
+          `🎯 Grounded (${x}, ${y}) -> ${matchedBtn ? matchedBtn.label : res.step.toolCall.name}`;
+        document.getElementById("cu-agent-log").textContent = res.step.visionPrompt;
+      }
+    });
+
+    document.getElementById("btn-cu-pause").addEventListener("click", async () => {
+      const res = await window.PokiSDK.computerUse.pauseAgent();
+      document.getElementById("cu-agent-log").textContent = JSON.stringify(res, null, 2);
     });
 
     // Mini animated dinosaur sprint preview on Canvas
