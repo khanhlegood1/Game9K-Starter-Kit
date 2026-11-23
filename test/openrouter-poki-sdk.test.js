@@ -220,10 +220,10 @@ test("PokiSDK.ai (`window.OpenRouterSDK`) runs safely inside `<iframe sandbox=\"
   vm.runInNewContext(sdkSource, sandboxGlobal);
 
   const { Game9K, PokiSDK, OpenRouterSDK } = sandboxGlobal;
-  assert.equal(Game9K.sdkVersion, "5.0.0");
+  assert.equal(Game9K.sdkVersion, "6.0.0");
   assert.equal(PokiSDK.ai, OpenRouterSDK);
 
-  await PokiSDK.init({ gameId: "dino-race", version: "5.0.0" });
+  await PokiSDK.init({ gameId: "dino-race", version: "6.0.0" });
   await new Promise((r) => setTimeout(r, 10));
 
   const frag = await PokiSDK.ai.generateFragment("Đua khủng long Poki");

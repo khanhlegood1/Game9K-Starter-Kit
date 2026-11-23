@@ -28,6 +28,7 @@ import PosEconomyService from "./services/PosEconomyService.js";
 import SpliceSpecService from "./services/SpliceSpecService.js";
 import E2BSandboxService from "./services/E2BSandboxService.js";
 import OpenRouterService from "./services/OpenRouterService.js";
+import AgentOpsService from "./services/AgentOpsService.js";
 import { IpRateLimiter } from "./lib/rateLimiter.js";
 import { validateGamePackage } from "./lib/manifestValidator.js";
 
@@ -44,9 +45,11 @@ export function createGame9KServer(options = {}) {
     maxRequestsPerMinute: options.maxRequestsPerMinute ?? 240,
   });
   const posService = new PosEconomyService(options.pos || {});
+  const agentOpsService = new AgentOpsService(options.agentOps || {});
   const openRouterService = new OpenRouterService({
     ...(options.openRouter || {}),
     posEconomy: posService,
+    agentOps: agentOpsService,
   });
   const decisionsService = new ProjectDecisionsService({
     liveRoomHub,
@@ -105,8 +108,17 @@ export function createGame9KServer(options = {}) {
         ? "gemini-decision-1"
         : "game9k-calibrated-decisions",
       sdkCapabilities: {
-        version: "5.0.0",
+        version: "6.0.0",
         pokiPortalSdk: true,
+        agentOpsSuite: {
+          enabled: true,
+          traceReplay: true,
+          heliconePromptCache: true,
+          vercelSseStream: true,
+          chidoriReactiveRules: true,
+          sidContextCapsule: true,
+          steamshipSignedWebhooks: true,
+        },
         openRouterAi: {
           enabled: true,
           modelsCount: openRouterService.listModels().length,
@@ -965,6 +977,76 @@ export function createGame9KServer(options = {}) {
   });
 
   // ==========================================================================
+  // REST API: VERCEL AI SDK STREAMING + AGENTOPS / HELICONE / CHIDORI / SID / STEAMSHIP
+  // ==========================================================================
+
+  app.post("/api/openrouter/stream", async (req, res) => {
+    res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+
+    const out = await openRouterService.streamChat(req.body || {}, async (evt) => {
+      res.write(`data: ${JSON.stringify(evt)}\n\n`);
+    });
+    if (!out.ok) {
+      res.write(`data: ${JSON.stringify({ type: "error", error: out.error, status: out.status })}\n\n`);
+    }
+    res.end();
+  });
+
+  app.get("/api/agentops/dashboard", (_req, res) => {
+    return res.json(agentOpsService.getDashboard());
+  });
+
+  app.get("/api/agentops/traces/:traceId/replay", (req, res) => {
+    const out = agentOpsService.getTraceReplay(req.params.traceId);
+    if (!out.ok) return res.status(out.status || 404).json(out);
+    return res.json(out);
+  });
+
+  app.post("/api/agentops/traces/:traceId/score", (req, res) => {
+    const out = agentOpsService.scoreTrace(req.params.traceId, req.body || {});
+    if (!out.ok) return res.status(out.status || 404).json(out);
+    return res.json(out);
+  });
+
+  app.post("/api/agentops/reactive/emit", async (req, res) => {
+    const eventType = String(req.body?.eventType || "kol.high_tier_gift");
+    const out = await agentOpsService.emitReactiveEvent(eventType, req.body?.payload || {}, {
+      openRouterService,
+      posService,
+      e2bService,
+    });
+    return res.json(out);
+  });
+
+  app.get("/api/agentops/context-capsule", (req, res) => {
+    return res.json(
+      agentOpsService.buildContextCapsule({
+        gameId: req.query.gameId ? String(req.query.gameId) : "dino-race",
+        posService,
+        e2bService,
+        openRouterService,
+        liveRoomHub,
+      })
+    );
+  });
+
+  app.post("/api/agentops/webhooks", (req, res) => {
+    const out = agentOpsService.registerWebhook(req.body || {});
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    return res.status(201).json(out);
+  });
+
+  app.post("/api/agentops/webhooks/dispatch", async (req, res) => {
+    const out = await agentOpsService.dispatchWebhook(
+      req.body?.event || "studio.test_webhook",
+      req.body?.payload || {}
+    );
+    return res.json(out);
+  });
+
+  // ==========================================================================
   // SOCKET.IO REAL-TIME MULTI-TENANT BRIDGE
   // ==========================================================================
 
@@ -1078,6 +1160,7 @@ export function createGame9KServer(options = {}) {
     spliceService,
     e2bService,
     openRouterService,
+    agentOpsService,
   };
 }
 

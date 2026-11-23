@@ -899,6 +899,8 @@ export default class PosEconomyService {
       shiftId: this.currentShiftId,
       model: entry.model || "openrouter/auto",
       task: entry.task || "chat",
+      cached: Boolean(entry.cached),
+      latencyMs: Math.max(0.1, Number(entry.latencyMs) || 1.5),
       totalTokens: Math.max(0, Number(entry.totalTokens) || 0),
       costUsd: Math.max(0, Number(entry.costUsd) || 0),
     };
@@ -1000,6 +1002,21 @@ export default class PosEconomyService {
     );
     const aiSpendCents = Math.round(aiSpendUsd * 100);
     const aiTokens = aiMatching.reduce((sum, item) => sum + (Number(item.totalTokens) || 0), 0);
+    const aiCacheHits = aiMatching.filter((item) => item.cached).length;
+    const aiCacheHitRatePct =
+      aiMatching.length > 0
+        ? Number(((aiCacheHits / aiMatching.length) * 100).toFixed(2))
+        : 0;
+    const sortedLatencies = aiMatching
+      .map((item) => Number(item.latencyMs) || 1)
+      .sort((a, b) => a - b);
+    const p95Idx = sortedLatencies.length
+      ? Math.min(
+          sortedLatencies.length - 1,
+          Math.max(0, Math.ceil(0.95 * sortedLatencies.length) - 1)
+        )
+      : 0;
+    const p95LatencyMs = sortedLatencies.length ? sortedLatencies[p95Idx] : 0;
     const netAfterAiCents = studioNetCents - aiSpendCents;
 
     const topSellers = Array.from(topSellersMap.values()).sort(
@@ -1032,6 +1049,9 @@ export default class PosEconomyService {
       studioNetCents,
       aiUsage: {
         requests: aiMatching.length,
+        cacheHits: aiCacheHits,
+        cacheHitRatePct: aiCacheHitRatePct,
+        p95LatencyMs: Number(p95LatencyMs.toFixed(2)),
         totalTokens: aiTokens,
         spendUsd: aiSpendUsd,
         spendCents: aiSpendCents,

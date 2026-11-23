@@ -1,8 +1,8 @@
 /**
  * game9k-sdk.js
- * Official Unified Browser SDK for Game9K Starter Kit (v5.0.0)
+ * Official Unified Browser SDK for Game9K Starter Kit (v6.0.0)
  *
- * Unifies ten production modules under the Poki Portal SDK Sandbox Bridge (`<iframe sandbox="allow-scripts">`):
+ * Unifies eleven production modules under the Poki Portal SDK Sandbox Bridge (`<iframe sandbox="allow-scripts">`):
  *   1. Poki Portal SDK (`window.PokiSDK` + `window.Game9K.poki`)
  *   2. Xsolla SDK 3 — 4-Step Game Monetization (`window.XsollaSDK` + `window.Game9K.xsolla`)
  *   3. Splice Spec-to-SDK & Mock Gateway (`window.SpliceSDK` + `PokiSDK.splice`)
@@ -11,8 +11,9 @@
  *   6. E2B Stateful Code Interpreter & Chart Kernel (`window.CodeInterpreterSDK` + `PokiSDK.interpreter`)
  *   7. E2B Fragments & Morph Lazy Patch Engine (`window.FragmentsSDK` + `PokiSDK.fragments`)
  *   8. Open Computer Use Vision/Grounding/Action Agent (`window.ComputerUseSDK` + `PokiSDK.computerUse`)
- *   9. OpenRouter Multi-Model Gateway, OAuth PKCE & Agent Protocol v1 (`window.OpenRouterSDK` + `PokiSDK.ai`)
- *  10. Game9K Core Quota-Safe `SafeStorage` & Multi-Platform KOL Stream Bridge (`window.TikTokBridge`)
+ *   9. OpenRouter Multi-Model Gateway, Vercel AI Stream, OAuth PKCE & Agent Protocol v1 (`window.OpenRouterSDK` + `PokiSDK.ai`)
+ *  10. AgentOps Observability, Helicone Cache, Chidori Reactive Bus, SID Capsule & Steamship Webhooks (`window.AgentOpsSDK` + `PokiSDK.agentOps`)
+ *  11. Game9K Core Quota-Safe `SafeStorage` & Multi-Platform KOL Stream Bridge (`window.TikTokBridge`)
  */
 (function initGame9KGlobal(global) {
   "use strict";
@@ -2220,6 +2221,10 @@
     get ai() {
       return this.sdk.ai;
     }
+
+    get agentOps() {
+      return this.sdk.agentOps;
+    }
   }
 
   // ==========================================================================
@@ -2999,6 +3004,124 @@
       return this._call("openrouter_chat", "POST", "/api/openrouter/chat", payload);
     }
 
+    /**
+     * Vercel AI SDK-inspired non-blocking streaming across Poki `<iframe sandbox="allow-scripts">`
+     * OR top-level SSE `/api/openrouter/stream`. Never blocks 60 FPS `requestAnimationFrame`.
+     */
+    async streamChat(promptOrMessages, opts = {}) {
+      const { onDelta, onDone, ...rest } = opts || {};
+      const payload = Array.isArray(promptOrMessages)
+        ? { messages: promptOrMessages, ...rest }
+        : { prompt: String(promptOrMessages || ""), ...rest };
+      if (!payload.sort) payload.sort = this.defaultSort;
+      if (payload.zdr === undefined) payload.zdr = this.zdrEnabled;
+
+      // 1. Sandboxed Poki iframe (`origin === "null"`): bridge via PORTAL_STREAM_* postMessage
+      if (this.sdk.isEmbedded && this.sdk.portalHostConnected) {
+        return new Promise((resolve, reject) => {
+          const streamId = `stream_${++this.sdk.rpcCounter}_${Date.now()}`;
+          let fullText = "";
+          const timer = setTimeout(() => {
+            this.sdk.pendingStreams.delete(streamId);
+            reject(new Error("Portal streamChat timeout"));
+          }, 12000);
+          this.sdk.pendingStreams.set(streamId, {
+            timer,
+            onChunk: (delta, evt) => {
+              fullText += delta;
+              if (typeof onDelta === "function") onDelta(delta, evt);
+            },
+            onFinish: (summary) => {
+              clearTimeout(timer);
+              this.sdk.pendingStreams.delete(streamId);
+              const out = { ok: true, content: fullText, ...(summary || {}) };
+              if (typeof onDone === "function") onDone(out);
+              resolve(out);
+            },
+            onError: (errMsg) => {
+              clearTimeout(timer);
+              this.sdk.pendingStreams.delete(streamId);
+              reject(new Error(errMsg || "Portal stream failed"));
+            },
+          });
+          global.parent.postMessage(
+            { type: "PORTAL_STREAM_START", streamId, payload },
+            "*"
+          );
+        });
+      }
+
+      // 2. Top-level HTTP origin: read SSE `data: {...}\n\n` stream directly
+      if (hasHttpOrigin() && typeof fetch === "function") {
+        const res = await fetch("/api/openrouter/stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          throw new Error(`Stream HTTP ${res.status}`);
+        }
+        let fullText = "";
+        let finishSummary = {};
+        if (res.body && typeof res.body.getReader === "function") {
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const parts = buffer.split("\n\n");
+            buffer = parts.pop() || "";
+            for (const block of parts) {
+              const line = block
+                .split("\n")
+                .find((l) => l.startsWith("data:"));
+              if (!line) continue;
+              try {
+                const evt = JSON.parse(line.slice(5).trim());
+                if (evt.type === "text-delta") {
+                  fullText += evt.delta || "";
+                  if (typeof onDelta === "function") onDelta(evt.delta || "", evt);
+                } else if (evt.type === "finish") {
+                  finishSummary = evt;
+                }
+              } catch {
+                // Ignore malformed partial frame
+              }
+            }
+          }
+        } else {
+          const raw = await res.text();
+          for (const block of raw.split("\n\n")) {
+            const line = block.split("\n").find((l) => l.startsWith("data:"));
+            if (!line) continue;
+            const evt = JSON.parse(line.slice(5).trim());
+            if (evt.type === "text-delta") {
+              fullText += evt.delta || "";
+              if (typeof onDelta === "function") onDelta(evt.delta || "", evt);
+            } else if (evt.type === "finish") {
+              finishSummary = evt;
+            }
+          }
+        }
+        const out = { ok: true, content: fullText, ...finishSummary };
+        if (typeof onDone === "function") onDone(out);
+        return out;
+      }
+
+      // 3. Offline standalone fallback
+      const fallbackWords = ["Game9K ", "Poki ", "Stream ", "Ready!"];
+      let acc = "";
+      for (const w of fallbackWords) {
+        acc += w;
+        if (typeof onDelta === "function") onDelta(w, { type: "text-delta", delta: w });
+      }
+      const out = { ok: true, content: acc.trim(), cached: false, mode: "offline_mock" };
+      if (typeof onDone === "function") onDone(out);
+      return out;
+    }
+
     async generateFragment(prompt, opts = {}) {
       const res = await this._call(
         "openrouter_generate_fragment",
@@ -3044,13 +3167,98 @@
   }
 
   // ==========================================================================
+  // 4H. AGENTOPS, HELICONE CACHE, CHIDORI REACTIVE, SID CAPSULE & STEAMSHIP WEBHOOKS (`window.AgentOpsSDK`)
+  // ==========================================================================
+  class Game9KAgentOpsAdapter {
+    constructor(sdk) {
+      this.sdk = sdk;
+    }
+
+    _call(rpcAction, method, path, body = null) {
+      if (this.sdk.isEmbedded && this.sdk.portalHostConnected) {
+        return this.sdk._portalRpc(rpcAction, { ...(body || {}), path, method }).catch(() =>
+          this.sdk.splice.request(path, {
+            method,
+            ...(body ? { body: JSON.stringify(body) } : {}),
+          })
+        );
+      }
+      return this.sdk.splice.request(path, {
+        method,
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+    }
+
+    getDashboard() {
+      return this._call("agentops_dashboard", "GET", "/api/agentops/dashboard");
+    }
+
+    getTraceReplay(traceId) {
+      const id = encodeURIComponent(String(traceId || ""));
+      return this._call(
+        "agentops_trace_replay",
+        "GET",
+        `/api/agentops/traces/${id}/replay`,
+        { traceId }
+      );
+    }
+
+    scoreTrace(traceId, opts = {}) {
+      const id = encodeURIComponent(String(traceId || ""));
+      return this._call(
+        "agentops_score_trace",
+        "POST",
+        `/api/agentops/traces/${id}/score`,
+        { traceId, ...opts }
+      );
+    }
+
+    emitReactiveEvent(eventType = "kol.high_tier_gift", payload = {}) {
+      return this._call(
+        "agentops_reactive_emit",
+        "POST",
+        "/api/agentops/reactive/emit",
+        { eventType, payload }
+      );
+    }
+
+    getContextCapsule(gameId = "dino-race") {
+      const q = encodeURIComponent(String(gameId || "dino-race"));
+      return this._call(
+        "agentops_context_capsule",
+        "GET",
+        `/api/agentops/context-capsule?gameId=${q}`,
+        { gameId }
+      );
+    }
+
+    registerWebhook(opts = {}) {
+      return this._call(
+        "agentops_register_webhook",
+        "POST",
+        "/api/agentops/webhooks",
+        opts
+      );
+    }
+
+    dispatchWebhook(event = "studio.test_webhook", payload = {}) {
+      return this._call(
+        "agentops_dispatch_webhook",
+        "POST",
+        "/api/agentops/webhooks/dispatch",
+        { event, payload }
+      );
+    }
+  }
+
+  // ==========================================================================
   // 5. GAME9K CORE BRIDGE (Sandbox PostMessage RPC, Telemetry <= 20Hz, Legal Lock)
   // ==========================================================================
   class Game9KSDK {
     constructor() {
       this.gameId = "dino-race";
-      this.version = "5.0.0";
-      this.sdkVersion = "5.0.0";
+      this.version = "6.0.0";
+      this.sdkVersion = "6.0.0";
       this.playerId = this._resolveGuestId();
       this.isEmbedded = Boolean(global.parent && global.parent !== global);
       this.portalHostConnected = false;
@@ -3063,6 +3271,7 @@
       this.lastTelemetryAt = 0;
       this.pauseListeners = [];
       this.pendingRpcs = new Map();
+      this.pendingStreams = new Map();
       this.rpcCounter = 0;
 
       this.stream = new LiveStreamBridge();
@@ -3076,6 +3285,7 @@
       this.computerUse = new Game9KComputerUseAdapter(this);
       this.ai = new Game9KOpenRouterAdapter(this);
       this.openRouter = this.ai;
+      this.agentOps = new Game9KAgentOpsAdapter(this);
       this.xsolla = new Game9KXsollaClient(this);
       this.commerce = this.xsolla;
       this.poki = new Game9KPokiAdapter(this);
@@ -3262,6 +3472,26 @@
         return;
       }
 
+      if (msg.type === "PORTAL_STREAM_CHUNK" && msg.streamId) {
+        const st = this.pendingStreams.get(msg.streamId);
+        if (st && typeof st.onChunk === "function") {
+          st.onChunk(msg.delta || "", msg);
+        }
+        return;
+      }
+
+      if (msg.type === "PORTAL_STREAM_DONE" && msg.streamId) {
+        const st = this.pendingStreams.get(msg.streamId);
+        if (st) {
+          if (msg.ok === false && typeof st.onError === "function") {
+            st.onError(msg.error || "Portal stream failed");
+          } else if (typeof st.onFinish === "function") {
+            st.onFinish(msg.summary || {});
+          }
+        }
+        return;
+      }
+
       if (msg.type === "PAUSE_GAME") {
         this._setPaused(true, "portal");
       } else if (msg.type === "RESUME_GAME") {
@@ -3406,6 +3636,7 @@
   global.FragmentsSDK = sdkInstance.fragments;
   global.ComputerUseSDK = sdkInstance.computerUse;
   global.OpenRouterSDK = sdkInstance.ai;
+  global.AgentOpsSDK = sdkInstance.agentOps;
   global.LiveStreamBridge = sdkInstance.stream;
   global.TikTokBridge = sdkInstance.stream;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -645,6 +645,25 @@
                 ? { body: JSON.stringify(bodyObj) }
                 : {}),
             }).then((r) => r.json());
+          } else if (
+            typeof msg.action === "string" &&
+            msg.action.startsWith("agentops_")
+          ) {
+            const safePath = String(msg.payload?.path || "/api/agentops/dashboard");
+            if (!safePath.startsWith("/api/agentops/")) {
+              throw new Error("Blocked non-AgentOps RPC path");
+            }
+            const method = String(msg.payload?.method || "GET").toUpperCase();
+            const bodyObj = { ...(msg.payload || {}) };
+            delete bodyObj.path;
+            delete bodyObj.method;
+            data = await fetch(safePath, {
+              method,
+              headers: { "Content-Type": "application/json" },
+              ...(method !== "GET" && method !== "HEAD"
+                ? { body: JSON.stringify(bodyObj) }
+                : {}),
+            }).then((r) => r.json());
           }
 
           sendToIframe({
@@ -661,6 +680,65 @@
             error: err?.message || "Portal RPC error",
           });
         }
+        return;
+      }
+
+      // 2B. Vercel AI SDK Streaming Relay across Poki `<iframe sandbox="allow-scripts">`
+      if (msg.type === "PORTAL_STREAM_START" && msg.streamId) {
+        addLog(`🌊 [PORTAL_STREAM_START] streamId=${msg.streamId}`, "text-fuchsia-300");
+        (async () => {
+          try {
+            const res = await fetch("/api/openrouter/stream", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(msg.payload || {}),
+            });
+            if (!res.ok) throw new Error(`Stream HTTP ${res.status}`);
+            let summary = {};
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true });
+              const blocks = buffer.split("\n\n");
+              buffer = blocks.pop() || "";
+              for (const block of blocks) {
+                const line = block.split("\n").find((l) => l.startsWith("data:"));
+                if (!line) continue;
+                const evt = JSON.parse(line.slice(5).trim());
+                if (evt.type === "text-delta") {
+                  sendToIframe({
+                    type: "PORTAL_STREAM_CHUNK",
+                    streamId: msg.streamId,
+                    delta: evt.delta || "",
+                    index: evt.index,
+                  });
+                } else if (evt.type === "finish") {
+                  summary = evt;
+                }
+              }
+            }
+            sendToIframe({
+              type: "PORTAL_STREAM_DONE",
+              streamId: msg.streamId,
+              ok: true,
+              summary,
+            });
+            addLog(
+              `✔ [PORTAL_STREAM_DONE] cached=${Boolean(summary.cached)} trace=${summary.traceId || "n/a"}`,
+              "text-emerald-300"
+            );
+          } catch (err) {
+            sendToIframe({
+              type: "PORTAL_STREAM_DONE",
+              streamId: msg.streamId,
+              ok: false,
+              error: err?.message || "Portal stream error",
+            });
+          }
+        })();
         return;
       }
 
