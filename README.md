@@ -1,6 +1,6 @@
-# 🦖 Game9K Starter Kit — Flagship Dinosaur Racing (TikTok Live + YouTube Live)
+# 🦖🏁 Game9K Starter Kit — Live Interaction Games (TikTok Live + YouTube Live)
 
-Bộ công cụ phát triển (**Starter Kit**) chuẩn hóa cho cổng trò chơi **Game9K (`game9k.com`)** kèm tựa game mẫu đầu tiên: **Jurassic Sanctuary Sprint — Đua Khủng Long Khu Bảo Tồn** dành cho cả **người chơi trình duyệt tức thì (Instant-Play G4/G2)** và **KOL phát trực tiếp 24/7 trên TikTok Live & YouTube Live**.
+Bộ công cụ phát triển (**Starter Kit**) chuẩn hóa cho cổng trò chơi **Game9K (`game9k.com`)** gồm **Jurassic Sanctuary Sprint** và game độc lập **Marble Race Live — PK Streamer Battle**. Sản phẩm ưu tiên viewer/creator live participation trên **TikTok Live & YouTube Live**, còn instant-play/Poki là kênh acquisition và sandbox bổ trợ.
 
 ---
 
@@ -27,8 +27,16 @@ Bộ công cụ phát triển (**Starter Kit**) chuẩn hóa cho cổng trò ch�
    - Phân tách phòng độc lập theo từng KOL (`roomId`), hỗ trợ song song cả **Socket.io** và **Server-Sent Events (`/api/sse/:roomId`)**.
    - Tích hợp **CORS-Safe Avatar Proxy (`/api/avatar`)** lọc domain an toàn (`tiktokcdn`, `ggpht.com`, `ytimg.com`) kèm SVG fallback để vẽ avatar khán giả trực tiếp lên HTML5 Canvas 2D không bị lỗi bảo mật CORS.
 
-3. **Tuân Thủ Tuyệt Đối Đặc Tả Hạ Tầng & Pháp Lý Cổng Game9K**:
-   - **Ngân sách siêu nhẹ**: Toàn bộ gói `dino-race` chỉ **~32.3 KB Gzip** (và bản đóng gói độc lập 1 tệp `standalone.html` chỉ **~35 KB Gzip** — nhỏ hơn gần 4 lần trần 125–275 KB của Game9K).
+3. **Game độc lập viewer-first — `Marble Race Live` (`public/games/marble-race-live/`)**:
+   - **Phân loại & kênh**: `G2`, phát hành chính như một live overlay cho **TikTok Live + YouTube Live**, OBS Browser Source và Game9K Live Room; Poki chỉ là kênh acquisition/instant-play, không phải giả định phân phối trung tâm.
+   - **PK hai streamer / hai phòng**: `LiveStreamBridge.connectPair({ A, B })` mở hai room tenant riêng; gateway đóng dấu `team: A|B` vào event. Fallback combined-room giữ mapping TikTok → A, YouTube → B.
+   - **120 marble/heat**: Canvas circle renderer, avatar proxy same-origin, render có density mode cho crowd lớn. Viewer chat/join/like/follow/share tạo hoặc boost marble của mình.
+   - **Physics & lật kèo**: layout obstacle được seed (`vortex`, `falling_rock`, `split_gate`); gift của đội mình boost team và tạo obstacle/debuff ở lane đối thủ. Seed hiện trong HUD để creator replay/audit.
+   - **Queue giữa chặng**: event đến sau khi heat kết thúc không sửa kết quả đã chốt; engine xếp hàng rồi flush tại countdown heat kế tiếp.
+   - **Commerce là participation**: viewer vào chơi miễn phí; gift/brand skin/creator boost là các điểm monetization cho live entertainment, không yêu cầu viewer trở thành nhà đầu tư.
+
+4. **Tuân Thủ Tuyệt Đối Đặc Tả Hạ Tầng & Pháp Lý Cổng Game9K**:
+   - **Ngân sách siêu nhẹ**: Gói modular `dino-race` đạt **34.37 KB Gzip**, Marble Race đạt **17.90 KB Gzip**; bản standalone lần lượt khoảng **63.14 KB** và **47.44 KB Gzip**, đều dưới trần 125 KB của Game9K.
    - **Cô lập `<iframe sandbox="allow-scripts">`**: Chạy mượt trong môi trường Opaque Origin (`"null"`), bọc an toàn `localStorage` tránh lỗi `SecurityError`, xác thực nghiêm ngặt `event.source === iframe.contentWindow`.
    - **Tiết lưu Realtime Broadcast (`<= 15–20 Hz`)**: Bảo vệ trần gói tin của Supabase Realtime Broadcast và tuyệt đối không gọi `Presence.track()` trong vòng lặp vật lý.
    - **Google H5 Games Ad Placement API (`Game9K.ads`)**: Đầy đủ vòng đời `preroll` (kèm chốt chặn an toàn timeout **2 giây** chống treo màn hình chờ) và `reward` (`beforeReward` → `beforeAd` → `adViewed` → `afterAd` → `adBreakDone`).
@@ -60,8 +68,10 @@ Sau khi chạy `npm start`, mở trình duyệt tại:
 | :--- | :--- |
 | **`http://localhost:3000/`** | **KOL Live Launcher Hub** — Tạo link OBS / TikTok LIVE Studio / YouTube Live & xem danh mục gói game |
 | **`http://localhost:3000/games/dino-race/index.html`** | **Jurassic Sanctuary Sprint** — Bản đầy đủ (Tự lái Solo + 4 Đội KOL + 24 Avatar Khán Giả) |
+| **`http://localhost:3000/games/marble-race-live/index.html?demo=1`** | **Marble Race Live** — PK hai streamer, 120 marble/heat, avatar viewer, seed fairness và gift tạo obstacle đối thủ |
 | **`http://localhost:3000/games/cyber-boss-raid/index.html`** | **Mecha Kaiju Raid** — Co-op boss raid 60 FPS với chat 1–4, quà KOL, anti-cheat score proof và Battle Pass liên game |
-| **`http://localhost:3000/games/dino-race/standalone.html`** | **Bản 1 File Độc Lập (~42 KB Gzip)** — Mở trực tiếp không cần máy chủ hoặc tải thẳng lên Cloudflare R2 |
+| **`http://localhost:3000/games/dino-race/standalone.html`** | **Dino 1 File Độc Lập** — Mở trực tiếp không cần máy chủ hoặc tải thẳng lên Cloudflare R2 |
+| **`http://localhost:3000/games/marble-race-live/standalone.html?demo=1`** | **Marble Race 1 File Độc Lập** — Overlay viewer-first chạy offline/local demo |
 | **`http://localhost:3000/sdk-demo.html`** | **Poki × Xsolla SDK Explorer** — Trải nghiệm trực tiếp 4 bước thanh toán Xsolla SDK 3 (`Authenticate → Catalog → Pay Station → Finalize`) & vòng đời `PokiSDK` |
 | **`http://localhost:3000/decisions.html`** | **Dev Decisions Studio (`Gemini Decisions API`)** — Cổng duyệt phát hành R2, phân loại NĐ 147, duyệt PR, Sprint Backlog & Playground đa phương thức |
 | **`http://localhost:3000/portal.html`** | **Game9K Sandbox Portal Host** — Kiểm tra `<iframe sandbox="allow-scripts">`, đo Hz Realtime & khóa giờ chơi U18 |
@@ -82,6 +92,14 @@ Bạn có thể tạo tự động tại trang chủ `/` hoặc gắn trực ti�
 - `?obs=1` — Ẩn thanh điều hướng phía trên để giao diện livestream gọn sạch.
 - `?bg=transparent` — Xóa nền rừng thành trong suốt để lồng đường đua đè lên camera của KOL.
 - `?autobot=1` — Bật luồng khán giả giả lập tự động để kiểm thử bố cục trước giờ lên sóng.
+
+### Marble Race Live PK
+
+- Mở `games/marble-race-live/index.html?demo=1` để chạy demo normalized event.
+- `?roomA=@creator_a&roomB=YOUTUBE_VIDEO_ID` — kết nối hai upstream theo team A/B bằng `LiveStreamBridge.connectPair` (TikTok cho A, YouTube cho B).
+- `?seed=G9K-MARBLE-001` — khóa fairness seed hiển thị trong HUD.
+- `?demo=1` — tạo live demo; gift `meteor`/`crown` tạo obstacle cho team đối thủ.
+- Bản độc lập: `games/marble-race-live/standalone.html` (không cần Socket.IO; local demo vẫn chạy).
 
 ---
 

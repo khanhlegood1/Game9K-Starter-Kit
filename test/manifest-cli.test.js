@@ -10,11 +10,16 @@ import { validateGamePackage } from "../src/lib/manifestValidator.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = join(__dirname, "..");
 
-test("validateGamePackage approves flagship dino-race and starter-template", () => {
+test("validateGamePackage approves dino-race, Marble Race, and starter-template", () => {
   const dino = validateGamePackage(join(ROOT_DIR, "public/games/dino-race"));
   assert.equal(dino.ok, true, dino.errors.join("; "));
   assert.ok(dino.metrics.gzipKb < 125);
   assert.match(dino.releaseSha256, /^[0-9a-f]{64}$/);
+
+  const marble = validateGamePackage(join(ROOT_DIR, "public/games/marble-race-live"));
+  assert.equal(marble.ok, true, marble.errors.join("; "));
+  assert.equal(marble.manifest.legal_classification, "G2");
+  assert.ok(marble.metrics.gzipKb < 125);
 
   const tmpl = validateGamePackage(join(ROOT_DIR, "public/games/starter-template"));
   assert.equal(tmpl.ok, true, tmpl.errors.join("; "));

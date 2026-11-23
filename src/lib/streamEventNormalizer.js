@@ -516,6 +516,7 @@ export function normalizeCustomEvent(raw) {
   if (!raw || typeof raw !== "object") return null;
   const platform = raw.platform === "youtube" ? "youtube" : raw.platform === "tiktok" ? "tiktok" : "simulator";
   const type = String(raw.type || "chat").toLowerCase();
+  const team = raw.team === "B" ? "B" : raw.team === "A" ? "A" : undefined;
   const user = normalizeUser(raw, platform);
 
   if (type === "gift" || type === "superchat") {
@@ -540,6 +541,7 @@ export function normalizeCustomEvent(raw) {
     return {
       type: "gift",
       platform,
+      team,
       user,
       giftId: Number(raw.giftId || 1),
       giftName: String(raw.giftName || tierNames[giftTier] || "Gift"),
@@ -558,6 +560,7 @@ export function normalizeCustomEvent(raw) {
     return {
       type: "like",
       platform,
+      team,
       user,
       likeCount: Math.max(1, Number(raw.likeCount || raw.count || 5)),
       totalLikeCount: Number(raw.totalLikeCount || 0),
@@ -569,6 +572,7 @@ export function normalizeCustomEvent(raw) {
     return {
       type,
       platform,
+      team,
       user,
       timestamp: Date.now(),
     };
@@ -578,6 +582,7 @@ export function normalizeCustomEvent(raw) {
   return {
     type: "chat",
     platform,
+    team,
     user,
     comment,
     lane: typeof raw.lane === "number" ? raw.lane : parseLaneChoice(comment),

@@ -263,6 +263,8 @@ export function createGame9KServer(options = {}) {
     }
 
     try {
+      const room = liveRoomHub.getOrCreateRoom(req.params.roomId);
+      if (req.body?.team === "A" || req.body?.team === "B") room.team = req.body.team;
       const state = await liveRoomHub.configureRoomSources(req.params.roomId, {
         tiktok: req.body?.tiktok,
         youtube: req.body?.youtube,
@@ -1218,7 +1220,7 @@ export function createGame9KServer(options = {}) {
     /**
      * Supports both:
      * 1. Legacy string: `socket.emit("join-room", "tiktok_username")`
-     * 2. Multi-platform object: `socket.emit("join-room", { roomId, tiktok, youtube, youtubeApiKey, demoBot })`
+     * 2. Multi-platform object: `socket.emit("join-room", { roomId, tiktok, youtube, youtubeApiKey, demoBot, team })`
      */
     socket.on("join-room", async (payload) => {
       try {
@@ -1227,6 +1229,7 @@ export function createGame9KServer(options = {}) {
         let youtube = undefined;
         let youtubeApiKey = undefined;
         let demoBot = undefined;
+        let team = undefined;
 
         if (typeof payload === "string") {
           roomId = liveRoomHub.normalizeRoomId(payload);
@@ -1239,6 +1242,7 @@ export function createGame9KServer(options = {}) {
           youtube = payload.youtube;
           youtubeApiKey = payload.youtubeApiKey;
           demoBot = payload.demoBot;
+          team = payload.team === "B" ? "B" : payload.team === "A" ? "A" : undefined;
         } else {
           socket.emit("connection-error", { message: "Invalid join-room payload" });
           return;
@@ -1252,6 +1256,7 @@ export function createGame9KServer(options = {}) {
         socket.joinedRoomId = roomId;
         socket.join(roomId);
         const room = liveRoomHub.addSocketClient(roomId);
+        if (team) room.team = team;
 
         let configResult = null;
         if (
@@ -1269,6 +1274,7 @@ export function createGame9KServer(options = {}) {
 
         socket.emit("room-joined", {
           room: room.roomId,
+          team: room.team,
           statuses: room.statuses,
           config: configResult,
         });
@@ -1340,6 +1346,7 @@ if (isDirectRun) {
   Listening on: http://${HOST}:${PORT}
   • KOL Launcher Hub:    /index.html
   • Dino Race Flagship:  /games/dino-race/index.html
+  • Marble Race PK:      /games/marble-race-live/index.html
   • Mecha Kaiju Raid:    /games/cyber-boss-raid/index.html
   • Poki × Xsolla SDK:   /sdk-demo.html
   • Dev Decisions Board: /decisions.html

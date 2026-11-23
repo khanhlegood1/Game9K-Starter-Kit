@@ -36,6 +36,7 @@ export class LiveRoomHub {
     /**
      * @type {Map<string, {
      *   roomId: string,
+     *   team: "A"|"B"|null,
      *   tiktokUsername: string|null,
      *   youtubeVideoId: string|null,
      *   botTimer: NodeJS.Timeout|null,
@@ -83,6 +84,7 @@ export class LiveRoomHub {
     if (!room) {
       room = {
         roomId,
+        team: null,
         tiktokUsername: null,
         youtubeVideoId: null,
         botTimer: null,
@@ -163,6 +165,7 @@ export class LiveRoomHub {
 
     return {
       roomId: room.roomId,
+      team: room.team,
       tiktokUsername: room.tiktokUsername,
       youtubeVideoId: room.youtubeVideoId,
       demoBot: Boolean(room.botTimer),
@@ -272,20 +275,24 @@ export class LiveRoomHub {
     const room = this.getOrCreateRoom(rawRoomId);
     room.lastActivityAt = Date.now();
     room.eventCount += 1;
+    const routedEvent =
+      room.team === "A" || room.team === "B"
+        ? { ...event, team: room.team, streamerTeam: room.team }
+        : event;
 
     if (this.io) {
       const target = this.io.to(room.roomId);
-      target.emit("stream_event", event);
+      target.emit("stream_event", routedEvent);
 
       // Backward-compatible events for `tiktok-bridge.js` games
-      if (event.type === "chat") target.emit("tiktok_chat", event);
-      else if (event.type === "gift") target.emit("tiktok_gift", event);
-      else if (event.type === "like") target.emit("tiktok_like", event);
-      else if (event.type === "share") target.emit("tiktok_share", event);
+      if (routedEvent.type === "chat") target.emit("tiktok_chat", routedEvent);
+      else if (routedEvent.type === "gift") target.emit("tiktok_gift", routedEvent);
+      else if (routedEvent.type === "like") target.emit("tiktok_like", routedEvent);
+      else if (routedEvent.type === "share") target.emit("tiktok_share", routedEvent);
     }
 
     if (room.sseClients.size > 0) {
-      const frame = `data: ${JSON.stringify({ kind: "event", event })}\n\n`;
+      const frame = `data: ${JSON.stringify({ kind: "event", event: routedEvent })}\n\n`;
       for (const res of room.sseClients) {
         res.write(frame);
       }
@@ -295,14 +302,18 @@ export class LiveRoomHub {
   dispatchStatus(rawRoomId, statusInfo) {
     const room = this.getOrCreateRoom(rawRoomId);
     room.lastActivityAt = Date.now();
-    room.statuses[statusInfo.platform || "default"] = {
-      ...statusInfo,
+    const routedStatus =
+      room.team === "A" || room.team === "B"
+        ? { ...statusInfo, team: room.team }
+        : statusInfo;
+    room.statuses[routedStatus.platform || "default"] = {
+      ...routedStatus,
       updatedAt: Date.now(),
     };
 
     if (this.io) {
       const target = this.io.to(room.roomId);
-      target.emit("stream_status", statusInfo);
+      target.emit("stream_status", routedStatus);
 
       if (statusInfo.status === "connected") {
         target.emit("tiktok_connected", {
@@ -327,7 +338,7 @@ export class LiveRoomHub {
     }
 
     if (room.sseClients.size > 0) {
-      const frame = `data: ${JSON.stringify({ kind: "status", status: statusInfo })}\n\n`;
+      const frame = `data: ${JSON.stringify({ kind: "status", status: routedStatus })}\n\n`;
       for (const res of room.sseClients) {
         res.write(frame);
       }
@@ -460,6 +471,7 @@ export class LiveRoomHub {
     for (const r of this.rooms.values()) {
       roomList.push({
         roomId: r.roomId,
+        team: r.team,
         tiktok: r.tiktokUsername ? `@${r.tiktokUsername}` : null,
         youtube: r.youtubeVideoId,
         demoBot: Boolean(r.botTimer),
