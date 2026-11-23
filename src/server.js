@@ -16,7 +16,7 @@ import { createServer } from "node:http";
 import { Server } from "socket.io";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { readdirSync, existsSync } from "node:fs";
+import { readdirSync, existsSync, readFileSync } from "node:fs";
 
 import liveRoomHub from "./services/LiveRoomHub.js";
 import avatarProxy from "./services/AvatarProxyService.js";
@@ -24,6 +24,8 @@ import ProjectDecisionsService, {
   GAME9K_DECISION_PRESETS,
 } from "./services/ProjectDecisionsService.js";
 import XsollaCommerceService from "./services/XsollaCommerceService.js";
+import PosEconomyService from "./services/PosEconomyService.js";
+import SpliceSpecService from "./services/SpliceSpecService.js";
 import { IpRateLimiter } from "./lib/rateLimiter.js";
 import { validateGamePackage } from "./lib/manifestValidator.js";
 
@@ -40,7 +42,12 @@ export function createGame9KServer(options = {}) {
     maxRequestsPerMinute: options.maxRequestsPerMinute ?? 240,
   });
   const decisionsService = new ProjectDecisionsService({ liveRoomHub });
-  const xsollaService = new XsollaCommerceService(options.xsolla || {});
+  const posService = new PosEconomyService(options.pos || {});
+  const xsollaService = new XsollaCommerceService({
+    ...(options.xsolla || {}),
+    posEconomy: posService,
+  });
+  const spliceService = new SpliceSpecService(options.splice || {});
 
   const io = new Server(httpServer, {
     cors: {
@@ -84,8 +91,20 @@ export function createGame9KServer(options = {}) {
         ? "gemini-decision-1"
         : "game9k-calibrated-decisions",
       sdkCapabilities: {
-        version: "2.0.0",
+        version: "3.0.0",
         pokiPortalSdk: true,
+        spliceSpecEngine: {
+          enabled: true,
+          openApiSpecUrl: "/api/openapi.json",
+          mockKeyPrefix: "sk_live_",
+          languages: ["typescript", "javascript"],
+        },
+        posKdsEconomy: {
+          enabled: true,
+          stations: ["boost", "sabotage", "cosmetic", "vip", "stream_gift"],
+          happyHourActive: posService.activeScheduledRules().length > 0,
+          csvExports: ["orders", "payments", "shifts"],
+        },
         xsollaSdk3: {
           enabled: true,
           projectId: xsollaService.projectId,
@@ -195,6 +214,9 @@ export function createGame9KServer(options = {}) {
     const event = liveRoomHub.ingestCustomEvent(req.params.roomId, req.body);
     if (!event) {
       return res.status(400).json({ ok: false, error: "Invalid event payload" });
+    }
+    if (event.kind === "gift" || req.body?.type === "gift") {
+      posService.enqueueStreamGiftTicket(event);
     }
     return res.json({ ok: true, event });
   });
@@ -440,6 +462,202 @@ export function createGame9KServer(options = {}) {
   });
 
   // ==========================================================================
+  // REST API: SPLICE OPENAPI SPEC-TO-SDK & MOCK SERVER GATEWAY
+  // ==========================================================================
+
+  app.get("/api/openapi.json", (_req, res) => {
+    return res.json(spliceService.getOpenAPISpec("/"));
+  });
+
+  app.post("/api/splice/parse", (req, res) => {
+    return res.json(spliceService.parseSpec(req.body?.spec || null));
+  });
+
+  app.get("/api/splice/mock-servers", (_req, res) => {
+    return res.json({
+      ok: true,
+      servers: spliceService.listMockServers(),
+    });
+  });
+
+  app.post("/api/splice/mock-servers", (req, res) => {
+    const specId = req.body?.specId || "game9k-portal";
+    return res.json(spliceService.startMockServer(specId, req.body?.spec || null));
+  });
+
+  app.delete("/api/splice/mock-servers/:specId", (req, res) => {
+    return res.json(spliceService.stopMockServer(req.params.specId));
+  });
+
+  app.post("/api/splice/mock-request", (req, res) => {
+    const specId = req.body?.specId || "game9k-portal";
+    const result = spliceService.executeMockRequest(specId, {
+      method: req.body?.method || "GET",
+      path: req.body?.path || "/api/health",
+      headers: req.body?.headers || {},
+      body: req.body?.body || null,
+    });
+    return res.status(result.status || 200).json(result);
+  });
+
+  app.all("/api/splice/mock/:specId/*", (req, res) => {
+    const subPath = "/" + String(req.params[0] || "api/health");
+    const result = spliceService.executeMockRequest(req.params.specId, {
+      method: req.method,
+      path: subPath,
+      headers: req.headers,
+      body: req.body,
+    });
+    return res.status(result.status || 200).json(result);
+  });
+
+  app.post("/api/splice/generate-sdk", (req, res) => {
+    const gameSlug = req.body?.gameId || "dino-race";
+    const manifestPath = join(GAMES_DIR, gameSlug, "game9k.manifest.json");
+    let manifest = null;
+    if (existsSync(manifestPath)) {
+      try {
+        manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+      } catch {
+        manifest = null;
+      }
+    }
+    const result = spliceService.generateSDK(
+      req.body?.config || req.body || {},
+      req.body?.spec || null,
+      manifest
+    );
+    if (!result.ok) {
+      return res.status(400).json(result);
+    }
+    return res.json(result);
+  });
+
+  app.get("/api/splice/generations/:generationId", (req, res) => {
+    const result = spliceService.getGeneration(req.params.generationId);
+    if (!result.ok) {
+      return res.status(result.status || 404).json(result);
+    }
+    return res.json(result);
+  });
+
+  // ==========================================================================
+  // REST API: COUNTER POS, LIMITED STOCK, HAPPY HOUR, KDS & Z-REPORT
+  // ==========================================================================
+
+  app.get("/api/pos/stock", (_req, res) => {
+    return res.json({
+      ok: true,
+      items: posService.getStockCatalog(),
+      recentLogs: posService.stockLog.slice(0, 20),
+    });
+  });
+
+  app.post("/api/pos/stock/adjust", (req, res) => {
+    const out = posService.adjustStock(
+      req.body?.sku,
+      req.body?.delta ?? 0,
+      req.body?.reason || "adjustment",
+      req.body?.note || ""
+    );
+    if (!out.ok) return res.status(400).json(out);
+    return res.json(out);
+  });
+
+  app.get("/api/pos/discounts", (_req, res) => {
+    return res.json({
+      ok: true,
+      happyHourActive: posService.activeScheduledRules().length > 0,
+      activeScheduled: posService.activeScheduledRules(),
+      rules: posService.discountRules,
+    });
+  });
+
+  app.post("/api/pos/happy-hour", (req, res) => {
+    return res.json(posService.toggleHappyHour(req.body?.active !== false));
+  });
+
+  app.post("/api/pos/validate-coupon", (req, res) => {
+    const out = posService.validateCoupon(
+      req.body?.couponCode || req.body?.code || "",
+      Number(req.body?.subtotalCents ?? 299),
+      { managerApproved: Boolean(req.body?.managerApproved) }
+    );
+    return res.status(out.ok ? 200 : 400).json(out);
+  });
+
+  app.post("/api/pos/quote", (req, res) => {
+    const out = posService.quoteOrder(req.body || {});
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    return res.json(out);
+  });
+
+  app.post("/api/pos/orders", (req, res) => {
+    const out = posService.createPosOrder(req.body || {});
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    return res.json(out);
+  });
+
+  app.get("/api/pos/kds", (_req, res) => {
+    return res.json(posService.buildKdsSnapshot());
+  });
+
+  app.post("/api/pos/kds/bump", (req, res) => {
+    const out = posService.bumpTicket(req.body?.ticketId);
+    if (!out.ok) return res.status(out.status || 404).json(out);
+    return res.json(out);
+  });
+
+  app.post("/api/pos/kds/recall", (req, res) => {
+    const out = posService.recallTicket(req.body?.ticketId);
+    if (!out.ok) return res.status(out.status || 404).json(out);
+    return res.json(out);
+  });
+
+  app.post("/api/pos/kds/stream-gift", (req, res) => {
+    const order = posService.enqueueStreamGiftTicket(req.body || {});
+    return res.json({ ok: true, order, kds: posService.buildKdsSnapshot() });
+  });
+
+  app.get("/api/pos/shifts", (_req, res) => {
+    return res.json({
+      ok: true,
+      currentShift: posService.getCurrentShift(),
+      shifts: posService.shifts,
+    });
+  });
+
+  app.post("/api/pos/shifts/open", (req, res) => {
+    return res.json(posService.openShift(req.body || {}));
+  });
+
+  app.post("/api/pos/shifts/close", (req, res) => {
+    const out = posService.closeShift(req.body || {});
+    if (!out.ok) return res.status(out.status || 400).json(out);
+    return res.json(out);
+  });
+
+  app.get("/api/pos/z-report", (req, res) => {
+    return res.json(
+      posService.computeZReport({
+        fromKey: req.query.from ? String(req.query.from) : undefined,
+        toKey: req.query.to ? String(req.query.to) : undefined,
+      })
+    );
+  });
+
+  app.get("/api/pos/export/:kind.csv", (req, res) => {
+    const kind = String(req.params.kind || "orders").toLowerCase();
+    const csv = posService.exportCSV(kind);
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="game9k-${kind}-${new Date().toISOString().slice(0, 10)}.csv"`
+    );
+    return res.send("\uFEFF" + csv);
+  });
+
+  // ==========================================================================
   // SOCKET.IO REAL-TIME MULTI-TENANT BRIDGE
   // ==========================================================================
 
@@ -542,7 +760,16 @@ export function createGame9KServer(options = {}) {
     });
   });
 
-  return { app, httpServer, io, liveRoomHub, decisionsService, xsollaService };
+  return {
+    app,
+    httpServer,
+    io,
+    liveRoomHub,
+    decisionsService,
+    xsollaService,
+    posService,
+    spliceService,
+  };
 }
 
 // Start server automatically when executed directly (`node src/server.js`)

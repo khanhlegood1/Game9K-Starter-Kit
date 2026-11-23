@@ -33,6 +33,7 @@ import {
   listFilesDeterministic,
 } from "../src/lib/manifestValidator.js";
 import ProjectDecisionsService from "../src/services/ProjectDecisionsService.js";
+import SpliceSpecService from "../src/services/SpliceSpecService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -154,11 +155,17 @@ function runCapabilities(opts) {
     command: "capabilities",
     data: {
       cli: "g9k",
-      version: "2.0.0",
-      commands: ["capabilities", "validate", "build", "verify", "doctor", "decide"],
+      version: "3.0.0",
+      commands: ["capabilities", "validate", "build", "verify", "doctor", "decide", "codegen"],
       sdk: {
-        version: "2.0.0",
-        standards: ["poki-portal-sdk", "xsolla-sdk-3", "game9k-sandbox-bridge"],
+        version: "3.0.0",
+        standards: [
+          "poki-portal-sdk",
+          "xsolla-sdk-3",
+          "splice-spec-to-sdk",
+          "pos-kds-economy",
+          "game9k-sandbox-bridge",
+        ],
         xsolla_steps: [
           "01_authenticate",
           "02_load_catalog",
@@ -470,6 +477,56 @@ async function runDecide(opts) {
   });
 }
 
+function runCodegen(opts) {
+  const gameSlug = opts.game || "dino-race";
+  const manifestPath = join(GAMES_DIR, gameSlug, "game9k.manifest.json");
+  let manifest = null;
+  if (existsSync(manifestPath)) {
+    manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  }
+  const splice = new SpliceSpecService();
+  const generated = splice.generateSDK(
+    {
+      packageName: `@game9k/${gameSlug}-portal-sdk`,
+      packageVersion: "3.0.0",
+      gameId: gameSlug,
+      language: "typescript",
+    },
+    null,
+    manifest
+  );
+  if (!generated.ok) {
+    return emitResult({
+      json: opts.json,
+      ok: false,
+      command: "codegen",
+      error: { code: "codegen_failed", message: generated.error || "SDK generation failed" },
+    });
+  }
+
+  const outDir = join(DIST_DIR, "generated-sdk", gameSlug);
+  rmSync(outDir, { recursive: true, force: true });
+  for (const [relFile, content] of Object.entries(generated.files)) {
+    const absFile = join(outDir, relFile);
+    mkdirSync(dirname(absFile), { recursive: true });
+    writeFileSync(absFile, content, "utf8");
+  }
+
+  emitResult({
+    json: opts.json,
+    ok: true,
+    command: "codegen",
+    data: {
+      generationId: generated.generationId,
+      packageName: generated.config.packageName,
+      packageVersion: generated.config.packageVersion,
+      endpointCount: generated.endpointCount,
+      outputDir: `dist/generated-sdk/${gameSlug}`,
+      files: generated.fileNames,
+    },
+  });
+}
+
 const opts = parseArgs(process.argv);
 if (opts.command === "capabilities") runCapabilities(opts);
 else if (opts.command === "validate") runValidate(opts);
@@ -477,6 +534,7 @@ else if (opts.command === "build") runBuild(opts);
 else if (opts.command === "verify") runVerify(opts);
 else if (opts.command === "doctor") await runDoctor(opts);
 else if (opts.command === "decide") await runDecide(opts);
+else if (opts.command === "codegen") runCodegen(opts);
 else {
   console.log(`Game9K Starter Kit CLI (g9k)
 Usage:
@@ -485,5 +543,6 @@ Usage:
   npm run g9k -- build [--game dino-race] [--json]
   npm run g9k -- verify [--json]
   npm run g9k -- doctor [--json]
-  npm run g9k -- decide [--json]`);
+  npm run g9k -- decide [--json]
+  npm run g9k -- codegen [--game dino-race] [--json]`);
 }

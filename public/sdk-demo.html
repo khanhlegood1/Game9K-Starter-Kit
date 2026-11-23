@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game9K SDK Explorer — Xsolla SDK 3 (4-Step Commerce) × Poki Portal SDK</title>
+  <title>Game9K SDK Studio v3.0 — Poki Portal × Xsolla SDK 3 × Splice Spec-to-SDK × POS KDS</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
@@ -44,29 +44,61 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
-  <!-- TOP SDK EXPLORER HEADER (Inspired by https://developers.xsolla.com/sdk/demo/) -->
+  <!-- TOP SDK STUDIO HEADER -->
   <header class="sticky top-0 z-30 bg-slate-950/95 backdrop-blur border-b border-slate-800 px-4 sm:px-6 py-3">
-    <div class="max-w-[1440px] mx-auto flex flex-wrap items-center justify-between gap-3">
+    <div class="max-w-[1460px] mx-auto flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
         <a href="/index.html" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200">← Hub</a>
         <div>
           <div class="flex items-center flex-wrap gap-2">
-            <span class="font-black text-sm sm:text-base text-white tracking-tight">GAME9K SDK EXPLORER</span>
+            <span class="font-black text-sm sm:text-base text-white tracking-tight">GAME9K SDK STUDIO</span>
             <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
-              Xsolla SDK 3 × Poki Portal SDK v2.0
+              Poki Portal SDK v3.0 · Xsolla · Splice · POS/KDS
             </span>
             <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-sky-500/15 text-sky-300 border border-sky-500/30">
               User ID: <strong id="hdr-explorer-id">------</strong>
             </span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/15 text-purple-300 border border-purple-500/30">
+              Storage: <strong id="hdr-storage-bytes">0 B</strong>
+            </span>
           </div>
           <p class="text-[11px] text-slate-400 mt-0.5">
-            Trải nghiệm trực tiếp 4 bước thương mại hóa Xsolla (<code class="text-emerald-300">Authenticate → Catalog → Pay Station → Finalize</code>) kết hợp vòng đời cổng <code class="text-amber-300">PokiSDK</code>.
+            Hợp nhất <code class="text-amber-300">PokiSDK</code>, <code class="text-emerald-300">XsollaSDK</code>, <code class="text-sky-300">SpliceSDK</code> (Spec-to-SDK &amp; <code class="text-sky-300">sk_live_...</code>) và <code class="text-pink-300">Game9K.pos</code> (Stock/86, Happy Hour, KDS &amp; Z-Report).
           </p>
         </div>
       </div>
 
-      <!-- Interactive Environment Controls (Platform | Country | Frame | Webhook | AdBlock) -->
+      <!-- Mode Switcher Tabs + Sandbox Link -->
       <div class="flex flex-wrap items-center gap-2 text-xs">
+        <div class="flex rounded-xl bg-slate-900 p-1 border border-slate-800 gap-1">
+          <button data-main-tab="commerce" class="main-tab px-3 py-1.5 rounded-lg font-black bg-emerald-500 text-stone-950">
+            💳 1. Poki × Xsolla
+          </button>
+          <button data-main-tab="splice" class="main-tab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white">
+            🛠️ 2. Splice Spec-to-SDK
+          </button>
+          <button data-main-tab="pos" class="main-tab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white">
+            🧾 3. POS · KDS &amp; Z-Report
+          </button>
+        </div>
+
+        <a href="/portal.html" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-black">
+          🛡️ Test Trong Sandbox
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       TAB 1: POKI PORTAL SDK × XSOLLA SDK 3 × POS COUPONS & STOCK
+       ======================================================================== -->
+  <main id="panel-commerce" class="max-w-[1460px] mx-auto w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">
+
+    <!-- LEFT COLUMN (4 Cols): 4-STEP XSOLLA SDK 3 + POKI PORTAL LIFECYCLE -->
+    <section class="lg:col-span-4 space-y-3 flex flex-col">
+
+      <!-- Environment Controls -->
+      <div class="glass-panel rounded-2xl p-3 grid grid-cols-2 gap-2 text-xs">
         <select id="cfg-country" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 font-bold text-emerald-300">
           <option value="VN">🇻🇳 Vietnam · VND (10% VAT)</option>
           <option value="US">🇺🇸 USA · USD (8.25% Tax)</option>
@@ -75,10 +107,10 @@
         </select>
 
         <select id="cfg-platform" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 font-bold text-sky-300">
-          <option value="web_portal">🌐 Poki Web Portal (Iframe)</option>
+          <option value="web_portal">🌐 Poki Web Portal</option>
           <option value="unity_webgl">🎮 Unity WebGL</option>
-          <option value="ios">🍎 iOS (External Safari)</option>
-          <option value="android">🤖 Android (Overlay)</option>
+          <option value="ios">🍎 iOS External</option>
+          <option value="android">🤖 Android</option>
         </select>
 
         <select id="cfg-auth-method" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 font-bold text-amber-300">
@@ -89,28 +121,16 @@
         <button id="btn-toggle-frame" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 font-bold text-slate-200">
           📱 Khung Điện Thoại
         </button>
-
-        <a href="/portal.html" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-black">
-          🛡️ Test Trong Sandbox
-        </a>
       </div>
-    </div>
-  </header>
-
-  <!-- 3-COLUMN SDK EXPLORER WORKSPACE -->
-  <main class="max-w-[1440px] mx-auto w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">
-
-    <!-- LEFT COLUMN (4 Cols): 4-STEP XSOLLA SDK 3 FLOW + POKI PORTAL LIFECYCLE -->
-    <section class="lg:col-span-4 space-y-3 flex flex-col">
 
       <!-- Xsolla SDK 3: 4-Step Monetization Pipeline -->
       <div class="glass-panel rounded-2xl p-4 space-y-3">
         <div class="flex items-center justify-between">
           <div>
-            <div class="text-[10px] font-black uppercase tracking-wider text-emerald-400">XSOLLA SDK 3 MONETIZATION</div>
-            <h2 class="text-sm font-black text-white">Chu Trình 4 Lệnh API Duy Nhất</h2>
+            <div class="text-[10px] font-black uppercase tracking-wider text-emerald-400">XSOLLA SDK 3 × POS ENGINE</div>
+            <h2 class="text-sm font-black text-white">Chu Trình 4 Lệnh + Coupon &amp; Stock Guard</h2>
           </div>
-          <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 text-[10px] font-mono">5% Fee · 0 Backend</span>
+          <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 text-[10px] font-mono">5% Fee · KDS Linked</span>
         </div>
 
         <!-- Step 01 -->
@@ -122,9 +142,6 @@
             </div>
             <span id="status-step-1" class="text-[10px] font-mono text-slate-400">Chờ chạy</span>
           </div>
-          <p class="text-[11px] text-slate-400">
-            Tạo định danh xuyên nền tảng bằng Device ID ngầm (không bắt đăng nhập) hoặc SSO cổng Game9K.
-          </p>
           <button id="btn-step-1" class="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition">
             ▶ Chạy 01: XsollaSDK.authenticate()
           </button>
@@ -135,13 +152,10 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono text-[11px] font-black">02</span>
-              <span class="font-bold text-xs text-white">Load Catalog (Tải Vật Phẩm)</span>
+              <span class="font-bold text-xs text-white">Load Catalog (+ Happy Hour &amp; Stock)</span>
             </div>
             <span id="status-step-2" class="text-[10px] font-mono text-slate-400">Chờ chạy</span>
           </div>
-          <p class="text-[11px] text-slate-400">
-            Đồng bộ danh mục SKU theo tiền tệ địa phương (VND/USD/EUR/JPY), tự động tính thuế VAT &amp; phí 5%.
-          </p>
           <button id="btn-step-2" class="w-full py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-black text-xs transition">
             ▶ Chạy 02: XsollaSDK.loadCatalog()
           </button>
@@ -152,18 +166,22 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[11px] font-black">03</span>
-              <span class="font-bold text-xs text-white">Purchase Product (Pay Station)</span>
+              <span class="font-bold text-xs text-white">Purchase Product (Pay Station + Coupon)</span>
             </div>
             <span id="status-step-3" class="text-[10px] font-mono text-slate-400">Chờ chạy</span>
           </div>
+          <select id="select-sku" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-[11px] font-bold text-amber-300">
+            <option value="amber_gems_100">💎 amber_gems_100 (100 Hổ Phách)</option>
+            <option value="revive_turbo_surge">⚡ revive_turbo_surge (Impulse Surge · Happy Hour)</option>
+            <option value="kol_meteor_pack_5">☄️ kol_meteor_pack_5 (5x Thiên Thạch · Happy Hour)</option>
+            <option value="golden_croc_skin">🐊 golden_croc_skin (Limited Stock Drop)</option>
+            <option value="sanctuary_vip_pass">👑 sanctuary_vip_pass (VIP Bỏ Quảng Cáo)</option>
+          </select>
           <div class="flex items-center gap-2">
-            <select id="select-sku" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-[11px] font-bold text-amber-300">
-              <option value="amber_gems_100">💎 amber_gems_100 (100 Hổ Phách)</option>
-              <option value="revive_turbo_surge">⚡ revive_turbo_surge (Impulse Surge)</option>
-              <option value="kol_meteor_pack_5">☄️ kol_meteor_pack_5 (5x Thiên Thạch)</option>
-              <option value="golden_croc_skin">🐊 golden_croc_skin (Skin Hoàng Kim)</option>
-              <option value="sanctuary_vip_pass">👑 sanctuary_vip_pass (VIP Bỏ Quảng Cáo)</option>
-            </select>
+            <input id="input-pos-coupon" placeholder="Mã giảm giá (VD: GAMER9K, KOL20)" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[11px] font-mono uppercase text-pink-300" />
+            <button id="btn-quote-coupon" type="button" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-pink-200 border border-pink-500/30">
+              Báo giá POS
+            </button>
           </div>
           <button id="btn-step-3" class="w-full py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs transition">
             ▶ Chạy 03: XsollaSDK.purchaseProduct()
@@ -175,13 +193,10 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono text-[11px] font-black">04</span>
-              <span class="font-bold text-xs text-white">Finalize Purchase (Xác thực &amp; Cấp đồ)</span>
+              <span class="font-bold text-xs text-white">Finalize Purchase (HMAC + KDS Ticket)</span>
             </div>
             <span id="status-step-4" class="text-[10px] font-mono text-slate-400">Chờ đơn hàng</span>
           </div>
-          <p class="text-[11px] text-slate-400">
-            Kiểm tra chữ ký biên lai HMAC chống gian lận, chống cộng trùng (Idempotent) và lưu Cloud Save.
-          </p>
           <button id="btn-step-4" class="w-full py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-black text-xs transition">
             ▶ Chạy 04: XsollaSDK.finalizePurchase()
           </button>
@@ -225,14 +240,11 @@
           </button>
         </div>
       </div>
-
     </section>
 
     <!-- CENTER COLUMN (4 Cols): INTERACTIVE DEVICE / PORTAL PREVIEW FRAME -->
     <section class="lg:col-span-4 flex flex-col items-center justify-start space-y-3">
       <div id="device-shell" class="phone-bezel flex flex-col mx-auto transition-all duration-300">
-
-        <!-- Simulated Floating Poki Pill inside Device Preview -->
         <div
           id="sim-poki-pill"
           style="top: 12px; left: 12px;"
@@ -243,7 +255,6 @@
           <span id="sim-pill-vip" class="hidden text-amber-300 font-black">👑 VIP</span>
         </div>
 
-        <!-- Mini Live Canvas Banner + Storefront Inside Device -->
         <div class="pt-11 px-3 pb-2.5 bg-gradient-to-b from-emerald-950/80 to-slate-950 border-b border-slate-800">
           <div class="flex items-center justify-between text-[11px]">
             <div>
@@ -257,14 +268,12 @@
           <canvas id="mini-dino-canvas" width="300" height="76" class="w-full h-[76px] mt-2 rounded-xl bg-slate-950 border border-emerald-900/50"></canvas>
         </div>
 
-        <!-- Catalog & Inventory Tabs inside Device Preview -->
         <div class="flex-1 overflow-y-auto p-3 space-y-2.5 text-xs" id="device-catalog-list">
           <div class="text-center text-slate-400 py-8 text-[11px]">
-            Nhấn <strong>01 Authenticate</strong> &amp; <strong>02 Load Catalog</strong> để nạp cửa hàng trực tiếp!
+            Đang đồng bộ danh mục vật phẩm...
           </div>
         </div>
 
-        <!-- Player Entitlements Footer -->
         <div class="p-2.5 bg-slate-950 border-t border-slate-800 text-[10px] flex items-center justify-between">
           <span class="text-slate-400">Kho đồ: <strong id="inv-summary" class="text-emerald-300">50 Gems · 0 Skin</strong></span>
           <button id="btn-restore" class="text-sky-300 hover:underline font-bold">Restore</button>
@@ -276,85 +285,268 @@
 
     <!-- RIGHT COLUMN (4 Cols): LIVE API INSPECTOR + INTEGRATION CODE WIDGET -->
     <section class="lg:col-span-4 flex flex-col gap-3">
-
-      <!-- Integration Code Snippet Tabs -->
       <div class="glass-panel rounded-2xl p-4 space-y-2.5">
         <div class="flex items-center justify-between gap-2">
           <div>
             <div class="text-[10px] font-black uppercase tracking-wider text-sky-400">INTEGRATION CODE WIDGET</div>
-            <h2 class="text-xs font-black text-white">Mã Tích Hợp Chuẩn Cho Studio</h2>
+            <h2 class="text-xs font-black text-white">Mã Tích Hợp Chuẩn Poki Portal SDK v3.0</h2>
           </div>
           <div class="flex gap-1 text-[10px] font-bold">
-            <button data-code-tab="js" class="code-tab px-2 py-1 rounded bg-sky-600 text-white">Game9K JS</button>
+            <button data-code-tab="js" class="code-tab px-2 py-1 rounded bg-sky-600 text-white">Game9K v3</button>
             <button data-code-tab="poki" class="code-tab px-2 py-1 rounded bg-slate-800 text-slate-300">PokiSDK</button>
-            <button data-code-tab="unity" class="code-tab px-2 py-1 rounded bg-slate-800 text-slate-300">Unity C#</button>
+            <button data-code-tab="splice" class="code-tab px-2 py-1 rounded bg-slate-800 text-slate-300">Splice TS</button>
           </div>
         </div>
         <pre id="code-snippet-box" class="bg-slate-950 border border-slate-800 rounded-xl p-3 font-mono text-[10.5px] text-emerald-300 overflow-x-auto max-h-56 leading-relaxed"></pre>
       </div>
 
-      <!-- Live Request / Response Telemetry Log -->
       <div class="glass-panel rounded-2xl p-4 flex-1 flex flex-col min-h-[260px]">
         <div class="flex items-center justify-between mb-2">
           <div>
-            <div class="text-[10px] font-black uppercase tracking-wider text-amber-400">LIVE API CALLS (NOT SIMULATED)</div>
+            <div class="text-[10px] font-black uppercase tracking-wider text-amber-400">LIVE API CALLS &amp; INTERCEPTORS</div>
             <h2 class="text-xs font-black text-white">Nhật Ký HTTP &amp; SDK Events Thực Tế</h2>
           </div>
           <button id="btn-clear-inspector" class="text-[10px] text-slate-400 hover:text-white">Xóa</button>
         </div>
         <div id="api-inspector-log" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono text-[10.5px] space-y-2 overflow-y-auto max-h-[340px]"></div>
       </div>
+    </section>
+  </main>
 
+  <!-- ========================================================================
+       TAB 2: SPLICE SPEC-TO-SDK GENERATOR & `sk_live_...` MOCK GATEWAY
+       ======================================================================== -->
+  <main id="panel-splice" class="hidden max-w-[1460px] mx-auto w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">
+
+    <!-- Col 1: OpenAPI 3.1 Spec Explorer -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-sky-400">DARHLILOVE/SPLICE · OPENAPI 3.1</div>
+          <h2 class="text-sm font-black text-white">Portal Contract Spec Explorer</h2>
+        </div>
+        <button id="btn-reload-spec" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-bold text-sky-300">
+          ↻ Parse /api/openapi.json
+        </button>
+      </div>
+      <div id="splice-spec-meta" class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-300 font-mono">
+        Đang đọc OpenAPI 3.1 spec...
+      </div>
+      <div id="splice-endpoints-list" class="flex-1 space-y-2 overflow-y-auto max-h-[500px] pr-1"></div>
+    </section>
+
+    <!-- Col 2: Mock Server Manager (`sk_live_...`) + Request Builder -->
+    <section class="lg:col-span-4 space-y-3 flex flex-col">
+      <div class="glass-panel rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[10px] font-black uppercase tracking-wider text-emerald-400">SPLICE MOCK SERVER MANAGER</div>
+            <h2 class="text-sm font-black text-white">Isolated Sandbox &amp; <code class="text-emerald-300">sk_live_...</code> Auth</h2>
+          </div>
+          <span id="mock-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-800 text-slate-400">STOPPED</span>
+        </div>
+
+        <div class="flex gap-2">
+          <button id="btn-mock-start" class="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black text-xs">
+            ▶ Start Mock Server + Mint Key
+          </button>
+          <button id="btn-mock-stop" class="px-3 py-2 rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-500/40 text-rose-300 font-bold text-xs">
+            ■ Stop &amp; Clean Key
+          </button>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5 text-[11px] font-mono">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Masked Studio Key:</span>
+            <span id="mock-masked-key" class="text-emerald-300 font-bold">****</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Auto-Inject Interceptor:</span>
+            <span class="text-sky-300">x-g9k-api-key: ON</span>
+          </div>
+        </div>
+
+        <!-- Interactive Request Builder -->
+        <div class="pt-2 border-t border-slate-800 space-y-2">
+          <div class="text-[11px] font-black text-amber-300">Request Builder (Kiểm thử xác thực sk_live_...)</div>
+          <div class="flex gap-2 text-xs">
+            <select id="mock-req-method" class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 font-mono font-bold text-emerald-300">
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+            </select>
+            <input id="mock-req-path" value="/api/xsolla/catalog" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-white" />
+          </div>
+          <button id="btn-mock-fire" class="w-full py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-black text-xs">
+            ⚡ Gửi Request Qua SpliceSDK Interceptor
+          </button>
+          <pre id="mock-response-box" class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono text-[10px] text-slate-300 overflow-x-auto max-h-52">// Khởi động Mock Server rồi nhấn Gửi Request...</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Col 3: Native TypeScript Spec-to-SDK Code Generator -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-purple-400">SPEC-TO-SDK GENERATOR</div>
+          <h2 class="text-sm font-black text-white">Sinh Gói TypeScript Poki Portal SDK</h2>
+        </div>
+        <button id="btn-download-sdk-bundle" class="hidden px-2.5 py-1 rounded-lg bg-emerald-500 text-stone-950 font-black text-[10px]">
+          ⬇ Tải Bundle (.json)
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <input id="sdk-pkg-name" value="@game9k/dino-race-portal-sdk" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-emerald-300" />
+        <input id="sdk-pkg-ver" value="3.0.0" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-sky-300" />
+      </div>
+
+      <button id="btn-generate-sdk" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-sky-500 hover:brightness-110 text-white font-black text-xs">
+        ⚙️ Generate Type-Safe Studio SDK (OpenAPI + Manifest)
+      </button>
+
+      <div id="sdk-file-tabs" class="flex flex-wrap gap-1 text-[10px] font-mono"></div>
+      <pre id="sdk-file-viewer" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-3 font-mono text-[10.5px] text-emerald-300 overflow-auto max-h-[420px]">// Nhấn "Generate Type-Safe Studio SDK" để sinh client.ts, types.ts, interceptors.ts &amp; poki-portal-bridge.ts...</pre>
+    </section>
+  </main>
+
+  <!-- ========================================================================
+       TAB 3: COUNTER POS · KDS FULFILLMENT QUEUE · STOCK/86 & Z-REPORT
+       ======================================================================== -->
+  <main id="panel-pos" class="hidden max-w-[1460px] mx-auto w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">
+
+    <!-- Col 1: KDS Live Fulfillment Queue (Active + Recall + All-Day Counts) -->
+    <section class="lg:col-span-5 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-amber-400">RESTAURANT-POS-KITCHEN · KDS QUEUE</div>
+          <h2 class="text-sm font-black text-white">Hàng Đợi Thực Thi Vật Phẩm &amp; Quà KOL (KDS)</h2>
+        </div>
+        <div class="flex gap-1.5">
+          <button id="btn-sim-kol-gift" class="px-2.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-500 text-white font-black text-[11px]">
+            ☄️ Bắn Quà KOL Vào KDS
+          </button>
+          <button id="btn-refresh-pos" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px]">
+            ↻
+          </button>
+        </div>
+      </div>
+
+      <!-- All-Day Counts Strip -->
+      <div id="kds-all-day-bar" class="flex flex-wrap gap-1.5 text-[10px] font-mono"></div>
+
+      <!-- Active Tickets -->
+      <div class="space-y-2 flex-1 overflow-y-auto max-h-[340px]" id="kds-active-list"></div>
+
+      <!-- 30-Minute Recall Strip -->
+      <div class="pt-2 border-t border-slate-800">
+        <div class="text-[10px] font-black uppercase text-slate-400 mb-1.5">Hàng Đợi Recall 30 Phút (Đã Bump — Nhấn ↺ Để Gọi Lại)</div>
+        <div id="kds-recall-list" class="space-y-1.5 max-h-36 overflow-y-auto text-[11px]"></div>
+      </div>
+    </section>
+
+    <!-- Col 2: Limited Stock / Auto-86'd Scarcity & Happy Hour Engine -->
+    <section class="lg:col-span-3 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-sky-400">STOCK &amp; HAPPY HOUR</div>
+          <h2 class="text-sm font-black text-white">Tồn Kho &amp; Auto-86'd</h2>
+        </div>
+        <button id="btn-toggle-hh" class="px-2.5 py-1 rounded-lg bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-black text-[10px]">
+          ⚡ Happy Hour: ON
+        </button>
+      </div>
+      <div id="pos-stock-list" class="space-y-2 flex-1 overflow-y-auto max-h-[480px]"></div>
+    </section>
+
+    <!-- Col 3: KOL Stream Shift & End-of-Day Z-Report + CSV Exports -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-emerald-400">SHIFT &amp; Z-REPORT RECONCILIATION</div>
+          <h2 class="text-sm font-black text-white">Đối Soát Doanh Thu Ca Live &amp; Xuất CSV</h2>
+        </div>
+        <div class="flex gap-1 text-[10px] font-bold">
+          <button data-csv="orders" class="btn-csv px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white">⬇ Orders.csv</button>
+          <button data-csv="payments" class="btn-csv px-2 py-1 rounded bg-sky-600 hover:bg-sky-500 text-white">⬇ Payments.csv</button>
+          <button data-csv="shifts" class="btn-csv px-2 py-1 rounded bg-amber-500 hover:bg-amber-400 text-stone-950">⬇ Shifts.csv</button>
+        </div>
+      </div>
+
+      <div id="z-report-cards" class="grid grid-cols-2 gap-2 text-xs"></div>
+
+      <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5 text-[11px] font-mono" id="z-shift-box"></div>
+
+      <div class="flex gap-2 text-xs">
+        <button id="btn-shift-close" class="flex-1 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 font-bold text-amber-300">
+          🔒 Chốt Ca Live (Close Shift)
+        </button>
+        <button id="btn-shift-open" class="flex-1 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 font-black text-white">
+          🔓 Mở Ca Mới (Open Shift)
+        </button>
+      </div>
+
+      <div class="pt-2 border-t border-slate-800 flex-1">
+        <div class="text-[10px] font-black uppercase text-slate-400 mb-1.5">Top Vật Phẩm Bán Chạy Nhất Trong Kỳ</div>
+        <div id="z-top-sellers" class="space-y-1.5 text-[11px] font-mono"></div>
+      </div>
     </section>
   </main>
 
   <script src="/sdk/game9k-sdk.js"></script>
   <script>
     const SNIPPETS = {
-      js: `// Tích hợp trọn gói Poki Lifecycle + Xsolla SDK 3 chỉ với 4 lệnh:
-await Game9K.poki.init({ gameId: "dino-race", version: "2.0.0" });
+      js: `// Game9K Unified Poki Portal SDK v3.0 (Poki + Xsolla + POS Coupon + KDS):
+await Game9K.poki.init({ gameId: "dino-race", version: "3.0.0" });
 Game9K.poki.gameLoadingFinished();
 
-// 01. Authenticate (Silent Device ID — không chặn màn hình đăng nhập)
-const auth = await XsollaSDK.authenticate({ country: "VN" });
+// Báo giá trước với Happy Hour + Coupon GAMER9K & kiểm tra tồn kho 86'd:
+const quote = await Game9K.pos.quoteOrder({ sku: "kol_meteor_pack_5", couponCode: "GAMER9K" });
 
-// 02. Load Catalog (Tự động đổi VND/USD/EUR + tính thuế VAT)
-const { items } = await XsollaSDK.loadCatalog({ country: "VN" });
+// Thanh toán Pay Station 4 & tự động đẩy phiếu lên màn hình KDS Fulfillment:
+const res = await XsollaSDK.buyAndFinalize("kol_meteor_pack_5", { couponCode: "GAMER9K" });`,
 
-// 03. Purchase Product (Tự động gameplayStop + mở Pay Station 4)
-const { order } = await XsollaSDK.purchaseProduct("amber_gems_100");
-
-// 04. Finalize Purchase (Xác thực chữ ký biên lai HMAC & cấp vật phẩm)
-const result = await XsollaSDK.finalizePurchase(order.orderId);`,
-
-      poki: `// Tương thích 100% với mọi game HTML5 viết theo chuẩn PokiSDK:
+      poki: `// Tương thích 100% với chuẩn PokiSDK + mở rộng PokiSDK.economy & PokiSDK.splice:
 await PokiSDK.init();
-PokiSDK.gameLoadingFinished();
 PokiSDK.gameplayStart();
 
-// Giữa 2 màn chơi (Tự động bỏ qua nếu sở hữu Vé VIP Xsolla!):
-PokiSDK.gameplayStop();
-await PokiSDK.commercialBreak(() => AudioEngine.mute(true));
-AudioEngine.mute(false);
-PokiSDK.gameplayStart();
+// Bật Happy Hour tự động kích hoạt hiệu ứng pháo hoa PokiSDK.happyTime():
+await PokiSDK.economy.toggleHappyHour(true);
 
-// Quảng cáo nhận thưởng:
-const shouldReward = await PokiSDK.rewardedBreak({ size: "medium" });
-if (shouldReward) player.addNitro(100);`,
+// Xem báo cáo đối soát Z-Report ca Livestream ngay từ SDK:
+const zReport = await PokiSDK.economy.getZReport();`,
 
-      unity: `// Unity WebGL / Mobile — Xsolla SDK 3 + Game9K Portal Bridge
-var settings = XsollaClientSettings.Builder.Create()
-    .SetProjectId(249001)
-    .SetLoginId("026201e3-7e40-4784-b61b-a75979884924")
-    .Build();
+      splice: `// Gói TypeScript sinh tự động từ Splice Spec-to-SDK (` + "`npm run codegen`" + `):
+import { Game9KStudioClient } from "@game9k/dino-race-portal-sdk";
 
-var storeClient = XsollaStoreClient.Builder.Create()
-    .SetConfiguration(XsollaClientConfiguration.Builder.Create()
-        .SetSettings(settings).SetSandbox(true).Build())
-    .AddProducts(new[] { "amber_gems_100", "golden_croc_skin", "sanctuary_vip_pass" })
-    .SetOnRestore(OnPurchaseRestored)
-    .Build();`
+const client = new Game9KStudioClient({
+  apiKey: "sk_live_...", // Tự động chèn header x-g9k-api-key + Retry Backoff
+});
+const kds = await client.getKdsTickets();`
     };
+
+    // Main Top-Level Tab Switcher
+    const panels = {
+      commerce: document.getElementById("panel-commerce"),
+      splice: document.getElementById("panel-splice"),
+      pos: document.getElementById("panel-pos"),
+    };
+    document.querySelectorAll(".main-tab").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const target = btn.getAttribute("data-main-tab");
+        for (const [k, el] of Object.entries(panels)) {
+          el.classList.toggle("hidden", k !== target);
+        }
+        document.querySelectorAll(".main-tab").forEach((b) => {
+          b.className =
+            b === btn
+              ? "main-tab px-3 py-1.5 rounded-lg font-black bg-emerald-500 text-stone-950"
+              : "main-tab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white";
+        });
+        if (target === "splice") loadSpliceSpec();
+        if (target === "pos") refreshPosDashboard();
+      });
+    });
 
     const codeBox = document.getElementById("code-snippet-box");
     codeBox.textContent = SNIPPETS.js;
@@ -391,6 +583,8 @@ var storeClient = XsollaStoreClient.Builder.Create()
       while (inspectorEl.children.length > 25) {
         inspectorEl.removeChild(inspectorEl.lastChild);
       }
+      document.getElementById("hdr-storage-bytes").textContent =
+        `${window.Game9K.storage.getBytesUsed()} B`;
     }
 
     function highlightStep(n) {
@@ -405,6 +599,8 @@ var storeClient = XsollaStoreClient.Builder.Create()
       if (user?.explorerId) {
         document.getElementById("hdr-explorer-id").textContent = user.explorerId;
       }
+      document.getElementById("hdr-storage-bytes").textContent =
+        `${window.Game9K.storage.getBytesUsed()} B`;
       document.getElementById("sim-pill-gems").textContent = `💎 ${inv.amberGems}`;
       document.getElementById("sim-pill-vip").classList.toggle("hidden", !inv.adFreeVip);
       document.getElementById(
@@ -417,17 +613,30 @@ var storeClient = XsollaStoreClient.Builder.Create()
           .map((item) => {
             const owned =
               item.type === "non_consumable" && window.XsollaSDK.hasEntitlement(item.sku);
+            const soldOut = Boolean(item.stock?.autoEightySixed || item.stock?.status === "out");
+            const stockTag = item.stock?.trackStock
+              ? soldOut
+                ? `<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 text-[9px] font-bold">86'd HẾT</span>`
+                : `<span class="px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 text-[9px] font-mono">Còn ${item.stock.stockOnHand}</span>`
+              : "";
+            const hhTag = item.happyHour
+              ? `<span class="px-1.5 py-0.5 rounded bg-fuchsia-500/20 text-fuchsia-300 text-[9px] font-bold">-${item.happyHour.percent}% HH</span>`
+              : "";
+            const disabled = owned || soldOut;
+
             return `
               <div class="p-2.5 rounded-xl bg-slate-900 border ${
-                owned ? "border-emerald-500/60" : "border-slate-800"
+                owned ? "border-emerald-500/60" : soldOut ? "border-rose-900" : "border-slate-800"
               } space-y-1.5">
                 <div class="flex items-start justify-between gap-2">
                   <div class="flex items-center gap-2">
                     <span class="text-xl">${item.icon}</span>
                     <div>
-                      <div class="font-bold text-[11.5px] text-white leading-tight">${item.name}</div>
+                      <div class="font-bold text-[11.5px] text-white leading-tight flex flex-wrap items-center gap-1">
+                        <span>${item.name}</span> ${hhTag} ${stockTag}
+                      </div>
                       <div class="text-[10px] font-mono text-slate-400">
-                        Thuế: ${item.pricing.taxFormatted} · Phí Xsolla 5%: ${item.pricing.xsollaFeeFormatted}
+                        Thuế: ${item.pricing.taxFormatted} · Phí 5%: ${item.pricing.xsollaFeeFormatted}
                       </div>
                     </div>
                   </div>
@@ -435,13 +644,13 @@ var storeClient = XsollaStoreClient.Builder.Create()
                 <div class="flex items-center justify-between pt-1">
                   <span class="text-[10px] text-emerald-400 font-mono">Studio nhận: ${item.pricing.studioNetFormatted}</span>
                   <button type="button" data-quick-buy="${item.sku}" ${
-              owned ? "disabled" : ""
+              disabled ? "disabled" : ""
             } class="px-2.5 py-1 rounded-lg text-[10.5px] font-black ${
-              owned
+              disabled
                 ? "bg-slate-800 text-slate-500"
                 : "bg-gradient-to-r from-amber-500 to-emerald-400 text-stone-950 hover:brightness-110"
             }">
-                    ${owned ? "✓ Đã Sở Hữu" : `Mua ${item.pricing.totalFormatted}`}
+                    ${owned ? "✓ Đã Sở Hữu" : soldOut ? "86'd Hết Hàng" : `Mua ${item.pricing.totalFormatted}`}
                   </button>
                 </div>
               </div>
@@ -459,11 +668,10 @@ var storeClient = XsollaStoreClient.Builder.Create()
       }
     }
 
-    // Initialize PokiSDK + interactive debug ad overlays for Explorer
     window.PokiSDK.setDebug(true);
     window.Game9K.init({
       gameId: "dino-race",
-      version: "2.0.0",
+      version: "3.0.0",
       onPauseChange(paused, reason) {
         const line = document.getElementById("sim-state-line");
         line.textContent = paused
@@ -502,8 +710,10 @@ var storeClient = XsollaStoreClient.Builder.Create()
       highlightStep(3);
       const sku = document.getElementById("select-sku").value;
       const country = document.getElementById("cfg-country").value;
+      const couponCode = document.getElementById("input-pos-coupon").value.trim().toUpperCase();
       const res = await window.XsollaSDK.purchaseProduct(sku, {
         country,
+        couponCode,
         autoFinalize: false,
       });
       if (res.ok && res.order) {
@@ -512,8 +722,8 @@ var storeClient = XsollaStoreClient.Builder.Create()
         document.getElementById("status-step-4").textContent = `Sẵn sàng (${res.order.orderId})`;
         pushInspector("03 Pay Station Checkout → PAID", res, "text-amber-300");
       } else {
-        document.getElementById("status-step-3").textContent = "Đã hủy";
-        pushInspector("03 Pay Station → CANCELLED", res, "text-rose-300");
+        document.getElementById("status-step-3").textContent = res.error || "Đã hủy";
+        pushInspector("03 Pay Station → REJECTED / CANCELLED", res, "text-rose-300");
       }
     }
 
@@ -523,10 +733,10 @@ var storeClient = XsollaStoreClient.Builder.Create()
       if (res.ok) {
         document.getElementById("status-step-4").textContent = res.alreadyFinalized
           ? "✓ Idempotent (Đã cấp)"
-          : "✓ Completed!";
+          : `✓ KDS ${res.posFulfillment?.posOrderNumber || "Done"}`;
         document.getElementById("status-step-4").className = "text-[10px] font-mono text-purple-300";
-        pushInspector("04 POST /api/xsolla/finalize → VERIFIED", res, "text-purple-300");
-        refreshDeviceUI();
+        pushInspector("04 POST /api/xsolla/finalize → VERIFIED + KDS ENQUEUED", res, "text-purple-300");
+        await runStep2();
       } else {
         pushInspector("04 Finalize Error", res, "text-rose-400");
       }
@@ -536,6 +746,13 @@ var storeClient = XsollaStoreClient.Builder.Create()
     document.getElementById("btn-step-2").addEventListener("click", runStep2);
     document.getElementById("btn-step-3").addEventListener("click", runStep3);
     document.getElementById("btn-step-4").addEventListener("click", runStep4);
+
+    document.getElementById("btn-quote-coupon").addEventListener("click", async () => {
+      const sku = document.getElementById("select-sku").value;
+      const couponCode = document.getElementById("input-pos-coupon").value.trim().toUpperCase();
+      const quote = await window.Game9K.pos.quoteOrder({ sku, couponCode });
+      pushInspector("POS Quote Order (Happy Hour + Coupon + Stock)", quote, "text-pink-300");
+    });
 
     document.getElementById("cfg-country").addEventListener("change", async () => {
       await runStep1();
@@ -554,12 +771,13 @@ var storeClient = XsollaStoreClient.Builder.Create()
     document.getElementById("btn-open-full-store").addEventListener("click", async () => {
       await window.XsollaSDK.openStoreModal({
         country: document.getElementById("cfg-country").value,
+        couponCode: document.getElementById("input-pos-coupon").value,
         onPurchased: (res) => {
-          pushInspector("Storefront 1-Click Buy + Finalize", res, "text-emerald-300");
+          pushInspector("Storefront 1-Click Buy + KDS Ticket", res, "text-emerald-300");
           refreshDeviceUI();
         },
       });
-      refreshDeviceUI();
+      await runStep2();
     });
 
     document.getElementById("btn-restore").addEventListener("click", async () => {
@@ -568,37 +786,26 @@ var storeClient = XsollaStoreClient.Builder.Create()
       refreshDeviceUI();
     });
 
-    // Poki Portal Lifecycle Buttons
+    // Poki Lifecycle Controls
     document.getElementById("chk-adblock").addEventListener("change", (e) => {
       window.Game9K.ads.adBlocked = e.target.checked;
       pushInspector("PokiSDK.isAdBlocked()", { adBlocked: window.PokiSDK.isAdBlocked() }, "text-rose-300");
     });
-
     document.getElementById("btn-poki-start").addEventListener("click", () => {
       const ok = window.PokiSDK.gameplayStart();
       document.getElementById("sim-state-line").textContent = "Poki: PLAYING 🎮 · Audio: ON";
       pushInspector("PokiSDK.gameplayStart()", { started: ok }, "text-emerald-300");
     });
-
     document.getElementById("btn-poki-stop").addEventListener("click", () => {
       window.PokiSDK.gameplayStop("manual_pause");
       document.getElementById("sim-state-line").textContent = "Poki: STOPPED ⏸ · Audio: ON";
       pushInspector("PokiSDK.gameplayStop()", { totalMs: window.PokiSDK.totalGameplayMs }, "text-slate-300");
     });
-
     document.getElementById("btn-poki-commercial").addEventListener("click", async () => {
       const vipBefore = window.XsollaSDK.hasEntitlement("sanctuary_vip_pass");
       await window.PokiSDK.commercialBreak();
-      pushInspector(
-        "PokiSDK.commercialBreak()",
-        {
-          skippedByXsollaVipPass: vipBefore,
-          adBlocked: window.PokiSDK.isAdBlocked(),
-        },
-        "text-sky-300"
-      );
+      pushInspector("PokiSDK.commercialBreak()", { skippedByXsollaVipPass: vipBefore }, "text-sky-300");
     });
-
     document.getElementById("btn-poki-rewarded").addEventListener("click", async () => {
       const rewarded = await window.PokiSDK.rewardedBreak({ size: "medium", interactive: true });
       if (rewarded) {
@@ -606,18 +813,12 @@ var storeClient = XsollaStoreClient.Builder.Create()
         window.XsollaSDK._saveCachedInventory();
         refreshDeviceUI();
       }
-      pushInspector(
-        "PokiSDK.rewardedBreak()",
-        { shouldRewardPlayer: rewarded, bonusAmberGems: rewarded ? 25 : 0 },
-        rewarded ? "text-amber-300" : "text-rose-300"
-      );
+      pushInspector("PokiSDK.rewardedBreak()", { shouldRewardPlayer: rewarded }, "text-amber-300");
     });
-
     document.getElementById("btn-poki-happy").addEventListener("click", () => {
       window.PokiSDK.happyTime(0.9);
       pushInspector("PokiSDK.happyTime(0.9)", { celebration: true }, "text-pink-300");
     });
-
     let pillMoved = false;
     document.getElementById("btn-poki-pill").addEventListener("click", () => {
       pillMoved = !pillMoved;
@@ -626,7 +827,6 @@ var storeClient = XsollaStoreClient.Builder.Create()
       document.getElementById("sim-poki-pill").style.top = pillMoved ? "68px" : "12px";
       pushInspector("PokiSDK.movePill()", { topPercent: topPct, topPx: 12 }, "text-indigo-300");
     });
-
     document.getElementById("btn-poki-share").addEventListener("click", async () => {
       const url = await window.PokiSDK.shareableURL({ room: "kol-vn", score: 2950 });
       const box = document.getElementById("share-url-box");
@@ -634,16 +834,342 @@ var storeClient = XsollaStoreClient.Builder.Create()
       box.classList.remove("hidden");
       pushInspector("PokiSDK.shareableURL()", { url }, "text-teal-300");
     });
-
     document.getElementById("btn-clear-inspector").addEventListener("click", () => {
       inspectorEl.innerHTML = "";
     });
 
-    // Mini animated dinosaur sprint preview on Canvas (pauses automatically when SDK pauses!)
+    // ========================================================================
+    // TAB 2 LOGIC: SPLICE SPEC-TO-SDK & MOCK SERVER
+    // ========================================================================
+    let latestGeneratedSdk = null;
+
+    async function loadSpliceSpec() {
+      const parsed = await window.SpliceSDK.parseSpec();
+      if (!parsed?.ok) return;
+      document.getElementById("splice-spec-meta").innerHTML = `
+        <div class="text-white font-bold">${parsed.info.title} (v${parsed.info.version})</div>
+        <div class="text-sky-300 mt-0.5">${parsed.endpointCount} Operations · Schemas: ${parsed.schemas.join(", ")}</div>
+      `;
+      const listEl = document.getElementById("splice-endpoints-list");
+      listEl.innerHTML = parsed.endpoints
+        .map(
+          (ep) => `
+          <div data-ep-method="${ep.method}" data-ep-path="${ep.path}" class="cursor-pointer p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 space-y-1">
+            <div class="flex items-center justify-between">
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono font-black ${
+                ep.method === "GET" ? "bg-sky-500/20 text-sky-300" : "bg-emerald-500/20 text-emerald-300"
+              }">${ep.method} ${ep.path}</span>
+              <span class="text-[9px] font-mono text-slate-400">${ep.requiresAuth ? "🔒 sk_live_..." : "🌐 Public"}</span>
+            </div>
+            <div class="text-[11px] text-slate-300">${ep.summary}</div>
+          </div>`
+        )
+        .join("");
+
+      listEl.querySelectorAll("[data-ep-path]").forEach((row) => {
+        row.addEventListener("click", () => {
+          document.getElementById("mock-req-method").value = row.getAttribute("data-ep-method");
+          document.getElementById("mock-req-path").value = row.getAttribute("data-ep-path");
+        });
+      });
+    }
+
+    document.getElementById("btn-reload-spec").addEventListener("click", loadSpliceSpec);
+
+    document.getElementById("btn-mock-start").addEventListener("click", async () => {
+      const res = await window.SpliceSDK.startMockServer("game9k-portal");
+      if (res?.ok) {
+        document.getElementById("mock-status-badge").textContent = "RUNNING";
+        document.getElementById("mock-status-badge").className =
+          "px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-300";
+        document.getElementById("mock-masked-key").textContent = res.mock.maskedApiKey;
+        document.getElementById("mock-response-box").textContent = JSON.stringify(res, null, 2);
+      }
+    });
+
+    document.getElementById("btn-mock-stop").addEventListener("click", async () => {
+      const res = await window.SpliceSDK.stopMockServer("game9k-portal");
+      document.getElementById("mock-status-badge").textContent = "STOPPED";
+      document.getElementById("mock-status-badge").className =
+        "px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-800 text-slate-400";
+      document.getElementById("mock-masked-key").textContent = "****";
+      document.getElementById("mock-response-box").textContent = JSON.stringify(res, null, 2);
+    });
+
+    document.getElementById("btn-mock-fire").addEventListener("click", async () => {
+      const method = document.getElementById("mock-req-method").value;
+      const path = document.getElementById("mock-req-path").value;
+      const res = await window.SpliceSDK.executeMockRequest("game9k-portal", { method, path });
+      document.getElementById("mock-response-box").textContent = JSON.stringify(res, null, 2);
+    });
+
+    document.getElementById("btn-generate-sdk").addEventListener("click", async () => {
+      const packageName = document.getElementById("sdk-pkg-name").value.trim();
+      const packageVersion = document.getElementById("sdk-pkg-ver").value.trim();
+      const res = await window.SpliceSDK.generateTypedSDK({
+        packageName,
+        packageVersion,
+        gameId: "dino-race",
+        language: "typescript",
+      });
+      if (!res?.ok) {
+        document.getElementById("sdk-file-viewer").textContent = JSON.stringify(res, null, 2);
+        return;
+      }
+      latestGeneratedSdk = res;
+      document.getElementById("btn-download-sdk-bundle").classList.remove("hidden");
+      const tabsEl = document.getElementById("sdk-file-tabs");
+      const files = res.files || {};
+      const names = Object.keys(files);
+      const showFile = (fname) => {
+        document.getElementById("sdk-file-viewer").textContent = files[fname] || "";
+        tabsEl.querySelectorAll("button").forEach((b) => {
+          b.className =
+            b.getAttribute("data-fname") === fname
+              ? "px-2 py-1 rounded bg-purple-600 text-white font-bold"
+              : "px-2 py-1 rounded bg-slate-800 text-slate-300";
+        });
+      };
+      tabsEl.innerHTML = names
+        .map((n) => `<button type="button" data-fname="${n}" class="px-2 py-1 rounded bg-slate-800 text-slate-300">${n}</button>`)
+        .join("");
+      tabsEl.querySelectorAll("button").forEach((b) => {
+        b.addEventListener("click", () => showFile(b.getAttribute("data-fname")));
+      });
+      showFile("src/client.ts");
+    });
+
+    document.getElementById("btn-download-sdk-bundle").addEventListener("click", () => {
+      if (!latestGeneratedSdk) return;
+      const blob = new Blob([JSON.stringify(latestGeneratedSdk, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "game9k-splice-sdk-bundle.json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    // ========================================================================
+    // TAB 3 LOGIC: POS · KDS QUEUE · STOCK/86 & Z-REPORT
+    // ========================================================================
+    async function refreshPosDashboard() {
+      const [kds, stock, discounts, zReport] = await Promise.all([
+        window.Game9K.pos.getKdsQueue(),
+        window.Game9K.pos.getStockCatalog(),
+        window.Game9K.pos.getDiscounts(),
+        window.Game9K.pos.getZReport(),
+      ]);
+
+      // Happy Hour button
+      const hhBtn = document.getElementById("btn-toggle-hh");
+      hhBtn.textContent = discounts.happyHourActive ? "⚡ Happy Hour: ON (-15%)" : "⚡ Happy Hour: OFF";
+      hhBtn.className = discounts.happyHourActive
+        ? "px-2.5 py-1 rounded-lg bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-black text-[10px]"
+        : "px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[10px]";
+      hhBtn.dataset.active = discounts.happyHourActive ? "1" : "0";
+
+      // All-Day Counts
+      document.getElementById("kds-all-day-bar").innerHTML =
+        (kds.allDayCounts || []).length > 0
+          ? kds.allDayCounts
+              .map(
+                (c) =>
+                  `<span class="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300">${c.name} × ${c.count}</span>`
+              )
+              .join("")
+          : `<span class="text-slate-500">All-Day Queue sạch — sẵn sàng nhận đơn Xsolla hoặc quà KOL!</span>`;
+
+      // Active KDS Tickets
+      const kdsList = document.getElementById("kds-active-list");
+      kdsList.innerHTML =
+        (kds.activeTickets || []).length === 0
+          ? `<div class="p-6 text-center text-slate-500 text-xs bg-slate-950/60 rounded-xl border border-slate-800">Chưa có phiếu đang chờ. Hãy nhấn <strong>☄️ Bắn Quà KOL Vào KDS</strong> hoặc mua vật phẩm ở Tab 1!</div>`
+          : kds.activeTickets
+              .map((t) => {
+                const slaBadge =
+                  t.slaState === "late"
+                    ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                    : t.slaState === "watch"
+                    ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                    : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40";
+                return `
+                  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2">
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <span class="font-mono font-black text-xs text-white">${t.orderNumber}</span>
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase bg-slate-800 text-sky-300">${t.station}</span>
+                        <span class="px-1.5 py-0.5 rounded border text-[9px] font-mono uppercase ${slaBadge}">${t.slaState}</span>
+                      </div>
+                      <div class="text-[11px] text-amber-200 font-bold mt-1">
+                        ${t.lines.map((l) => `${l.quantity}× ${l.nameSnapshot}`).join(", ")}
+                      </div>
+                      <div class="text-[10px] text-slate-400">${t.customerName} · ${t.prepNote || t.source}</div>
+                    </div>
+                    <button data-bump="${t.id}" class="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black text-xs">
+                      ✓ Bump
+                    </button>
+                  </div>`;
+              })
+              .join("");
+
+      kdsList.querySelectorAll("[data-bump]").forEach((b) => {
+        b.addEventListener("click", async () => {
+          await window.Game9K.pos.bumpTicket(b.getAttribute("data-bump"));
+          refreshPosDashboard();
+        });
+      });
+
+      // Recall Queue
+      const recallEl = document.getElementById("kds-recall-list");
+      recallEl.innerHTML =
+        (kds.recallTickets || []).length === 0
+          ? `<div class="text-slate-500 text-[10px]">Chưa có phiếu đã Bump gần đây.</div>`
+          : kds.recallTickets
+              .map(
+                (t) => `
+                <div class="px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+                  <span class="font-mono text-slate-300">${t.orderNumber} · ${t.customerName}</span>
+                  <button data-recall="${t.id}" class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px]">↺ Recall</button>
+                </div>`
+              )
+              .join("");
+
+      recallEl.querySelectorAll("[data-recall]").forEach((b) => {
+        b.addEventListener("click", async () => {
+          await window.Game9K.pos.recallTicket(b.getAttribute("data-recall"));
+          refreshPosDashboard();
+        });
+      });
+
+      // Stock & Auto-86 List
+      const stockEl = document.getElementById("pos-stock-list");
+      stockEl.innerHTML = (stock.items || [])
+        .map(
+          (item) => `
+          <div class="p-2.5 rounded-xl bg-slate-900 border ${
+            item.autoEightySixed ? "border-rose-500/60" : "border-slate-800"
+          } space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-xs text-white">${item.name}</span>
+              <span class="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase ${
+                item.status === "out"
+                  ? "bg-rose-500/20 text-rose-300"
+                  : item.status === "low"
+                  ? "bg-amber-500/20 text-amber-300"
+                  : "bg-emerald-500/20 text-emerald-300"
+              }">${item.autoEightySixed ? "86'd OUT" : `${item.status} (${item.stockOnHand})`}</span>
+            </div>
+            ${
+              item.trackStock
+                ? `<div class="flex gap-1.5 text-[10px] font-bold">
+                    <button data-stk="${item.sku}" data-delta="-5" class="flex-1 py-1 rounded bg-rose-950/70 hover:bg-rose-900 text-rose-300 border border-rose-500/30">-5 Bán/Xả</button>
+                    <button data-stk="${item.sku}" data-delta="5" class="flex-1 py-1 rounded bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/30">+5 Restock</button>
+                  </div>`
+                : `<div class="text-[10px] text-slate-500 font-mono">Không giới hạn tồn kho (Untracked)</div>`
+            }
+          </div>`
+        )
+        .join("");
+
+      stockEl.querySelectorAll("[data-stk]").forEach((b) => {
+        b.addEventListener("click", async () => {
+          await window.Game9K.pos.adjustStock(
+            b.getAttribute("data-stk"),
+            Number(b.getAttribute("data-delta")),
+            "studio_ops"
+          );
+          await runStep2();
+          refreshPosDashboard();
+        });
+      });
+
+      // Z-Report Metrics
+      const usd = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
+      document.getElementById("z-report-cards").innerHTML = `
+        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+          <div class="text-[10px] text-slate-400">Tổng Đơn / Quà (Checks)</div>
+          <div class="text-base font-black text-white">${zReport.checks} <span class="text-[10px] text-sky-300 font-mono">(IAP ${zReport.portalIapChecks} · Live ${zReport.kolLiveChecks})</span></div>
+        </div>
+        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+          <div class="text-[10px] text-slate-400">Doanh Thu Gộp (Gross)</div>
+          <div class="text-base font-black text-emerald-300">${usd(zReport.grossCents)}</div>
+        </div>
+        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+          <div class="text-[10px] text-slate-400">Khuyến Mãi (HH + Coupon)</div>
+          <div class="text-base font-black text-pink-300">-${usd(zReport.discountsTotalCents)}</div>
+        </div>
+        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+          <div class="text-[10px] text-slate-400">Studio Thực Nhận (Sau Phí 5%)</div>
+          <div class="text-base font-black text-amber-300">${usd(zReport.studioNetCents)}</div>
+        </div>
+      `;
+
+      const sh = zReport.currentShift;
+      document.getElementById("z-shift-box").innerHTML = sh
+        ? `<div>Ca hiện tại: <strong class="text-emerald-300">${sh.id}</strong> (${sh.operatorName})</div>
+           <div>Quỹ mở ca: ${usd(sh.openingFloatCents)} · Thẻ Xsolla: ${usd(sh.cardSalesCents)} · Xu Stream: ${usd(sh.cashSalesCents)}</div>
+           <div>Solana Milestone Unlock: <strong class="text-amber-300">${zReport.solanaMilestoneUnlockReady ? "READY ✓" : "PENDING"}</strong></div>`
+        : `<div class="text-amber-300">Hiện không có ca mở. Nhấn "🔓 Mở Ca Mới" để bắt đầu ghi nhận ca Live!</div>`;
+
+      document.getElementById("z-top-sellers").innerHTML =
+        (zReport.topSellers || []).length === 0
+          ? `<div class="text-slate-500">Chưa phát sinh doanh thu trong kỳ.</div>`
+          : zReport.topSellers
+              .slice(0, 5)
+              .map(
+                (s) =>
+                  `<div class="flex justify-between px-2 py-1 rounded bg-slate-900"><span>${s.name} (×${s.quantity})</span><span class="text-emerald-300 font-bold">${usd(s.netCents)}</span></div>`
+              )
+              .join("");
+    }
+
+    document.getElementById("btn-refresh-pos").addEventListener("click", refreshPosDashboard);
+
+    document.getElementById("btn-sim-kol-gift").addEventListener("click", async () => {
+      await window.Game9K.pos.enqueueStreamGift({
+        platform: "tiktok",
+        giftTier: "meteor",
+        giftName: "Thiên Thạch Đại Gia",
+        giftValue: 50,
+        user: { nickname: "VIP_KhanhLe9K" },
+        comment: "Phá đám Top 1 chặng đua!",
+      });
+      refreshPosDashboard();
+    });
+
+    document.getElementById("btn-toggle-hh").addEventListener("click", async (e) => {
+      const currentlyOn = e.currentTarget.dataset.active === "1";
+      await window.Game9K.pos.toggleHappyHour(!currentlyOn);
+      await runStep2();
+      refreshPosDashboard();
+    });
+
+    document.getElementById("btn-shift-close").addEventListener("click", async () => {
+      await window.Game9K.pos.closeShift({ varianceNote: "Chốt ca Live KOL định kỳ" });
+      refreshPosDashboard();
+    });
+
+    document.getElementById("btn-shift-open").addEventListener("click", async () => {
+      await window.Game9K.pos.openShift({ operatorName: "KOL Sanctuary Host", openingFloatCents: 10000 });
+      refreshPosDashboard();
+    });
+
+    document.querySelectorAll(".btn-csv").forEach((b) => {
+      b.addEventListener("click", () => {
+        window.Game9K.pos.downloadCSV(b.getAttribute("data-csv"));
+      });
+    });
+
+    // Mini animated dinosaur sprint preview on Canvas
     const miniCanvas = document.getElementById("mini-dino-canvas");
     const mctx = miniCanvas.getContext("2d");
     let dinoX = 24;
-    function animateMini(ts) {
+    function animateMini() {
       if (!window.Game9K.isPaused) {
         dinoX = (dinoX + 1.6) % (miniCanvas.width - 20);
       }
@@ -681,7 +1207,6 @@ var storeClient = XsollaStoreClient.Builder.Create()
     }
     requestAnimationFrame(animateMini);
 
-    // Auto-run Step 01 & Step 02 on load (matching Xsolla SDK Explorer instant-ready UX!)
     (async () => {
       await runStep1();
       await runStep2();

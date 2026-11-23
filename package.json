@@ -19,6 +19,7 @@
     "verify": "node cli/g9k.js verify",
     "doctor": "node cli/g9k.js doctor",
     "decide": "node cli/g9k.js decide",
+    "codegen": "node cli/g9k.js codegen",
     "test": "node --test test/*.test.js"
   },
   "keywords": [
