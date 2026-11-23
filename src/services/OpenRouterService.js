@@ -99,6 +99,7 @@ export default class OpenRouterService {
     this.appTitle = options.appTitle || "Game9K Poki Portal Studio";
     this.apiKey = options.apiKey || process.env.OPENROUTER_API_KEY || "";
     this.posEconomy = options.posEconomy || null;
+    this.agentOps = options.agentOps || null;
 
     this.spendBudgetUsd = Number(options.spendBudgetUsd ?? 5.0);
     this.totalSpendUsd = 0;
@@ -140,6 +141,7 @@ export default class OpenRouterService {
         tokens: this.totalTokens,
         spendUsd: Number(this.totalSpendUsd.toFixed(6)),
       },
+      helicone: this.agentOps ? this.agentOps.getCacheAndLatencyStats() : null,
       modelsCount: OPENROUTER_MODEL_CATALOG.length,
     };
   }
@@ -406,15 +408,62 @@ export default class OpenRouterService {
   }
 
   async chat(payload = {}) {
-    const guard = this._checkSpendGuard();
-    if (!guard.ok) return guard;
-
+    const startedAt = performance.now();
     const messages = Array.isArray(payload.messages)
       ? payload.messages
       : [{ role: "user", content: String(payload.prompt || "Hello Game9K!") }];
     const sort = payload.provider?.sort || payload.sort || "latency";
     const zdr = payload.provider?.zdr ?? payload.zdr ?? true;
     const task = payload.task || "chat";
+
+    // 1. Helicone SHA-256 + TTL Cache Lookup ($0.00 cost & <1ms latency on repeated prompts!)
+    const cacheQuery = {
+      task,
+      model: payload.model || "openrouter/auto",
+      sort,
+      zdr,
+      messages,
+    };
+    if (this.agentOps && !payload.bypassCache && !payload.simulatePrimaryFailure) {
+      const cachedHit = this.agentOps.lookupCache(cacheQuery);
+      if (cachedHit.hit) {
+        const hitLatency = Math.max(0.2, performance.now() - startedAt);
+        const tr = this.agentOps.startTrace({ name: `openrouter_${task}_cached`, tags: ["cache_hit"] });
+        this.agentOps.addSpan(tr.traceId, {
+          name: "helicone_prompt_cache_hit",
+          kind: "cache",
+          model: cachedHit.value.selectedModel,
+          input: messages,
+          output: cachedHit.value.content,
+          latencyMs: hitLatency,
+          tokens: 0,
+          costUsd: 0,
+          cached: true,
+        });
+        this.agentOps.endTrace(tr.traceId);
+        if (this.posEconomy && typeof this.posEconomy.recordAiUsage === "function") {
+          this.posEconomy.recordAiUsage({
+            model: cachedHit.value.selectedModel,
+            task,
+            totalTokens: 0,
+            costUsd: 0,
+            cached: true,
+            latencyMs: hitLatency,
+          });
+        }
+        return {
+          ...cachedHit.value,
+          cached: true,
+          cacheHits: cachedHit.hits,
+          traceId: tr.traceId,
+          usage: { ...cachedHit.value.usage, costUsd: 0, cached: true },
+          budget: this.getStatus().budget,
+        };
+      }
+    }
+
+    const guard = this._checkSpendGuard();
+    if (!guard.ok) return guard;
 
     const route = this._selectModelForStrategy({
       model: payload.model || "openrouter/auto",
@@ -432,6 +481,12 @@ export default class OpenRouterService {
       zdr,
       jsonSchema: payload.jsonSchema || null,
     });
+
+    const trace = this.agentOps
+      ? payload.traceId
+        ? { traceId: payload.traceId }
+        : this.agentOps.startTrace({ name: `openrouter_${task}`, tags: [sort, route.chosen.id] })
+      : null;
 
     // Live OpenRouter API call when real key is configured
     if (this.apiKey && !String(this.apiKey).startsWith("or_pkce_sbx_")) {
@@ -457,9 +512,11 @@ export default class OpenRouterService {
             zdr,
             sort,
           });
-          return {
+          const out = {
             ok: true,
             live: true,
+            cached: false,
+            traceId: trace?.traceId || null,
             selectedModel: data?.model || route.chosen.id,
             failoverTrace: route.failoverTrace,
             providerPolicy: requestEnvelope.provider,
@@ -467,6 +524,26 @@ export default class OpenRouterService {
             usage,
             budget: this.getStatus().budget,
           };
+          if (this.agentOps) {
+            this.agentOps.addSpan(trace.traceId, {
+              name: "openrouter_live_completion",
+              kind: "generation",
+              model: out.selectedModel,
+              input: messages,
+              output: content,
+              latencyMs: performance.now() - startedAt,
+              tokens: usage.totalTokens,
+              costUsd: usage.costUsd,
+            });
+            if (!payload.traceId) this.agentOps.endTrace(trace.traceId);
+            if (!payload.bypassCache && !payload.simulatePrimaryFailure) {
+              this.agentOps.storeCache(cacheQuery, out, {
+                unitCostUsd: usage.costUsd,
+                unitTokens: usage.totalTokens,
+              });
+            }
+          }
+          return out;
         }
       } catch {
         // Automatic fallback to deterministic local synthesis
@@ -484,9 +561,11 @@ export default class OpenRouterService {
       sort,
     });
 
-    return {
+    const out = {
       ok: true,
       live: false,
+      cached: false,
+      traceId: trace?.traceId || null,
       selectedModel: route.chosen.id,
       failoverTrace: route.failoverTrace,
       providerPolicy: requestEnvelope.provider,
@@ -494,6 +573,58 @@ export default class OpenRouterService {
       usage,
       budget: this.getStatus().budget,
     };
+
+    if (this.agentOps) {
+      this.agentOps.addSpan(trace.traceId, {
+        name: "openrouter_routed_generation",
+        kind: "generation",
+        model: route.chosen.id,
+        input: messages,
+        output: reply,
+        latencyMs: Math.max(1.2, performance.now() - startedAt),
+        tokens: usage.totalTokens,
+        costUsd: usage.costUsd,
+      });
+      if (!payload.traceId) this.agentOps.endTrace(trace.traceId);
+      if (!payload.bypassCache && !payload.simulatePrimaryFailure) {
+        this.agentOps.storeCache(cacheQuery, out, {
+          unitCostUsd: usage.costUsd,
+          unitTokens: usage.totalTokens,
+        });
+      }
+    }
+
+    return out;
+  }
+
+  /**
+   * Vercel AI SDK Data Stream / SSE Token Streamer (`streamText` style)
+   */
+  async streamChat(payload = {}, onChunk = () => {}) {
+    const full = await this.chat(payload);
+    if (!full.ok) return full;
+
+    const words = String(full.content || "").split(/(\s+)/).filter((w) => w.length > 0);
+    const chunks = [];
+    for (let i = 0; i < words.length; i++) {
+      const delta = words[i];
+      chunks.push(delta);
+      await onChunk({
+        type: "text-delta",
+        index: i,
+        delta,
+      });
+    }
+    const summary = {
+      type: "finish",
+      selectedModel: full.selectedModel,
+      cached: Boolean(full.cached),
+      traceId: full.traceId || null,
+      usage: full.usage,
+      budget: full.budget,
+    };
+    await onChunk(summary);
+    return { ...full, streamedChunks: chunks.length };
   }
 
   // ==========================================================================

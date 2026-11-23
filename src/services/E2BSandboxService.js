@@ -939,16 +939,53 @@ export default class E2BSandboxService {
     if (!this.openRouter) {
       return { ok: false, status: 503, error: "OpenRouterService is not attached." };
     }
-    const specRes = await this.openRouter.generateFragmentSpec(prompt, options);
-    if (!specRes.ok) return specRes;
+    const agentOps = this.openRouter.agentOps || null;
+    const trace = agentOps
+      ? agentOps.startTrace({
+          name: "prompt_to_poki_fragment",
+          tags: ["openrouter", "e2b", "fragments"],
+        })
+      : null;
 
+    const t0 = performance.now();
+    const specRes = await this.openRouter.generateFragmentSpec(prompt, options);
+    if (!specRes.ok) {
+      if (trace) agentOps.endTrace(trace.traceId, "error");
+      return specRes;
+    }
+    if (trace) {
+      agentOps.addSpan(trace.traceId, {
+        name: "openrouter_structured_fragment_spec",
+        kind: "generation",
+        model: specRes.selectedModel,
+        input: prompt,
+        output: specRes.fragment.title,
+        latencyMs: performance.now() - t0,
+        tokens: specRes.usage?.totalTokens || 0,
+        costUsd: specRes.usage?.costUsd || 0,
+      });
+    }
+
+    const t1 = performance.now();
     const deployed = this.deployFragment({
       fragment: specRes.fragment,
       sandboxId: options.sandboxId || null,
       userID: options.userID || "studio",
     });
+    if (trace) {
+      agentOps.addSpan(trace.traceId, {
+        name: "e2b_sandbox_deploy_preview",
+        kind: "sandbox",
+        input: { template: specRes.fragment.template },
+        output: { sbxId: deployed.sbxId, url: deployed.url },
+        latencyMs: performance.now() - t1,
+      });
+      agentOps.endTrace(trace.traceId);
+    }
+
     return {
       ...deployed,
+      traceId: trace?.traceId || null,
       selectedModel: specRes.selectedModel,
       failoverTrace: specRes.failoverTrace,
       fragment: specRes.fragment,

@@ -162,4 +162,37 @@ const zReport = await PokiSDK.economy.getZReport();
 console.log(evalReport.passedTiers, zReport.aiUsage);
 ```
 
+---
+
+## 7. Awesome AI SDKs Suite v6.0 (`PokiSDK.ai.streamChat` + `PokiSDK.agentOps`)
+
+Hợp nhất 11 chuẩn **Awesome AI SDKs** (`Vercel AI SDK`, `AgentOps`, `Langfuse`, `LangSmith`, `Helicone`, `Chidori`, `SID`, `Steamship`, `Fixie`, `LangChain`, `E2B`) an toàn xuyên qua `<iframe sandbox="allow-scripts">`:
+
+```javascript
+// 1. Streaming token-by-token không khóa vòng lặp 60 FPS + Helicone SHA-256 Prompt Cache ($0.00 hit):
+const streamOut = await PokiSDK.ai.streamChat("Bình luận: Thiên thạch 5x lật kèo!", {
+  onDelta(chunk) {
+    hudSubtitleEl.textContent += chunk;
+  },
+});
+console.log(streamOut.cached, streamOut.traceId);
+
+// 2. AgentOps × Langfuse × LangSmith Trace -> Span Execution Graph & Session Replay:
+const replay = await PokiSDK.agentOps.getTraceReplay(streamOut.traceId);
+await PokiSDK.agentOps.scoreTrace(streamOut.traceId, {
+  name: "nd147_safety_and_fps",
+  value: 0.99,
+});
+
+// 3. Chidori Reactive Event Bus + SID 1-Click Context Capsule + Steamship Signed Webhooks:
+await PokiSDK.agentOps.emitReactiveEvent("kol.high_tier_gift", {
+  nickname: "VIP_KhanhLe9K",
+  giftTier: "meteor",
+});
+const capsule = await PokiSDK.agentOps.getContextCapsule("dino-race");
+await PokiSDK.agentOps.registerWebhook({ url: "https://hooks.game9k.vn/ops", events: ["*"] });
+await PokiSDK.agentOps.dispatchWebhook("agentops.eval_passed", { sdkVersion: "6.0.0" });
+```
+
+
 

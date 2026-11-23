@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game9K SDK Studio v5.0 — Poki Portal × Xsolla × Splice × POS/KDS × E2B × OpenRouter AI</title>
+  <title>Game9K SDK Studio v6.0 — Poki Portal × Xsolla × Splice × POS/KDS × E2B × OpenRouter × AgentOps</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
@@ -53,7 +53,7 @@
           <div class="flex items-center flex-wrap gap-2">
             <span class="font-black text-sm sm:text-base text-white tracking-tight">GAME9K SDK STUDIO</span>
             <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
-              Poki Portal SDK v5.0 · Xsolla · Splice · POS/KDS · E2B · OpenRouter
+              Poki Portal SDK v6.0 · Xsolla · Splice · POS/KDS · E2B · OpenRouter · AgentOps
             </span>
             <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-sky-500/15 text-sky-300 border border-sky-500/30">
               User ID: <strong id="hdr-explorer-id">------</strong>
@@ -85,6 +85,9 @@
           </button>
           <button data-main-tab="openrouter" class="main-tab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white">
             🌐 5. OpenRouter AI &amp; Agent Eval
+          </button>
+          <button data-main-tab="agentops" class="main-tab px-3 py-1.5 rounded-lg font-bold text-slate-300 hover:text-white">
+            📊 6. AgentOps · Replay · Cache &amp; Stream
           </button>
         </div>
 
@@ -723,6 +726,84 @@ ctx.fillStyle = "#f43f5e"; // Morph Turbo Neon Mode!
     </section>
   </main>
 
+  <!-- ========================================================================
+       TAB 6: AGENTOPS × LANGFUSE × HELICONE CACHE × VERCEL STREAM × CHIDORI × SID × STEAMSHIP
+       ======================================================================== -->
+  <main id="panel-agentops" class="hidden max-w-[1460px] mx-auto w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4">
+
+    <!-- Col 1: Vercel AI SDK Live Token Stream + Helicone SHA-256 Prompt Cache -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-fuchsia-400">VERCEL AI STREAM · HELICONE PROMPT CACHE</div>
+          <h2 class="text-sm font-black text-white">Streaming 60 FPS &amp; Bộ Đệm $0.00 SHA-256</h2>
+        </div>
+        <span id="ao-cache-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-800 text-fuchsia-300">READY</span>
+      </div>
+
+      <textarea id="ao-stream-prompt" rows="2" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white font-mono">Bình luận siêu tốc: VIP_KhanhLe tung Mưa Thiên Thạch 5x lật kèo Dino Race!</textarea>
+
+      <div class="flex gap-2 text-xs">
+        <button id="btn-ao-stream" class="flex-1 py-2 rounded-xl bg-fuchsia-500 hover:bg-fuchsia-400 text-stone-950 font-black">
+          🌊 Stream Live (Bấm 2 lần test Cache $0)
+        </button>
+        <button id="btn-ao-refresh" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">
+          🔄 Refresh
+        </button>
+      </div>
+
+      <div id="ao-stream-box" class="p-3 rounded-xl bg-slate-950 border border-fuchsia-500/30 font-mono text-xs text-fuchsia-200 min-h-[74px]">
+        // Token-by-token SSE stream (PokiSDK.ai.streamChat) sẽ hiển thị mượt tại đây mà không khóa 60 FPS loop...
+      </div>
+
+      <div id="ao-helicone-stats" class="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-[10.5px] text-slate-300 space-y-1">
+        <div>Helicone Cache: <span class="text-emerald-300">0 hits / 0 misses (0%)</span></div>
+        <div>Latency P50 / P95 / P99: <span class="text-sky-300">0ms / 0ms / 0ms</span></div>
+      </div>
+    </section>
+
+    <!-- Col 2: AgentOps × Langfuse × LangSmith Trace Graph & Session Replay -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-black uppercase tracking-wider text-emerald-400">AGENTOPS · LANGFUSE · LANGSMITH</div>
+          <h2 class="text-sm font-black text-white">Trace → Span Execution Graph &amp; Session Replay</h2>
+        </div>
+        <button id="btn-ao-score" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-300 font-bold text-[11px]">
+          ⭐ Eval Score 0.98
+        </button>
+      </div>
+
+      <div id="ao-trace-list" class="space-y-1.5 max-h-44 overflow-y-auto pr-1 text-xs">
+        <div class="text-slate-400 font-mono text-[11px]">// Chưa có Trace. Bấm "Stream Live" để sinh Trace đầu tiên!</div>
+      </div>
+
+      <pre id="ao-replay-viewer" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono text-[10px] text-emerald-300 overflow-auto max-h-60">// Chọn 1 Trace bên trên để mở Session Replay Timeline (Spans + Generations + Eval Scores)!</pre>
+    </section>
+
+    <!-- Col 3: Chidori Reactive Bus · SID Context Capsule · Steamship Signed Webhooks -->
+    <section class="lg:col-span-4 glass-panel rounded-2xl p-4 flex flex-col space-y-3">
+      <div>
+        <div class="text-[10px] font-black uppercase tracking-wider text-amber-400">CHIDORI REACTIVE · SID CAPSULE · STEAMSHIP WEBHOOK</div>
+        <h2 class="text-sm font-black text-white">Event-Driven Agent, 1-Click Context &amp; HMAC Webhook</h2>
+      </div>
+
+      <div class="grid grid-cols-3 gap-1.5 text-[11px]">
+        <button id="btn-ao-chidori" class="py-2 px-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black">
+          ⚡ Chidori Event
+        </button>
+        <button id="btn-ao-sid" class="py-2 px-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-stone-950 font-black">
+          🧬 SID Capsule
+        </button>
+        <button id="btn-ao-webhook" class="py-2 px-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-black">
+          🪝 Sign Webhook
+        </button>
+      </div>
+
+      <pre id="ao-ops-output" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2.5 font-mono text-[10px] text-sky-200 overflow-auto max-h-80">// Thử nghiệm Chidori Reactive Rule (KOL Gift / POS 86'd), SID 1-Click Context Capsule hoặc Steamship HMAC-SHA256 Signed Webhook!</pre>
+    </section>
+  </main>
+
   <script src="/sdk/game9k-sdk.js"></script>
   <script>
     const SNIPPETS = {
@@ -762,6 +843,7 @@ const kds = await client.getKdsTickets();`
       pos: document.getElementById("panel-pos"),
       e2b: document.getElementById("panel-e2b"),
       openrouter: document.getElementById("panel-openrouter"),
+      agentops: document.getElementById("panel-agentops"),
     };
     document.querySelectorAll(".main-tab").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -779,6 +861,7 @@ const kds = await client.getKdsTickets();`
         if (target === "pos") refreshPosDashboard();
         if (target === "e2b") ensureE2BReady();
         if (target === "openrouter") refreshOpenRouterTab();
+        if (target === "agentops") refreshAgentOpsTab();
       });
     });
 
@@ -1671,6 +1754,123 @@ tick();
         2
       );
       await refreshOpenRouterTab();
+    });
+
+    // ========================================================================
+    // TAB 6 CONTROLLER: AGENTOPS · HELICONE CACHE · VERCEL STREAM · CHIDORI · SID · STEAMSHIP
+    // ========================================================================
+    let selectedTraceId = null;
+
+    async function refreshAgentOpsTab() {
+      const dash = await window.PokiSDK.agentOps.getDashboard();
+      if (!dash?.ok) return;
+      const h = dash.helicone || {};
+      const lat = h.latency || {};
+      const misses = Math.max(0, (h.cacheLookups || 0) - (h.cacheHits || 0));
+      document.getElementById("ao-helicone-stats").innerHTML = `
+        <div>Helicone Cache: <span class="text-emerald-300 font-bold">${h.cacheHits || 0} hits / ${misses} misses (${h.cacheHitRatePct || 0}%)</span> · Saved: <span class="text-amber-300 font-bold">$${h.savedUsd || 0}</span></div>
+        <div>Latency P50 / P95 / P99: <span class="text-sky-300 font-bold">${lat.p50Ms || 0}ms / ${lat.p95Ms || 0}ms / ${lat.p99Ms || 0}ms</span> (n=${lat.samples || 0})</div>
+      `;
+
+      const listEl = document.getElementById("ao-trace-list");
+      const traces = dash.traces || [];
+      if (traces.length === 0) {
+        listEl.innerHTML = `<div class="text-slate-400 font-mono text-[11px]">// Chưa có Trace. Bấm "Stream Live" để sinh Trace đầu tiên!</div>`;
+        return;
+      }
+      if (!selectedTraceId) selectedTraceId = traces[0].traceId;
+      listEl.innerHTML = traces
+        .slice(0, 8)
+        .map(
+          (t) => `
+          <div data-trace-id="${t.traceId}" class="cursor-pointer p-2 rounded-xl border ${
+            t.traceId === selectedTraceId
+              ? "bg-emerald-950/40 border-emerald-400/60"
+              : "bg-slate-950 border-slate-800 hover:border-slate-600"
+          } flex items-center justify-between gap-2">
+            <div>
+              <div class="font-mono font-bold text-[11px] text-white">${t.name}</div>
+              <div class="font-mono text-[10px] text-slate-400">${t.traceId} · ${t.spansCount} spans · ${t.durationMs ?? 0}ms</div>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[9.5px] font-mono font-bold ${
+              Number(t.totalCostUsd || 0) === 0
+                ? "bg-fuchsia-500/20 text-fuchsia-300"
+                : "bg-emerald-500/20 text-emerald-300"
+            }">${Number(t.totalCostUsd || 0) === 0 ? "⚡ $0.00" : `$${Number(t.totalCostUsd || 0).toFixed(5)}`}</span>
+          </div>`
+        )
+        .join("");
+
+      listEl.querySelectorAll("[data-trace-id]").forEach((row) => {
+        row.addEventListener("click", async () => {
+          selectedTraceId = row.getAttribute("data-trace-id");
+          const rep = await window.PokiSDK.agentOps.getTraceReplay(selectedTraceId);
+          document.getElementById("ao-replay-viewer").textContent = JSON.stringify(rep, null, 2);
+          await refreshAgentOpsTab();
+        });
+      });
+
+      if (selectedTraceId) {
+        const rep = await window.PokiSDK.agentOps.getTraceReplay(selectedTraceId);
+        document.getElementById("ao-replay-viewer").textContent = JSON.stringify(rep, null, 2);
+      }
+    }
+
+    document.getElementById("btn-ao-stream").addEventListener("click", async () => {
+      const prompt = document.getElementById("ao-stream-prompt").value;
+      const box = document.getElementById("ao-stream-box");
+      box.textContent = "";
+      const out = await window.PokiSDK.ai.streamChat(prompt, {
+        onDelta(delta) {
+          box.textContent += delta;
+        },
+      });
+      const badge = document.getElementById("ao-cache-badge");
+      badge.textContent = out.cached ? "⚡ HELICONE CACHE HIT ($0.00)" : `LIVE STREAM (${out.latencyMs || 0}ms)`;
+      badge.className = out.cached
+        ? "px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/25 text-emerald-300 border border-emerald-400/50"
+        : "px-2 py-0.5 rounded-full text-[10px] font-mono bg-fuchsia-500/25 text-fuchsia-300";
+      if (out.traceId) selectedTraceId = out.traceId;
+      await refreshAgentOpsTab();
+    });
+
+    document.getElementById("btn-ao-refresh").addEventListener("click", refreshAgentOpsTab);
+
+    document.getElementById("btn-ao-score").addEventListener("click", async () => {
+      if (!selectedTraceId) return;
+      const res = await window.PokiSDK.agentOps.scoreTrace(selectedTraceId, {
+        name: "nd147_safety_and_fps",
+        value: 0.98,
+        comment: "60 FPS non-blocking + ZDR compliant",
+      });
+      document.getElementById("ao-replay-viewer").textContent = JSON.stringify(res, null, 2);
+    });
+
+    document.getElementById("btn-ao-chidori").addEventListener("click", async () => {
+      const out = await window.PokiSDK.agentOps.emitReactiveEvent("kol.high_tier_gift", {
+        nickname: "VIP_KhanhLe9K",
+        giftTier: "meteor",
+        comment: "Thiên Thạch bùng nổ đường đua!",
+      });
+      document.getElementById("ao-ops-output").textContent = JSON.stringify(out, null, 2);
+      await refreshAgentOpsTab();
+    });
+
+    document.getElementById("btn-ao-sid").addEventListener("click", async () => {
+      const out = await window.PokiSDK.agentOps.getContextCapsule("dino-race");
+      document.getElementById("ao-ops-output").textContent = JSON.stringify(out, null, 2);
+    });
+
+    document.getElementById("btn-ao-webhook").addEventListener("click", async () => {
+      await window.PokiSDK.agentOps.registerWebhook({
+        url: "https://studio-hooks.game9k.vn/agentops",
+        events: ["*"],
+      });
+      const dispatched = await window.PokiSDK.agentOps.dispatchWebhook(
+        "agentops.eval_passed",
+        { gameId: "dino-race", sdkVersion: "6.0.0", status: "GO_FOR_LAUNCH" }
+      );
+      document.getElementById("ao-ops-output").textContent = JSON.stringify(dispatched, null, 2);
     });
 
     // Mini animated dinosaur sprint preview on Canvas

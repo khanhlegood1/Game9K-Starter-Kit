@@ -60,7 +60,7 @@ export function removeCircularReferences(obj, seen = new WeakSet()) {
 export default class SpliceSpecService {
   constructor(options = {}) {
     this.portalTitle = options.portalTitle || "Game9K Poki Portal & Live-Ops Gateway API";
-    this.portalVersion = options.portalVersion || "5.0.0";
+    this.portalVersion = options.portalVersion || "6.0.0";
     this.state = getGlobalState();
   }
 
@@ -75,7 +75,7 @@ export default class SpliceSpecService {
         title: this.portalTitle,
         version: this.portalVersion,
         description:
-          "Unified OpenAPI 3.1 Contract for Game9K Portal SDK v5.0 — Poki Lifecycle RPC, Xsolla SDK 3, Counter POS/KDS, E2B Sandboxes/Fragments/Computer Use, OpenRouter Multi-Model Gateway & Agent Protocol v1.",
+          "Unified OpenAPI 3.1 Contract for Game9K Portal SDK v6.0 — Poki Lifecycle RPC, Xsolla SDK 3, POS/KDS, E2B Sandboxes, OpenRouter AI Streaming, and AgentOps Observability/Cache/Webhooks.",
         license: { name: "MIT" },
       },
       servers: [
@@ -311,6 +311,30 @@ export default class SpliceSpecService {
             tags: ["Agent Protocol v1"],
             summary: "Standardized OpenAPI v3 Agent Protocol task creation & step execution",
             responses: { 200: { description: "Agent Protocol Task with steps & artifacts" } },
+          },
+        },
+        "/api/openrouter/stream": {
+          post: {
+            operationId: "streamOpenRouterChat",
+            tags: ["Vercel AI Stream"],
+            summary: "Real-time SSE Data Stream (`text-delta` + `finish`) mediated across Poki Sandbox",
+            responses: { 200: { description: "text/event-stream chunk stream" } },
+          },
+        },
+        "/api/agentops/dashboard": {
+          get: {
+            operationId: "getAgentOpsDashboard",
+            tags: ["AgentOps & Helicone"],
+            summary: "Inspect Trace->Span Replay Graph, Helicone Cache Hit Rate, P50/P95 Latency & Chidori Rules",
+            responses: { 200: { description: "Full AgentOps observability snapshot" } },
+          },
+        },
+        "/api/agentops/context-capsule": {
+          get: {
+            operationId: "getSidContextCapsule",
+            tags: ["AgentOps & Helicone"],
+            summary: "SID 1-Click Unified Context Capsule (Manifest + POS Z-Report + E2B + OpenRouter)",
+            responses: { 200: { description: "Unified studio context capsule" } },
           },
         },
       },
