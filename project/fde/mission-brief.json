@@ -1,0 +1,267 @@
+{
+  "schema_version": 1,
+  "project_id": "game9k-live-interaction",
+  "source_roadmap": "https://github.com/xuankhanh1612/Awesome-FDE-Roadmap",
+  "operating_model": "forward_deployment_engineering",
+  "mission": "Bridge the Game9K live-interaction product to the messy reality of creators, viewers, live platforms and commerce operations without losing a measurable viewer outcome.",
+  "current_stage": "pilot",
+  "primary_game": "marble-race-live",
+  "product_principle": "Ship the smallest field-ready mission slice, prove value with a creator, then productize the reusable delta.",
+  "three_whys": {
+    "system_of_record": "Normalized TikTok/YouTube live events, room team attribution, avatar proxy status and heat telemetry are the operational ground truth; the visible canvas is a projection.",
+    "cost_of_inaction": "A technically polished overlay that creators cannot connect, viewers cannot understand or operators cannot recover will not create live participation or commerce value.",
+    "day_2_owner": "Game9K Live Ops owns room health and incident response; Creator Success owns onboarding and UAT; Studio Engineering owns the reusable SDK and release gates."
+  },
+  "stakeholders": [
+    {
+      "id": "viewer",
+      "role": "live_viewer",
+      "outcome": "Join a marble quickly, see a recognizable avatar, understand team impact and feel a fair late-race reversal.",
+      "evidence_of_value": "join rate, avatar render rate, event-to-visual latency and heat completion"
+    },
+    {
+      "id": "creator",
+      "role": "streamer_champion",
+      "outcome": "Connect a TikTok or YouTube room in minutes and use PK gifts as visible participation mechanics.",
+      "evidence_of_value": "time to first room, UAT checklist, reconnect recovery and repeat heat rate"
+    },
+    {
+      "id": "live_ops",
+      "role": "day_2_operator",
+      "outcome": "Diagnose upstream, queue, avatar and release failures without depending on the original engineer.",
+      "evidence_of_value": "runbook coverage, alert ownership, incident time to acknowledge and replayable seed"
+    },
+    {
+      "id": "studio",
+      "role": "product_and_commerce_owner",
+      "outcome": "Convert the field delta into a reusable, compliant Game9K capability without treating viewers as investors.",
+      "evidence_of_value": "creator retention, gift participation, release integrity and G2 evidence"
+    }
+  ],
+  "discovery_checklist": [
+    { "id": "champion", "status": "identified", "owner": "Creator Success", "evidence": "Creator/streamer is the field champion for each pilot room." },
+    { "id": "blocker", "status": "open", "owner": "Product", "evidence": "Real creator UAT and upstream platform availability remain external dependencies." },
+    { "id": "success_metric", "status": "complete", "owner": "Product", "evidence": "Metrics are defined below with owners and evidence sources." },
+    { "id": "data_classification", "status": "complete", "owner": "Compliance", "evidence": "G2 manifest, avatar allowlist/proxy and no-investment-to-play policy." },
+    { "id": "ingestion_mode", "status": "complete", "owner": "Live Ops", "evidence": "Socket.IO primary, SSE fallback, simulator/demo path." },
+    { "id": "compliance", "status": "complete", "owner": "Compliance", "evidence": "G2 classification and existing U18 portal controls." },
+    { "id": "access", "status": "in_progress", "owner": "Live Ops", "evidence": "Room connection contract exists; production creator credentials are not stored in the repository." },
+    { "id": "connectivity", "status": "complete", "owner": "Platform", "evidence": "Gateway binds 0.0.0.0 and browser-facing clients use relative URLs." },
+    { "id": "quota", "status": "complete", "owner": "Studio Engineering", "evidence": "Telemetry is capped at 10 Hz for Marble Race and package gzip is below 125 KB." }
+  ],
+  "delta": [
+    {
+      "id": "dual-room-pk",
+      "product_capability": "Game9K normalized live room events",
+      "field_gap": "Two creators need isolated rooms with authoritative team attribution and no cross-talk.",
+      "proposed_glue": "LiveStreamBridge.connectPair plus team-stamped join-room/SSE/Socket.IO contract.",
+      "owner": "Gateway Squad"
+    },
+    {
+      "id": "viewer-avatar-crowd",
+      "product_capability": "Canvas live overlay",
+      "field_gap": "A live audience needs many recognizable participants, not a renamed single-player racer.",
+      "proposed_glue": "120-marble capped engine, avatar proxy, density-aware Canvas renderer and normalized join/like/chat events.",
+      "owner": "Canvas Squad"
+    },
+    {
+      "id": "commerce-as-participation",
+      "product_capability": "Live gift ingestion",
+      "field_gap": "A gift needs an immediate, legible social consequence rather than an opaque score mutation.",
+      "proposed_glue": "Team boost plus opponent obstacle with visible seed, event toast and between-heat queue.",
+      "owner": "Live Product"
+    }
+  ],
+  "workstreams": [
+    {
+      "id": "discovery-trust",
+      "phase": "discover",
+      "owner": "Product + Creator Success",
+      "status": "complete",
+      "outputs": ["docs/FDE-PROJECT-MANAGEMENT.md", "project/fde/mission-brief.json"]
+    },
+    {
+      "id": "live-data-contract",
+      "phase": "data",
+      "owner": "Gateway Squad",
+      "status": "complete",
+      "outputs": ["src/lib/streamEventNormalizer.js", "src/services/LiveRoomHub.js", "public/sdk/game9k-sdk.js"]
+    },
+    {
+      "id": "mva-marble-pilot",
+      "phase": "build-pilot",
+      "owner": "Canvas Squad",
+      "status": "complete",
+      "outputs": ["public/games/marble-race-live/", "test/marble-race.test.js", "test/pk-contract.test.js"]
+    },
+    {
+      "id": "creator-uat",
+      "phase": "validate",
+      "owner": "Creator Success",
+      "status": "pending",
+      "outputs": ["project/fde/weekly-executive-summary.md"]
+    },
+    {
+      "id": "day-2-operations",
+      "phase": "handoff",
+      "owner": "Live Ops",
+      "status": "in_progress",
+      "outputs": ["docs/KOL-STREAMING-GUIDE.md", "docs/FDE-PROJECT-MANAGEMENT.md"]
+    }
+  ],
+  "success_metrics": [
+    {
+      "id": "creator_setup_minutes",
+      "definition": "Minutes from receiving a Browser Source URL to a creator seeing a live heat with both room routes visible.",
+      "target": "<= 10 minutes",
+      "owner": "Creator Success",
+      "evidence": "Creator UAT session log",
+      "status": "pending"
+    },
+    {
+      "id": "viewer_join_rate",
+      "definition": "Percentage of normalized join/chat viewers that receive a marble before the join window closes.",
+      "target": ">= 95%",
+      "owner": "Live Product",
+      "evidence": "Heat telemetry: marble_joined / normalized join-like events",
+      "status": "in_progress"
+    },
+    {
+      "id": "event_to_visual_latency",
+      "definition": "Time from normalized gift/chat receipt to the viewer-visible boost, toast or obstacle effect.",
+      "target": "p95 <= 1500 ms",
+      "owner": "Gateway Squad",
+      "evidence": "Room event timestamp and client telemetry sample",
+      "status": "pending"
+    },
+    {
+      "id": "heat_replayability",
+      "definition": "A heat can be reproduced from its visible seed and event receipt without changing a finished result.",
+      "target": "100% deterministic obstacle layout; zero post-finish mutation",
+      "owner": "Canvas Squad",
+      "evidence": "marble-race.test.js and fairness seed HUD",
+      "status": "complete"
+    },
+    {
+      "id": "day_2_recovery",
+      "definition": "Live Ops can identify a disconnected source, use the queue/replay controls and recover without an engineer.",
+      "target": "runbook covers top 5 failure modes",
+      "owner": "Live Ops",
+      "evidence": "KOL streaming guide and incident review",
+      "status": "in_progress"
+    }
+  ],
+  "delivery_gates": [
+    {
+      "id": "site-survey",
+      "stage": "discovery",
+      "status": "passed",
+      "exit_criteria": "Champion, blocker, system of record, cost of inaction and Day-2 owner are named."
+    },
+    {
+      "id": "mva-pilot",
+      "stage": "pilot",
+      "status": "passed",
+      "exit_criteria": "Marble package validates, tests pass, PK team contract is authoritative and standalone bundle is reproducible."
+    },
+    {
+      "id": "creator-uat",
+      "stage": "validate",
+      "status": "pending",
+      "exit_criteria": "At least one TikTok creator and one YouTube creator complete the connection, heat, gift and recovery checklist."
+    },
+    {
+      "id": "production-release",
+      "stage": "release",
+      "status": "passed",
+      "exit_criteria": "validate/build/verify/decide pass and no security or bundle-budget violation is present."
+    },
+    {
+      "id": "day-2-handoff",
+      "stage": "operate",
+      "status": "in_progress",
+      "exit_criteria": "Live Ops owns room health, creator onboarding, incident severity and weekly value review."
+    }
+  ],
+  "risks": [
+    {
+      "id": "real-creator-uat",
+      "title": "No real creator UAT evidence is stored yet",
+      "severity": "high",
+      "status": "open",
+      "owner": "Creator Success",
+      "mitigation": "Run a two-room pilot and attach anonymized setup/recovery evidence to the weekly summary."
+    },
+    {
+      "id": "second-dinosaur-identity",
+      "title": "The repository has one confirmed dinosaur game; cyber-boss-raid is not assumed to be a dinosaur",
+      "severity": "medium",
+      "status": "blocked",
+      "owner": "Product",
+      "mitigation": "Confirm the second dinosaur slug before applying a dinosaur-specific shared contract."
+    },
+    {
+      "id": "upstream-platform-drift",
+      "title": "TikTok or YouTube upstream behavior can change outside the repository",
+      "severity": "high",
+      "status": "mitigated",
+      "owner": "Live Ops",
+      "mitigation": "Keep simulator/demo input, Socket.IO/SSE fallback, normalized fixtures and reconnect runbook."
+    },
+    {
+      "id": "viewer-data-safety",
+      "title": "Viewer names and avatar URLs are live user data",
+      "severity": "high",
+      "status": "mitigated",
+      "owner": "Compliance",
+      "mitigation": "Use avatar allowlist/proxy, safe display fields, G2 portal controls and no-investment-to-play policy."
+    }
+  ],
+  "next_actions": [
+    {
+      "id": "fde-001",
+      "title": "Run a two-creator PK UAT with anonymized evidence",
+      "owner": "Creator Success",
+      "priority": "P0",
+      "status": "pending",
+      "definition_of_done": "Setup, join, gift-to-opponent, reconnect and next-heat queue are recorded for TikTok and YouTube."
+    },
+    {
+      "id": "fde-002",
+      "title": "Instrument event-to-visual latency and viewer join rate",
+      "owner": "Gateway Squad",
+      "priority": "P1",
+      "status": "in_progress",
+      "definition_of_done": "A redacted telemetry sample reports p50/p95 latency and join conversion per heat."
+    },
+    {
+      "id": "fde-003",
+      "title": "Publish the Day-2 Live Ops runbook and escalation rota",
+      "owner": "Live Ops",
+      "priority": "P1",
+      "status": "in_progress",
+      "definition_of_done": "Five failure modes have detection, owner, mitigation and recovery evidence."
+    },
+    {
+      "id": "fde-004",
+      "title": "Confirm the second dinosaur game identity",
+      "owner": "Product",
+      "priority": "P2",
+      "status": "blocked",
+      "definition_of_done": "A confirmed slug and owner are added before dinosaur-specific scope is expanded."
+    }
+  ],
+  "artifacts": [
+    { "id": "fde-policy", "kind": "operating_policy", "path": "docs/FDE-PROJECT-MANAGEMENT.md" },
+    { "id": "site-survey", "kind": "discovery", "path": "project/fde/site-survey.md" },
+    { "id": "scoping-prd", "kind": "scope_contract", "path": "project/fde/technical-scoping-prd.md" },
+    { "id": "deployment-architecture", "kind": "architecture", "path": "project/fde/deployment-architecture.md" },
+    { "id": "adr-001", "kind": "decision_record", "path": "project/fde/adr/ADR-001-mission-delta-and-live-contract.md" },
+    { "id": "weekly-summary", "kind": "executive_status", "path": "project/fde/weekly-executive-summary.md" },
+    { "id": "marble-manifest", "kind": "game_contract", "path": "public/games/marble-race-live/game9k.manifest.json" },
+    { "id": "normalizer", "kind": "data_contract", "path": "src/lib/streamEventNormalizer.js" },
+    { "id": "pk-gateway", "kind": "deployment_glue", "path": "src/services/LiveRoomHub.js" },
+    { "id": "pk-sdk", "kind": "client_contract", "path": "public/sdk/game9k-sdk.js" },
+    { "id": "engine-tests", "kind": "evaluation", "path": "test/marble-race.test.js" }
+  ]
+}

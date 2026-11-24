@@ -9,9 +9,11 @@
 
   function GovernanceDeck() {
     const [expanded, setExpanded] = useState(true);
-    const [activeTab, setActiveTab] = useState('gates'); // 'gates' | 'backlog' | 'history'
+    const [activeTab, setActiveTab] = useState('mission'); // 'mission' | 'gates' | 'backlog' | 'history'
     const [auditReport, setAuditReport] = useState(null);
     const [auditing, setAuditing] = useState(false);
+    const [fdeProject, setFdeProject] = useState(null);
+    const [fdeLoading, setFdeLoading] = useState(false);
     const [board, setBoard] = useState({ tasks: [], history: [] });
     const [loadingTarget, setLoadingTarget] = useState(null);
 
@@ -27,6 +29,19 @@
         return raw ? JSON.parse(raw) : '';
       } catch {
         return '';
+      }
+    }
+
+    async function fetchFdeProject() {
+      setFdeLoading(true);
+      try {
+        const r = await fetch('/api/project/fde');
+        const data = await r.json();
+        if (data.ok) setFdeProject(data);
+      } catch {
+        // Offline static mode
+      } finally {
+        setFdeLoading(false);
       }
     }
 
@@ -109,8 +124,12 @@
     }
 
     useEffect(() => {
+      fetchFdeProject();
       runFullAudit();
-      const onRefresh = () => fetchBoard();
+      const onRefresh = () => {
+        fetchBoard();
+        fetchFdeProject();
+      };
       window.addEventListener('g9k:decision-recorded', onRefresh);
       return () => window.removeEventListener('g9k:decision-recorded', onRefresh);
     }, []);
@@ -146,6 +165,16 @@
             <!-- Sub-navigation + Live Repo Context Injectors -->
             <div class="g9k-pm-toolbar">
               <div class="g9k-pm-tabs">
+                <button
+                  type="button"
+                  class=${`g9k-tab ${activeTab === 'mission' ? 'is-active' : ''}`}
+                  onClick=${() => {
+                    setActiveTab('mission');
+                    fetchFdeProject();
+                  }}
+                >
+                  🎯 Mission & Delta ${fdeProject?.summary ? `· ${fdeProject.summary.status}` : ''}
+                </button>
                 <button
                   type="button"
                   class=${`g9k-tab ${activeTab === 'gates' ? 'is-active' : ''}`}
@@ -201,7 +230,117 @@
               </div>
             </div>
 
-            <!-- TAB 1: LIVE REPO RELEASE GATES -->
+            <!-- TAB 1: FDE MISSION, DISCOVERY & OUTCOMES -->
+            ${activeTab === 'mission' &&
+            html`
+              <div class="g9k-fde-wrap">
+                <div class="g9k-fde-summary">
+                  <div>
+                    <div class="g9k-status-row">
+                      <span
+                        class=${`g9k-verdict-pill ${
+                          fdeProject?.summary?.status === 'OPERATING' ? 'is-go' : 'is-hold'
+                        }`}
+                      >
+                        ${fdeProject?.summary?.status || (fdeLoading ? 'ĐANG TẢI FDE BRIEF...' : 'FDE BRIEF CHƯA SẴN SÀNG')}
+                      </span>
+                      ${fdeProject?.summary &&
+                      html`<span class="g9k-meta-text">
+                        ${fdeProject.summary.gateSummary.passed}/${fdeProject.summary.gateSummary.total} delivery gates ·
+                        Readiness <b>${Math.round(fdeProject.summary.readiness * 100)}%</b> ·
+                        Stage: <code>${fdeProject.summary.currentStage}</code>
+                      </span>`}
+                    </div>
+                    ${fdeProject?.brief &&
+                    html`<div class="g9k-fde-mission">
+                      <h3>${fdeProject.brief.mission}</h3>
+                      <div class="g9k-fde-subline">
+                        <b>${fdeProject.brief.project_id}</b> · ${fdeProject.brief.primary_game} ·
+                        Source: <code>Awesome-FDE-Roadmap</code>
+                      </div>
+                    </div>`}
+                  </div>
+                  <button
+                    type="button"
+                    class="g9k-audit-btn"
+                    disabled=${fdeLoading}
+                    onClick=${fetchFdeProject}
+                  >
+                    ${fdeLoading ? '⏳ Đang đọc mission brief...' : '↻ Refresh FDE Control Plane'}
+                  </button>
+                </div>
+
+                ${fdeProject?.validation && !fdeProject.validation.ok &&
+                html`<div class="g9k-fde-error">
+                  Brief validation failed: ${fdeProject.validation.errors.join(' · ')}
+                </div>`}
+
+                ${fdeProject?.brief &&
+                html`
+                  <div class="g9k-fde-whys">
+                    <div class="g9k-fde-card"><b>System of Record</b><span>${fdeProject.brief.three_whys.system_of_record}</span></div>
+                    <div class="g9k-fde-card"><b>Cost of Inaction</b><span>${fdeProject.brief.three_whys.cost_of_inaction}</span></div>
+                    <div class="g9k-fde-card"><b>Day 2 Owner</b><span>${fdeProject.brief.three_whys.day_2_owner}</span></div>
+                  </div>
+
+                  <div class="g9k-fde-columns">
+                    <section class="g9k-fde-panel">
+                      <div class="g9k-form-title">Δ Product capability → Field reality</div>
+                      ${fdeProject.brief.delta.map((item) => html`
+                        <div key=${item.id} class="g9k-fde-delta">
+                          <div class="g9k-fde-item-head"><code>${item.id}</code><b>${item.owner}</b></div>
+                          <div><span class="g9k-fde-label">Current:</span> ${item.product_capability}</div>
+                          <div><span class="g9k-fde-label">Gap:</span> ${item.field_gap}</div>
+                          <div><span class="g9k-fde-label">Glue:</span> ${item.proposed_glue}</div>
+                        </div>
+                      `)}
+                    </section>
+                    <section class="g9k-fde-panel">
+                      <div class="g9k-form-title">📏 Definition of Success</div>
+                      ${fdeProject.brief.success_metrics.map((metric) => html`
+                        <div key=${metric.id} class="g9k-fde-metric">
+                          <div class="g9k-fde-item-head"><b>${metric.id}</b><span class=${`g9k-fde-status ${metric.status}`}>${metric.status}</span></div>
+                          <div>${metric.definition}</div>
+                          <div class="g9k-fde-subline">Target: <b>${metric.target}</b> · Owner: ${metric.owner}</div>
+                        </div>
+                      `)}
+                    </section>
+                  </div>
+
+                  <div class="g9k-fde-columns">
+                    <section class="g9k-fde-panel">
+                      <div class="g9k-form-title">🔎 Discovery checklist</div>
+                      <div class="g9k-fde-checklist">
+                        ${fdeProject.brief.discovery_checklist.map((item) => html`
+                          <div key=${item.id} class="g9k-fde-check-row">
+                            <span class=${`g9k-fde-status ${item.status}`}>${item.status}</span>
+                            <b>${item.id}</b>
+                            <span>${item.owner}</span>
+                          </div>
+                        `)}
+                      </div>
+                    </section>
+                    <section class="g9k-fde-panel">
+                      <div class="g9k-form-title">🚧 Risks, blockers & next action</div>
+                      ${(fdeProject.summary?.blockers || []).map((risk) => html`
+                        <div key=${risk.id} class="g9k-fde-risk is-blocked"><b>BLOCKED · ${risk.title}</b><span>Owner: ${risk.owner} · ${risk.mitigation}</span></div>
+                      `)}
+                      ${fdeProject.brief.next_actions.slice(0, 4).map((action) => html`
+                        <div key=${action.id} class="g9k-fde-risk">
+                          <div class="g9k-fde-item-head">
+                            <b>${action.priority} · ${action.title}</b>
+                            <code>${action.id}</code>
+                          </div>
+                          <span>Owner: ${action.owner} · DoD: ${action.definition_of_done}</span>
+                        </div>
+                      `)}
+                    </section>
+                  </div>
+                `}
+              </div>
+            `}
+
+            <!-- TAB 2: LIVE REPO RELEASE GATES -->
             ${activeTab === 'gates' &&
             html`
               <div class="g9k-gates-wrap">

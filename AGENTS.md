@@ -30,4 +30,7 @@ npm test
 npm run build
 npm run verify
 npm run decide
+npm run fde
 ```
+
+`npm run fde` validates `project/fde/mission-brief.json` (mission, Delta, discovery, gates, risks, next actions). Technical `GO_FOR_LAUNCH` never substitutes for creator UAT or Day-2 handoff — see `docs/FDE-PROJECT-MANAGEMENT.md`.

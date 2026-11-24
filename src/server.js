@@ -398,6 +398,20 @@ export function createGame9KServer(options = {}) {
   });
 
   // ==========================================================================
+  // REST API: FDE PROJECT CONTROL PLANE + GEMINI DECISIONS GOVERNANCE
+  // ==========================================================================
+
+  app.get("/api/project/fde", (_req, res) => {
+    res.json({ ok: true, ...decisionsService.getFdeProjectState() });
+  });
+
+  app.post("/api/project/fde/audit", async (req, res) => {
+    const headerKey = req.headers["x-goog-api-key"] || req.body?.apiKey || "";
+    const report = await decisionsService.runFdeProjectAudit({ apiKey: headerKey });
+    res.json({ ok: report.validation.ok, ...report });
+  });
+
+  // ==========================================================================
   // REST API: GEMINI DECISIONS API — GAME9K DEV PROJECT MANAGEMENT & GOVERNANCE
   // ==========================================================================
 

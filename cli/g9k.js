@@ -9,6 +9,7 @@
  *   node cli/g9k.js build [--game <slug>] [--json]
  *   node cli/g9k.js verify [--json]
  *   node cli/g9k.js doctor [--json]
+ *   node cli/g9k.js fde [--json]
  *
  * With `--json`, returns structured envelope:
  *   `{ schema_version: 1, ok, command, data, warnings, error }`
@@ -35,6 +36,7 @@ import {
 import ProjectDecisionsService from "../src/services/ProjectDecisionsService.js";
 import SpliceSpecService from "../src/services/SpliceSpecService.js";
 import CloudEdgeLaunchService from "../src/services/CloudEdgeLaunchService.js";
+import { validateFdeMissionBrief, summarizeFdeMission } from "../src/lib/fdeProject.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -42,6 +44,7 @@ const ROOT_DIR = join(__dirname, "..");
 const PUBLIC_DIR = join(ROOT_DIR, "public");
 const GAMES_DIR = join(PUBLIC_DIR, "games");
 const DIST_DIR = join(ROOT_DIR, "dist");
+const FDE_BRIEF_PATH = join(ROOT_DIR, "project/fde/mission-brief.json");
 
 function parseArgs(argv) {
   const args = argv.slice(2);
@@ -209,7 +212,7 @@ function runCapabilities(opts) {
     data: {
       cli: "g9k",
       version: "9.0.0",
-      commands: ["capabilities", "validate", "build", "verify", "doctor", "decide", "codegen", "deploy"],
+      commands: ["capabilities", "validate", "build", "verify", "doctor", "decide", "fde", "codegen", "deploy"],
       sdk: {
         version: "9.0.0",
         standards: [
@@ -538,11 +541,98 @@ async function runDoctor(opts) {
   });
 }
 
+async function runFde(opts) {
+  if (!existsSync(FDE_BRIEF_PATH)) {
+    return emitResult({
+      json: opts.json,
+      ok: false,
+      command: "fde",
+      error: { code: "missing_fde_brief", message: "project/fde/mission-brief.json not found" },
+    });
+  }
+
+  let brief;
+  try {
+    brief = JSON.parse(readFileSync(FDE_BRIEF_PATH, "utf8"));
+  } catch (error) {
+    return emitResult({
+      json: opts.json,
+      ok: false,
+      command: "fde",
+      error: { code: "invalid_fde_brief", message: error.message },
+    });
+  }
+
+  const validation = validateFdeMissionBrief(brief, { rootDir: ROOT_DIR });
+  const summary = validation.ok ? summarizeFdeMission(brief) : null;
+  const service = new ProjectDecisionsService();
+  const releaseControl = await service.runFullProjectAudit({
+    apiKey: process.env.GEMINI_API_KEY || "",
+  });
+  const artifactChecks = discoverGames().map((slug) => {
+    const report = validateGamePackage(join(GAMES_DIR, slug));
+    return {
+      slug,
+      ok: report.ok,
+      legalClassification: report.manifest?.legal_classification || null,
+      gzipKb: report.metrics?.gzipKb ?? null,
+      releaseSha256: report.releaseSha256 || null,
+      errors: report.errors,
+    };
+  });
+  const releaseManifest = existsSync(join(DIST_DIR, "release-manifest.json"))
+    ? JSON.parse(readFileSync(join(DIST_DIR, "release-manifest.json"), "utf8"))
+    : null;
+
+  const warnings = [...(validation.warnings || [])];
+  if (summary?.status !== "OPERATING") {
+    warnings.push(
+      `FDE project status is ${summary?.status || "INVALID"}; technical release approval does not replace pending field UAT or blocker resolution.`
+    );
+  }
+  if (!process.env.GEMINI_API_KEY) {
+    warnings.push(
+      "GEMINI_API_KEY not set — linked Decisions release control used the built-in Game9K Calibrated Decisions Engine."
+    );
+  }
+
+  emitResult({
+    json: opts.json,
+    ok: validation.ok,
+    command: "fde",
+    data: {
+      sourcePath: "project/fde/mission-brief.json",
+      validation,
+      summary,
+      releaseControl: {
+        overallStatus: releaseControl.overallStatus,
+        passedGates: releaseControl.passedGates,
+        totalGates: releaseControl.totalGates,
+        calibratedReadiness: releaseControl.calibratedReadiness,
+        engine: releaseControl.gates?.[0]?.engine || "game9k-calibrated-decisions",
+      },
+      artifactChecks,
+      releaseManifest: releaseManifest
+        ? {
+            generatedAt: releaseManifest.generated_at,
+            bundleSha256: releaseManifest.bundle_sha256,
+            artifactCount: releaseManifest.artifacts?.length || 0,
+          }
+        : null,
+    },
+    warnings,
+    error: validation.ok
+      ? null
+      : { code: "fde_policy_invalid", message: "FDE mission brief failed validation" },
+  });
+}
+
 async function runDecide(opts) {
   const service = new ProjectDecisionsService();
   const report = await service.runFullProjectAudit({
     apiKey: process.env.GEMINI_API_KEY || "",
   });
+  const fdeProject = service.getFdeProjectState();
   const ok = report.overallStatus === "GO_FOR_LAUNCH";
   const warnings = [];
   if (!process.env.GEMINI_API_KEY) {
@@ -550,11 +640,18 @@ async function runDecide(opts) {
       "GEMINI_API_KEY not set — evaluated using built-in Game9K Calibrated Decisions Engine (set GEMINI_API_KEY for live gemini-decision-1)."
     );
   }
+  if (fdeProject.validation && !fdeProject.validation.ok) {
+    warnings.push("FDE mission brief is invalid; run `npm run fde -- --json` for details.");
+  } else if (fdeProject.summary?.status !== "OPERATING") {
+    warnings.push(
+      `FDE project status is ${fdeProject.summary?.status}; technical Decisions gates remain separate from creator UAT and Day-2 handoff.`
+    );
+  }
   emitResult({
     json: opts.json,
     ok,
     command: "decide",
-    data: report,
+    data: { ...report, fdeProject },
     warnings,
     error: ok
       ? null
@@ -649,6 +746,7 @@ else if (opts.command === "build") runBuild(opts);
 else if (opts.command === "verify") runVerify(opts);
 else if (opts.command === "doctor") await runDoctor(opts);
 else if (opts.command === "decide") await runDecide(opts);
+else if (opts.command === "fde" || opts.command === "project") await runFde(opts);
 else if (opts.command === "codegen") runCodegen(opts);
 else if (opts.command === "deploy") await runDeploy(opts);
 else {
@@ -660,6 +758,7 @@ Usage:
   npm run g9k -- verify [--json]
   npm run g9k -- doctor [--json]
   npm run g9k -- decide [--json]
+  npm run g9k -- fde [--json]
   npm run g9k -- codegen [--game dino-race] [--json]
   npm run g9k -- deploy [--game dino-race] [--json]`);
 }
