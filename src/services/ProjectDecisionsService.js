@@ -20,11 +20,13 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { validateGamePackage } from "../lib/manifestValidator.js";
+import { validateFdeMissionBrief, summarizeFdeMission } from "../lib/fdeProject.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const ROOT_DIR = join(__dirname, "../..");
 const GAMES_DIR = join(ROOT_DIR, "public/games");
+const FDE_BRIEF_PATH = join(ROOT_DIR, "project/fde/mission-brief.json");
 
 export const GEMINI_DECISIONS_ENDPOINT =
   "https://generativelanguage.googleapis.com/v1beta/decisions";
@@ -1048,6 +1050,68 @@ export class ProjectDecisionsService {
     }
 
     return { ok: true, status: 200, payload };
+  }
+
+  /**
+   * Read the checked-in FDE mission brief. Keeping this in the same service as
+   * Decisions means the Studio and CLI consume one source of truth instead of
+   * maintaining a second, disconnected project-management database.
+   */
+  getFdeProjectState() {
+    const relativePath = "project/fde/mission-brief.json";
+    if (!existsSync(FDE_BRIEF_PATH)) {
+      return {
+        sourcePath: relativePath,
+        brief: null,
+        validation: { ok: false, errors: ["FDE mission brief is missing"], warnings: [] },
+        summary: null,
+      };
+    }
+
+    let brief;
+    try {
+      brief = JSON.parse(readFileSync(FDE_BRIEF_PATH, "utf8"));
+    } catch (error) {
+      return {
+        sourcePath: relativePath,
+        brief: null,
+        validation: {
+          ok: false,
+          errors: [`FDE mission brief is not valid JSON: ${error.message}`],
+          warnings: [],
+        },
+        summary: null,
+      };
+    }
+
+    const validation = validateFdeMissionBrief(brief, { rootDir: ROOT_DIR });
+    return {
+      sourcePath: relativePath,
+      reviewedAt: new Date().toISOString(),
+      brief,
+      validation,
+      summary: validation.ok ? summarizeFdeMission(brief) : null,
+    };
+  }
+
+  /**
+   * Combine deterministic FDE governance with the existing Decisions release
+   * audit. A pending creator UAT remains visible as PILOT_READY/ACTION_REQUIRED;
+   * it must never be silently converted into a technical launch approval.
+   */
+  async runFdeProjectAudit({ apiKey } = {}) {
+    const state = this.getFdeProjectState();
+    const technicalAudit = await this.runFullProjectAudit({ apiKey });
+    return {
+      ...state,
+      technicalAudit,
+      releaseControl: {
+        status: technicalAudit.overallStatus,
+        passedGates: technicalAudit.passedGates,
+        totalGates: technicalAudit.totalGates,
+        engine: technicalAudit.gates?.[0]?.engine || DEFAULT_DECISION_MODEL,
+      },
+    };
   }
 
   /**

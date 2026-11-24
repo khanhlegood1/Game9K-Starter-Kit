@@ -156,6 +156,176 @@
   background: rgba(59, 130, 246, 0.24);
 }
 
+.g9k-fde-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.g9k-fde-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.g9k-fde-mission h3 {
+  max-width: 820px;
+  margin: 8px 0 4px;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.g9k-fde-subline {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-var, #94a3b8);
+}
+
+.g9k-fde-whys,
+.g9k-fde-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.g9k-fde-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.g9k-fde-card,
+.g9k-fde-panel {
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: var(--bg, #0d1013);
+  border: 1px solid var(--outline-var, rgba(148, 163, 184, 0.2));
+}
+
+.g9k-fde-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.g9k-fde-card b {
+  color: #fbbf24;
+}
+
+:root[data-theme="light"] .g9k-fde-card b {
+  color: #b45309;
+}
+
+.g9k-fde-card span,
+.g9k-fde-delta,
+.g9k-fde-metric,
+.g9k-fde-risk {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-var, #cbd5e1);
+}
+
+.g9k-fde-delta,
+.g9k-fde-metric,
+.g9k-fde-risk {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--outline-var, rgba(148, 163, 184, 0.14));
+}
+
+.g9k-fde-delta:last-child,
+.g9k-fde-metric:last-child,
+.g9k-fde-risk:last-child {
+  border-bottom: 0;
+}
+
+.g9k-fde-item-head,
+.g9k-fde-check-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.g9k-fde-label {
+  color: var(--text, #f8fafc);
+  font-weight: 700;
+}
+
+.g9k-fde-status {
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: rgba(148, 163, 184, 0.17);
+  color: var(--text-var, #cbd5e1);
+}
+
+.g9k-fde-status.complete,
+.g9k-fde-status.passed,
+.g9k-fde-status.mitigated {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+}
+
+.g9k-fde-status.pending,
+.g9k-fde-status.in_progress,
+.g9k-fde-status.open,
+.g9k-fde-status.identified {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
+.g9k-fde-status.blocked {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
+
+.g9k-fde-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.g9k-fde-check-row {
+  justify-content: flex-start;
+  margin: 0;
+}
+
+.g9k-fde-check-row span:last-child {
+  margin-left: auto;
+  color: var(--text-var, #94a3b8);
+}
+
+.g9k-fde-risk {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.g9k-fde-risk span {
+  color: var(--text-var, #94a3b8);
+}
+
+.g9k-fde-risk.is-blocked {
+  color: #fca5a5;
+}
+
+.g9k-fde-error {
+  padding: 9px 12px;
+  border-radius: 9px;
+  background: rgba(239, 68, 68, 0.16);
+  color: #fca5a5;
+}
+
+@media (max-width: 860px) {
+  .g9k-fde-whys,
+  .g9k-fde-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
 .g9k-gates-wrap {
   display: flex;
   flex-direction: column;

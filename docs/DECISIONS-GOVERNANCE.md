@@ -52,4 +52,26 @@ npm run decide
 
 # Xuất kết quả JSON chuẩn hóa cho pipeline GitHub Actions / GitLab CI
 node cli/g9k.js decide --json
+
+# Kiểm tra FDE mission brief & control plane (mission, Delta, gate, blocker, next action)
+npm run fde
+node cli/g9k.js fde --json
 ```
+
+---
+
+## 5. Cầu Nối Với FDE Control Plane (Forward Deployed Engineering)
+
+`docs/FDE-PROJECT-MANAGEMENT.md` mô tả vòng đời Discovery → Scoping → Architecture/ADR → Pilot/UAT → Day-2. Cầu nối kỹ thuật:
+
+| Thành phần | Vai trò |
+| :--- | :--- |
+| `project/fde/mission-brief.json` | Source of truth: Delta, stakeholder, discovery checklist, success metric, delivery gate, risk/blocker, next action, artifact |
+| `src/lib/fdeProject.js` | Validator deterministic (`validateFdeMissionBrief`) + `summarizeFdeMission` — không gọi LLM |
+| `ProjectDecisionsService#getFdeProjectState` / `#runFdeProjectAudit` | Đọc brief, chạy technical audit, trả `releaseControl` |
+| `GET /api/project/fde` · `POST /api/project/fde/audit` | REST cho Studio và CI |
+| Tab **🎯 Mission & Delta** trong `/decisions.html` | Hiển thị FDE status, gate, blocker, next action cạnh release gates và Sprint Backlog |
+| `npm run decide` | Trả thêm `fdeProject` để pipeline thấy khác biệt giữa `GO_FOR_LAUNCH` và trạng thái FDE thực tế |
+
+**Nguyên tắc bắt buộc:** technical `GO_FOR_LAUNCH` (validate/build/verify/decide) **không** thay thế creator UAT hoặc Day-2 handoff. Vì vậy trạng thái FDE hiện tại là `ACTION_REQUIRED` (blocker `real-creator-uat`), dù 4/4 technical gate đã pass. Mọi quyết định ảnh hưởng scope/architecture/compliance phải tham chiếu ADR tương ứng trong `project/fde/adr/`.
+

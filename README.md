@@ -58,7 +58,11 @@ npm run verify
 # 3. Chạy bộ kiểm thử tự động
 npm test
 
-# 4. Khởi động máy chủ KOL Live Gateway & Cổng Sandbox (0.0.0.0:3000)
+# 4. Kiểm tra FDE control plane (mission brief, Delta, gate, blocker, next action)
+npm run fde
+npm run decide
+
+# 5. Khởi động máy chủ KOL Live Gateway & Cổng Sandbox (0.0.0.0:3000)
 npm start
 ```
 
@@ -73,7 +77,7 @@ Sau khi chạy `npm start`, mở trình duyệt tại:
 | **`http://localhost:3000/games/dino-race/standalone.html`** | **Dino 1 File Độc Lập** — Mở trực tiếp không cần máy chủ hoặc tải thẳng lên Cloudflare R2 |
 | **`http://localhost:3000/games/marble-race-live/standalone.html?demo=1`** | **Marble Race 1 File Độc Lập** — Overlay viewer-first chạy offline/local demo |
 | **`http://localhost:3000/sdk-demo.html`** | **Poki × Xsolla SDK Explorer** — Trải nghiệm trực tiếp 4 bước thanh toán Xsolla SDK 3 (`Authenticate → Catalog → Pay Station → Finalize`) & vòng đời `PokiSDK` |
-| **`http://localhost:3000/decisions.html`** | **Dev Decisions Studio (`Gemini Decisions API`)** — Cổng duyệt phát hành R2, phân loại NĐ 147, duyệt PR, Sprint Backlog & Playground đa phương thức |
+| **`http://localhost:3000/decisions.html`** | **Dev Decisions Studio (`Gemini Decisions API`) + FDE Control Plane** — Tab Mission & Delta (mission brief, discovery, rủi ro, next action), cổng duyệt phát hành R2, phân loại NĐ 147, duyệt PR, Sprint Backlog & Playground đa phương thức |
 | **`http://localhost:3000/portal.html`** | **Game9K Sandbox Portal Host** — Kiểm tra `<iframe sandbox="allow-scripts">`, đo Hz Realtime & khóa giờ chơi U18 |
 | **`http://localhost:3000/debug.html`** | **Live Stream Debugger** — Theo dõi sự kiện TikTok Live / YouTube Live và bắn chuỗi 9 sự kiện mẫu |
 | **`http://localhost:3000/spec.html`** | **Đặc Tả Kỹ Thuật Tương Tác** — Dashboard 5 trụ cột hạ tầng Cloudflare, Supabase, Ads, Solana & NĐ 147 |
@@ -106,6 +110,7 @@ Bạn có thể tạo tự động tại trang chủ `/` hoặc gắn trực ti�
 ## 📚 Tài Liệu Chi Tiết & Nguồn Tham Khảo
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — Kiến trúc kỹ thuật 5 trụ cột của Game9K Starter Kit.
+- [`docs/FDE-PROJECT-MANAGEMENT.md`](docs/FDE-PROJECT-MANAGEMENT.md) — Quy trình **Forward Deployed Engineering** end-to-end: Discovery → Scoping/PRD → Architecture/ADR → Pilot/UAT → Day-2, kèm [`project/fde/mission-brief.json`](project/fde/mission-brief.json) làm source of truth và CLI `npm run fde`.
 - [`docs/DECISIONS-GOVERNANCE.md`](docs/DECISIONS-GOVERNANCE.md) — Quản trị dự án Dev Game9K bằng **Gemini Decisions API (`gemini-decision-1`)**.
 - [`docs/KOL-STREAMING-GUIDE.md`](docs/KOL-STREAMING-GUIDE.md) — Hướng dẫn thiết lập OBS, TikTok LIVE Studio & YouTube Live 24/7 cho KOL.
 - [`docs/SDK-PROTOCOL.md`](docs/SDK-PROTOCOL.md) — Đặc tả giao thức `window.Game9K`, `window.TikTokBridge`, `postMessage` và `game9k.manifest.json`.
