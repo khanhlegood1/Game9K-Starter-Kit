@@ -52,7 +52,8 @@ Response chính:
   "ok": true,
   "projectId": "game9k-live-interaction",
   "kpis": { "total": 6, "active": 6, "open": 2, "inProgress": 2, "blocked": 2,
-            "done": 0, "completionPct": 0, "adrOpen": 0, "adrTotal": 1,
+            "done": 0, "completionPct": 0, "adrOpen": 0, "adrInForce": 3, "adrTotal": 3,
+            "adrAccepted": 3, "adrProposed": 0,
             "gatePassed": 3, "gateTotal": 5, "criticalOpen": 5 },
   "owners": [{ "name": "Product", "total": 2, "blocked": 2, "...": "..." }],
   "tasks": [{ "id": "fde-001", "priority": "P0", "status": "open", "source": "fde-action" }],
@@ -66,6 +67,17 @@ Response chính:
   "sources": { "missionBrief": "project/fde/mission-brief.json", "adrDirectory": "project/fde/adr", "github": null }
 }
 ```
+
+### Ý nghĩa các KPI ADR
+
+| KPI | Nghĩa |
+| --- | --- |
+| `adrTotal` | Tổng số ADR trong `project/fde/adr/` |
+| `adrOpen` | ADR **còn phải chốt** (`proposed` / `withdrawn`) — con số này mới là "việc còn mở" |
+| `adrInForce` | ADR còn hiệu lực (`proposed` / `accepted` / `deprecated`) |
+| `adrAccepted` / `adrProposed` | Đã chốt / đang chờ chốt, dùng cho KPI "ADR đã chốt" trên Overview |
+
+Trước đây `adrOpen` đếm cả ADR `accepted`, nên một dự án đã chốt hết vẫn hiện `open 3 / total 3` — dễ đọc thành "chưa quyết gì". Từ bản này `adrOpen` chỉ còn việc thật sự chờ chốt.
 
 ### Suy giảm an toàn
 

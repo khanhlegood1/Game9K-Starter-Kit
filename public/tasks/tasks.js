@@ -524,7 +524,7 @@ function eventRow(meeting) {
           ${escapeHtml(meeting.title)}
         </div>
         <div class="event-meta">
-          <span>🕒 ${formatRange(meeting.start, meeting.end)}</span>
+          <span class="event-range">${formatRange(meeting.start, meeting.end)}</span>
           <span>👤 ${escapeHtml(meeting.owner || "—")}</span>
           ${meeting.location ? `<span>📍 ${escapeHtml(meeting.location)}</span>` : ""}
           ${

@@ -96,6 +96,11 @@ export function parseAdr({ path, content, id: idOverride }) {
   };
 }
 
+function isAdrPending(adr) {
+  const status = String(adr.rawStatus || "").toLowerCase();
+  return status === "proposed" || status === "withdrawn";
+}
+
 /**
  * Read every ADR through the governance registry (MADR v4 + hve-core overlay),
  * then project it onto the task-board shape. Invalid ADRs are still returned —
@@ -351,8 +356,11 @@ function buildSnapshot({ brief, adrs, github, generatedAt, tasks }) {
       blocked: counts.blocked,
       done: counts.done,
       completionPct,
-      // `adrOpen` = ADRs still in force (proposed/accepted/deprecated).
-      adrOpen: adrs.filter((adr) => adr.isOpen).length,
+      // `adrOpen` = ADRs still chờ chốt (proposed/withdrawn); accepted ones are
+      // already decisions, so counting them here made "open 3 / total 3" read
+      // like nothing was decided. `adrInForce` keeps that broader count.
+      adrOpen: adrs.filter((adr) => isAdrPending(adr)).length,
+      adrInForce: adrs.filter((adr) => adr.isOpen).length,
       adrTotal: adrs.length,
       adrAccepted: adrs.filter((adr) => (adr.rawStatus || adr.statusKey) === "accepted" || adr.statusKey === "done").length,
       adrProposed: adrs.filter((adr) => (adr.rawStatus || "") === "proposed").length,
