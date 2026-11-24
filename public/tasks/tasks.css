@@ -509,3 +509,143 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .task-card { grid-template-columns: 1fr; }
   .task-card-side { flex-direction: row; align-items: center; justify-content: space-between; }
 }
+
+/* ================= Schedule (week strip + timed event rows) ================= */
+.icon-btn.sm {
+  width: 26px; height: 26px;
+  min-width: 26px;
+  font-size: 13px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  color: var(--text-soft);
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.icon-btn.sm:hover { border-color: #c7cbff; color: var(--brand); background: var(--brand-soft); }
+
+.schedule-card { margin-top: 14px; }
+.schedule-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px;
+  border-radius: 14px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+}
+
+.week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 4px 6px;
+  border-radius: 11px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  min-width: 0;
+}
+.week-day:hover { background: #fff; border-color: var(--border); }
+.week-day.is-selected { background: #fff; border-color: #c7cbff; box-shadow: 0 2px 10px rgba(91, 91, 214, 0.12); }
+.week-day .wd-label { font-size: 10px; font-weight: 700; color: var(--text-soft); letter-spacing: 0.02em; }
+.week-day .wd-num {
+  width: 30px; height: 30px;
+  display: grid; place-items: center;
+  border-radius: 999px;
+  font-size: 13px; font-weight: 800;
+  color: var(--text);
+  background: transparent;
+}
+.week-day.is-today .wd-num { background: var(--brand); color: #fff; box-shadow: 0 4px 12px rgba(91, 91, 214, 0.32); }
+.week-day.is-today .wd-label { color: var(--brand); }
+.week-day .wd-dot { width: 4px; height: 4px; border-radius: 999px; background: #cbd5e1; }
+.week-day .wd-dot.has-event { background: #22d3ee; }
+
+.schedule-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+
+.schedule-day-label {
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: #94a3b8; margin: 6px 0 2px;
+}
+
+.event-row {
+  display: grid;
+  grid-template-columns: 66px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-left: 3px solid #c7d2fe;
+}
+.event-row:hover { background: #fbfbff; border-color: #c7cbff; }
+.event-row.kind-uat { border-left-color: #f59e0b; }
+.event-row.kind-review { border-left-color: #38bdf8; }
+.event-row.kind-gate { border-left-color: #ef4444; }
+.event-row.kind-decision { border-left-color: #8b5cf6; }
+.event-row.kind-sync { border-left-color: #10b981; }
+.event-row.is-deadline { border-left-color: #94a3b8; background: #fff; border-style: dashed; }
+
+.event-time { font-size: 11px; font-weight: 700; color: var(--text-soft); line-height: 1.35; }
+.event-time span { display: block; }
+/* Reference layout: one "01:00 PM to 02:30 PM" line, the rail carries the minutes. */
+.event-meta .event-range { font-weight: 600; color: #64748b; }
+.event-body { min-width: 0; }
+.event-title { font-size: 12.5px; font-weight: 700; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.event-title .event-kind {
+  font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 1px 6px; border-radius: 999px; background: var(--brand-soft); color: var(--brand);
+}
+.event-meta { margin-top: 3px; font-size: 11px; color: var(--text-soft); display: flex; gap: 8px; flex-wrap: wrap; }
+.event-meta a { color: var(--brand); text-decoration: none; font-weight: 700; }
+.event-side { display: flex; align-items: center; gap: 8px; }
+
+.avatar-stack { display: flex; align-items: center; }
+.avatar-stack .avatar {
+  width: 24px; height: 24px;
+  font-size: 9.5px;
+  border: 2px solid var(--surface);
+  margin-left: -7px;
+  background: linear-gradient(135deg, #eef0ff, #e0f2fe);
+  color: #4338ca;
+}
+.avatar-stack .avatar:first-child { margin-left: 0; }
+.avatar-stack .avatar.more { background: var(--surface-soft); color: var(--text-soft); }
+
+.schedule-empty { padding: 16px; text-align: center; font-size: 12px; color: var(--text-soft); }
+.schedule-foot {
+  margin-top: 10px;
+  font-size: 10.5px;
+  color: #94a3b8;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+/* ================= ADR governance (lifecycle + graph) ================= */
+.adr-status-line { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+.adr-status {
+  font-size: 9.5px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 999px;
+  background: var(--surface-soft); color: var(--text-soft); border: 1px solid var(--border);
+}
+.adr-status.is-current { background: var(--brand); color: #fff; border-color: var(--brand); }
+.adr-status.is-reached { background: var(--green-soft); color: var(--green); border-color: #bbf7d0; }
+.adr-type { font-size: 9.5px; font-weight: 800; text-transform: uppercase; color: var(--blue); background: var(--blue-soft); padding: 1px 6px; border-radius: 999px; }
+.adr-lineage { margin-top: 6px; font-size: 11px; color: #475569; }
+.adr-lineage code { background: var(--surface-soft); padding: 1px 5px; border-radius: 5px; }
+.adr-findings { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.adr-finding { font-size: 11px; display: flex; gap: 6px; align-items: flex-start; }
+.adr-finding.error { color: var(--red); }
+.adr-finding.warn { color: var(--amber); }
+
+.adr-graph { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.adr-graph-node { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.adr-graph-node .gn-id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; font-weight: 800; color: var(--brand); }
+.adr-graph-edge { font-size: 11px; color: var(--text-soft); padding-left: 14px; }

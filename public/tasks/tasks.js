@@ -16,8 +16,22 @@ const SOURCE_ICON = {
   "github-pr": "🔀",
 };
 
+const ADR_LIFECYCLE = ["proposed", "accepted", "deprecated", "superseded"];
+const EVENT_KIND_LABEL = {
+  meeting: "Meeting",
+  review: "Review",
+  uat: "UAT",
+  gate: "Gate",
+  sync: "Sync",
+  decision: "Decision",
+  deadline: "Deadline",
+};
+
 const state = {
   board: null,
+  registry: null,
+  schedule: null,
+  weekAnchor: null, // ISO date of the day selected in the week strip
   view: "overview",
   filters: { status: "all", owner: "all", priority: "all", source: "all", query: "" },
   error: null,
@@ -45,6 +59,29 @@ function statusBadge(status) {
 function priorityBadge(priority) {
   return `<span class="badge ${String(priority).toLowerCase()}">${priority}</span>`;
 }
+/** 12-hour clock label, matching the reference card ("01:00 PM"). */
+function clockLabel(time) {
+  const [h, m] = String(time || "").split(":").map(Number);
+  if (!Number.isFinite(h)) return String(time || "—");
+  const suffix = h < 12 ? "AM" : "PM";
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${String(hour).padStart(2, "0")}:${String(m || 0).padStart(2, "0")} ${suffix}`;
+}
+
+function formatRange(start, end) {
+  return `${clockLabel(start)} to ${clockLabel(end)}`;
+}
+
+function isoOf(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function shiftDays(iso, days) {
+  const date = new Date(`${iso}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return isoOf(date);
+}
+
 function relativeTime(iso) {
   if (!iso) return "—";
   const diff = Date.now() - new Date(iso).getTime();
@@ -63,11 +100,13 @@ async function loadBoard({ refresh = false } = {}) {
   el("loading").hidden = false;
   el("loading").textContent = "Đang tải dữ liệu từ repository…";
   try {
-    const response = await fetch(`/api/tasks${refresh ? "?refresh=1" : ""}`, {
-      headers: { Accept: "application/json" },
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    state.board = await response.json();
+    const [boardRes, registryRes] = await Promise.all([
+      fetch(`/api/tasks${refresh ? "?refresh=1" : ""}`, { headers: { Accept: "application/json" } }),
+      fetch("/api/tasks/adrs/registry", { headers: { Accept: "application/json" } }),
+    ]);
+    if (!boardRes.ok) throw new Error(`HTTP ${boardRes.status}`);
+    state.board = await boardRes.json();
+    state.registry = registryRes.ok ? await registryRes.json() : null;
     state.error = null;
   } catch (error) {
     state.error = error.message || "network_error";
@@ -79,7 +118,31 @@ async function loadBoard({ refresh = false } = {}) {
   } finally {
     el("loading").hidden = Boolean(state.board);
   }
+  await loadSchedule();
   render();
+}
+
+/** Schedule is its own endpoint: a broken calendar must never blank the board. */
+async function loadSchedule({ anchor = null } = {}) {
+  const query = anchor ? `?anchor=${encodeURIComponent(anchor)}` : "";
+  try {
+    const response = await fetch(`/api/schedule${query}`, { headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    state.schedule = await response.json();
+    state.schedule.error = null;
+  } catch (error) {
+    state.schedule = {
+      ok: false,
+      error: error.message || "network_error",
+      range: null,
+      timezone: "Asia/Ho_Chi_Minh",
+      days: [],
+      meetings: [],
+      upcoming: [],
+      stats: { meetings: 0, deadlines: 0, requiredRoles: [], linkedTasks: 0 },
+    };
+  }
+  renderSchedule();
 }
 
 /** Offline/static fallback so the portal still demos on a pure static host. */
@@ -94,7 +157,7 @@ function demoBoard() {
     generatedAt: now,
     githubReady: false,
     sources: { missionBrief: "project/fde/mission-brief.json", adrDirectory: "project/fde/adr", github: null },
-    kpis: { total: 0, active: 0, open: 0, inProgress: 0, blocked: 0, done: 0, completionPct: 0, adrOpen: 0, adrTotal: 0, gatePassed: 0, gateTotal: 0, criticalOpen: 0 },
+    kpis: { total: 0, active: 0, open: 0, inProgress: 0, blocked: 0, done: 0, completionPct: 0, adrOpen: 0, adrTotal: 0, adrAccepted: 0, adrProposed: 0, gatePassed: 0, gateTotal: 0, criticalOpen: 0 },
     owners: [],
     tasks: [],
     adrs: [],
@@ -134,6 +197,8 @@ function render() {
   renderTaskList();
   renderKanban(board);
   renderAdrs(board);
+  renderAdrRegistry();
+  renderSchedule();
   renderGates(board);
   renderMetrics(board);
   syncFilterControls(board);
@@ -144,7 +209,7 @@ function renderHero(board) {
   el("heroTitle").textContent = board.mission || "Game9K project mission";
   el("heroSub").textContent =
     `Project ${board.projectId || "—"} · ${board.kpis.active} task còn mở · ` +
-    `${board.kpis.criticalOpen} việc P0/P1 · ${board.kpis.adrOpen}/${board.kpis.adrTotal} ADR còn mở · ` +
+    `${board.kpis.criticalOpen} việc P0/P1 · ${board.kpis.adrAccepted}/${board.kpis.adrTotal} ADR đã chốt · ` +
     `cập nhật ${relativeTime(board.generatedAt)}`;
   el("heroBadges").innerHTML = [
     `<span class="chip chip-info">${escapeHtml(board.projectId || "—")}</span>`,
@@ -161,7 +226,13 @@ function renderKpis(board) {
     { label: "Blocked", value: k.blocked, foot: "cần gỡ để ship", alert: k.blocked > 0 },
     { label: "P0 / P1 mở", value: k.criticalOpen, foot: "ưu tiên nhà đầu tư", alert: k.criticalOpen > 0 },
     { label: "Hoàn thành", value: `${k.completionPct}%`, foot: `${k.done}/${k.total} task`, alert: false, good: k.completionPct >= 60 },
-    { label: "ADR mở", value: `${k.adrOpen}/${k.adrTotal}`, foot: "decision log", alert: false },
+    {
+      label: "ADR đã chốt",
+      value: `${k.adrAccepted}/${k.adrTotal}`,
+      foot: `${k.adrProposed} đang proposed`,
+      alert: k.adrProposed > 0,
+      good: k.adrProposed === 0 && k.adrTotal > 0,
+    },
   ];
   el("kpiGrid").innerHTML = cards
     .map(
@@ -423,8 +494,219 @@ function renderKanban(board) {
     .join("");
 }
 
+/* ------------------------------------------------------------- schedule */
+/**
+ * Week strip + timed event rows, mirroring the reference layout:
+ * `Mo 15 … Su 21` with today circled, then "Kickoff Meeting · 01:00 PM to
+ * 02:30 PM" rows carrying stacked attendee avatars.
+ */
+function eventRow(meeting) {
+  const kind = meeting.kind || "meeting";
+  const roles = meeting.attendeeRoles?.length
+    ? meeting.attendeeRoles
+    : (meeting.attendees || []).map((attendee) => attendee.role);
+  const avatars = roles
+    .slice(0, 3)
+    .map((role) => `<span class="avatar" title="${escapeHtml(role)}">${escapeHtml(initials(role))}</span>`)
+    .join("");
+  const overflow = roles.length > 3
+    ? `<span class="avatar more" title="${escapeHtml(roles.slice(3).join(", "))}">+${roles.length - 3}</span>`
+    : "";
+  return `
+    <div class="event-row kind-${escapeHtml(kind)}">
+      <div class="event-time">
+        <span>${clockLabel(meeting.start)}</span>
+        <span>${clockLabel(meeting.end)}</span>
+      </div>
+      <div class="event-body">
+        <div class="event-title">
+          <span class="event-kind">${escapeHtml(EVENT_KIND_LABEL[kind] || kind)}</span>
+          ${escapeHtml(meeting.title)}
+        </div>
+        <div class="event-meta">
+          <span class="event-range">${formatRange(meeting.start, meeting.end)}</span>
+          <span>👤 ${escapeHtml(meeting.owner || "—")}</span>
+          ${meeting.location ? `<span>📍 ${escapeHtml(meeting.location)}</span>` : ""}
+          ${
+            meeting.linkedTask
+              ? `<a href="#tasks" class="link" data-view="tasks">${escapeHtml(meeting.linkedTask.id)} · ${escapeHtml(meeting.linkedTask.priority || "")}</a>`
+              : ""
+          }
+        </div>
+      </div>
+      <div class="event-side">
+        <span class="avatar-stack">${avatars}${overflow}</span>
+        <button class="icon-btn sm" data-event-menu="${escapeHtml(meeting.id)}" aria-label="Tùy chọn sự kiện">⋯</button>
+      </div>
+    </div>`;
+}
+
+function deadlineRow(entry) {
+  return `
+    <div class="event-row is-deadline">
+      <div class="event-time"><span>Deadline</span><span>${escapeHtml(entry.kind)}</span></div>
+      <div class="event-body">
+        <div class="event-title">${escapeHtml(entry.title)}</div>
+        <div class="event-meta">
+          <span>👤 ${escapeHtml(entry.owner || "—")}</span>
+          <span>🔖 ${escapeHtml(entry.id || "")}</span>
+        </div>
+      </div>
+      <div class="event-side"></div>
+    </div>`;
+}
+
+function renderSchedule() {
+  const week = state.schedule;
+  const targets = [
+    { strip: "weekStrip", list: "scheduleList", foot: "scheduleFoot", range: "scheduleRange", limitDays: true },
+    { strip: "weekStripFull", list: "scheduleListFull", foot: "scheduleFootFull", range: "scheduleViewRange", limitDays: false },
+  ];
+
+  for (const target of targets) {
+    const strip = el(target.strip);
+    const list = el(target.list);
+    const foot = el(target.foot);
+    const range = el(target.range);
+    if (!strip || !list) continue;
+
+    if (!week || !week.days?.length) {
+      strip.innerHTML = "";
+      const reason = week?.error ? `Không tải được lịch (${week.error})` : "Đang tải lịch…";
+      list.innerHTML = `<div class="schedule-empty">${escapeHtml(reason)}</div>`;
+      if (foot) foot.innerHTML = "";
+      if (range) range.textContent = "—";
+      continue;
+    }
+
+    const selected = state.weekAnchor && week.days.some((day) => day.date === state.weekAnchor)
+      ? state.weekAnchor
+      : week.days.find((day) => day.isToday)?.date || week.days[0].date;
+
+    if (range) {
+      const start = week.days[0];
+      const end = week.days[6];
+      // Cross-month weeks keep the month so "Su 6" can never be read as Nov 6.
+      const crossesMonth = start.date.slice(0, 7) !== end.date.slice(0, 7);
+      const label = (day) =>
+        crossesMonth ? `${day.short} ${day.dayOfMonth}/${day.date.slice(5, 7)}` : `${day.short} ${day.dayOfMonth}`;
+      range.textContent = `${label(start)} – ${label(end)}`;
+    }
+
+    strip.innerHTML = week.days
+      .map((day) => {
+        const classes = ["week-day"];
+        if (day.isToday) classes.push("is-today");
+        if (day.date === selected) classes.push("is-selected");
+        return `<button class="${classes.join(" ")}" data-day="${day.date}" title="${escapeHtml(day.label)} ${day.dayOfMonth}">
+          <span class="wd-label">${day.short}</span>
+          <span class="wd-num">${day.dayOfMonth}</span>
+          <span class="wd-dot ${day.meetings.length ? "has-event" : ""}"></span>
+        </button>`;
+      })
+      .join("");
+
+    // Compact card shows the selected day; the Schedule view shows the week.
+    const visibleDays = target.limitDays ? week.days.filter((day) => day.date === selected) : week.days;
+    const blocks = visibleDays
+      .map((day) => {
+        const rows = [...day.meetings.map(eventRow), ...day.deadlines.map(deadlineRow)];
+        if (!rows.length) return "";
+        return `<div class="schedule-day-label">${escapeHtml(day.label)} · ${day.dayOfMonth}</div>${rows.join("")}`;
+      })
+      .join("");
+    list.innerHTML = blocks || '<div class="schedule-empty">Không có cuộc họp nào trong ngày này.</div>';
+
+    if (foot) {
+      const stats = week.stats || {};
+      const link = target.limitDays
+        ? '<a href="#schedule" class="link" data-view="schedule">Xem cả tuần →</a>'
+        : "";
+      foot.innerHTML = `
+        <span>${stats.meetings ?? 0} cuộc họp · ${stats.deadlines ?? 0} deadline tuần này ${link}</span>
+        <span>${escapeHtml(week.timezone || "Asia/Ho_Chi_Minh")} · ${week.days[0].date} → ${week.days[6].date}</span>`;
+    }
+  }
+}
+
+async function shiftWeek(days) {
+  const week = state.schedule;
+  if (!week?.days?.length) return;
+  const base = state.weekAnchor || week.days.find((day) => day.isToday)?.date || week.days[0].date;
+  const next = shiftDays(base, days);
+  state.weekAnchor = next;
+  await loadSchedule({ anchor: next });
+}
+
+/* --------------------------------------------------- ADR governance panel */
+/** Lifecycle + lineage + findings + graph, straight from `/api/tasks/adrs/registry`. */
+function renderAdrRegistry() {
+  const registry = state.registry;
+  if (!el("adrGraph")) return;
+
+  if (!registry) {
+    el("adrGraph").innerHTML = '<div class="empty">Không đọc được ADR registry</div>';
+    if (el("adrFindings")) el("adrFindings").innerHTML = "";
+    if (el("adrGraphChip")) el("adrGraphChip").textContent = "—";
+    return;
+  }
+
+  const summary = registry.summary || {};
+  if (el("adrGraphChip")) {
+    el("adrGraphChip").textContent = `${summary.ok ? "0 error" : `${summary.errors} error`} · next ${summary.nextId || "—"}`;
+    el("adrGraphChip").className = `chip ${summary.ok ? "chip-good" : "chip-warn"}`;
+  }
+
+  const graph = registry.graph || { nodes: [], edges: [] };
+  const edgesByFrom = new Map();
+  for (const edge of graph.edges || []) {
+    if (!edgesByFrom.has(edge.from)) edgesByFrom.set(edge.from, []);
+    edgesByFrom.get(edge.from).push(edge);
+  }
+
+  el("adrGraph").innerHTML = (graph.nodes || []).length
+    ? graph.nodes
+        .map((node) => {
+          const outgoing = edgesByFrom.get(node.id) || [];
+          return `
+        <div class="adr-graph-node">
+          <span class="gn-id">${escapeHtml(node.id)}</span>
+          <span class="adr-status ${node.status === "accepted" ? "is-reached" : ""}">${escapeHtml(node.status)}</span>
+          <span>${escapeHtml(node.title)}</span>
+        </div>
+        ${outgoing
+          .filter((edge) => edge.kind !== "shared-task")
+          .map((edge) => `<div class="adr-graph-edge">↳ ${escapeHtml(edge.kind)} → <code>${escapeHtml(edge.to)}</code> ${escapeHtml(edge.reason || "")}</div>`)
+          .join("")}`;
+        })
+        .join("")
+    : '<div class="empty">Chưa có ADR nào để vẽ graph</div>';
+
+  const findings = registry.findings || [];
+  if (el("adrFindings")) {
+    el("adrFindings").innerHTML = findings.length
+      ? findings
+          .map(
+            (finding) => `
+        <div class="adr-finding ${finding.severity === "error" ? "error" : "warn"}">
+          <span>${finding.severity === "error" ? "⛔" : "⚠️"}</span>
+          <span><b>${escapeHtml(finding.rule)}</b> · ${escapeHtml(finding.adrId || "")} — ${escapeHtml(finding.message)}</span>
+        </div>`
+          )
+          .join("")
+      : '<div class="empty">Không có vi phạm — MADR v4 + hve-core ADR standard đang sạch.</div>';
+  }
+
+  const config = registry.config || {};
+  if (el("adrConfigLine")) {
+    el("adrConfigLine").textContent =
+      `${registry.adrDir || "project/fde/adr"} · template ${config.template_source || "_template.md"} · ` +
+      `last_decision_id ${config.last_decision_id || "—"} · layout ${config.graph_layout || "lane"}`;
+  }
+}
+
 function renderAdrs(board) {
-  el("adrChip").textContent = `${board.kpis.adrOpen}/${board.kpis.adrTotal} open`;
+  el("adrChip").textContent = `${board.kpis.adrAccepted}/${board.kpis.adrTotal} accepted`;
   el("adrList").innerHTML = board.adrs.length
     ? board.adrs
         .map(
@@ -436,10 +718,43 @@ function renderAdrs(board) {
           <span class="adr-title">${escapeHtml(adr.title)}</span>
         </div>
         <div class="adr-meta">
+          ${adr.type ? `<span class="adr-type">${escapeHtml(adr.type)}</span>` : ""}
           <span>📅 ${escapeHtml(adr.date || "—")}</span>
           <span>👥 ${escapeHtml((adr.deciders || []).join(", ") || "—")}</span>
           <span>📄 ${escapeHtml(adr.path)}</span>
         </div>
+        <div class="adr-status-line">
+          ${ADR_LIFECYCLE.map((step) => {
+            const current = step === String(adr.rawStatus || "");
+            return `<span class="adr-status ${current ? "is-current" : ""}">${escapeHtml(step)}</span>`;
+          }).join("")}
+        </div>
+        ${
+          adr.supersedes?.length || adr.supersededBy
+            ? `<div class="adr-lineage">
+                ${adr.supersedes?.length ? `Supersedes <code>${escapeHtml(adr.supersedes.join(", "))}</code>` : ""}
+                ${adr.supersededBy ? ` · Superseded by <code>${escapeHtml(adr.supersededBy)}</code>` : ""}
+              </div>`
+            : ""
+        }
+        ${
+          adr.asrTriggers?.length
+            ? `<div class="adr-lineage">⚡ ASR: ${adr.asrTriggers
+                .map((trigger) => escapeHtml(trigger.kind))
+                .join(", ")}</div>`
+            : ""
+        }
+        ${
+          adr.findings?.length
+            ? `<div class="adr-findings">${adr.findings
+                .map((finding) => {
+                  const icon = finding.severity === "error" ? "⛔" : "⚠️";
+                  const cls = finding.severity === "error" ? "error" : "warn";
+                  return `<div class="adr-finding ${cls}">${icon} ${escapeHtml(finding.rule)}</div>`;
+                })
+                .join("")}</div>`
+            : ""
+        }
         ${
           adr.followUps?.length
             ? `<ul class="adr-fu">${adr.followUps
@@ -519,7 +834,8 @@ const VIEW_META = {
   overview: ["Overview", "Bảng điều hành task còn Open cho nhà đầu tư"],
   tasks: ["All Tasks", "Toàn bộ task từ FDE, ADR và GitHub — lọc theo owner, priority, nguồn"],
   board: ["Kanban", "Luồng công việc: Blocked → In Progress → Open → Done"],
-  adr: ["Decision Logs", "Danh sách ADR và follow-up task sinh ra từ quyết định"],
+  schedule: ["Schedule", "Lịch họp tuần + deadline sinh ra từ delivery gate, ADR và task"],
+  adr: ["Decision Logs", "ADR theo MADR v4 + hve-core: lifecycle, supersession, ASR trigger, graph và follow-up"],
   gates: ["Delivery Gates", "Cổng giao hàng theo vòng đời Forward Deployed Engineering"],
   metrics: ["Success Metrics", "Định nghĩa thành công, target và owner — bằng chứng giá trị"],
 };
@@ -606,11 +922,13 @@ function bindEvents() {
   document.querySelectorAll(".side-item[data-view]").forEach((btn) => {
     btn.addEventListener("click", () => setView(btn.dataset.view));
   });
-  document.querySelectorAll("[data-view].link").forEach((link) => {
-    link.addEventListener("click", (event) => {
-      event.preventDefault();
-      setView(link.dataset.view);
-    });
+  // Delegated: in-card links ("Xem cả tuần →", task id in an event row) are
+  // re-rendered on every refresh, so a per-node listener would go stale.
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest("a.link[data-view]");
+    if (!link) return;
+    event.preventDefault();
+    setView(link.dataset.view);
   });
 
   el("statusFilters").addEventListener("click", (event) => {
@@ -663,6 +981,43 @@ function bindEvents() {
   el("taskForm").addEventListener("submit", submitTask);
 
   el("menuToggle").addEventListener("click", () => el("sidebar").classList.toggle("is-open"));
+
+  // ---- Schedule: week pager + day selection ----
+  for (const id of ["weekPrev", "weekPrevFull"]) {
+    el(id)?.addEventListener("click", () => shiftWeek(-7));
+  }
+  for (const id of ["weekNext", "weekNextFull"]) {
+    el(id)?.addEventListener("click", () => shiftWeek(7));
+  }
+
+  const dayClick = (event) => {
+    const btn = event.target.closest("[data-day]");
+    if (!btn) return;
+    const date = btn.dataset.day;
+    state.weekAnchor = date;
+    const week = state.schedule;
+    if (week?.days?.length && !week.days.some((day) => day.date === date)) {
+      loadSchedule({ anchor: date });
+      return;
+    }
+    renderSchedule();
+  };
+  el("weekStrip")?.addEventListener("click", dayClick);
+  el("weekStripFull")?.addEventListener("click", dayClick);
+
+  // ---- Event row menu: show the agenda that makes the meeting actionable ----
+  const eventMenu = (event) => {
+    const trigger = event.target.closest("[data-event-menu]");
+    if (!trigger) return;
+    const meeting = (state.schedule?.meetings || []).find((item) => item.id === trigger.dataset.eventMenu);
+    if (!meeting) return;
+    const lines = (meeting.agenda || []).map((line, index) => `${index + 1}. ${line}`);
+    const text = [meeting.title, "", ...lines].join("\n");
+    if (typeof window.alert === "function") window.alert(text);
+  };
+  el("scheduleList")?.addEventListener("click", eventMenu);
+  el("scheduleListFull")?.addEventListener("click", eventMenu);
+
 }
 
 bindEvents();

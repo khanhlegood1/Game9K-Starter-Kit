@@ -39,6 +39,8 @@ import SpliceSpecService from "../src/services/SpliceSpecService.js";
 import CloudEdgeLaunchService from "../src/services/CloudEdgeLaunchService.js";
 import { validateFdeMissionBrief, summarizeFdeMission } from "../src/lib/fdeProject.js";
 import TaskBoardService from "../src/services/TaskBoardService.js";
+import { buildAdrRegistry, suggestAdr, ADR_TRANSITIONS } from "../src/lib/adrRegistry.js";
+import { loadSchedule } from "../src/lib/scheduleBoard.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -61,13 +63,20 @@ function parseArgs(argv) {
     const idx = args.indexOf(flag);
     return idx >= 0 && args[idx + 1] && !args[idx + 1].startsWith("-") ? args[idx + 1] : null;
   };
+  // Sub-command: the second non-flag token, e.g. `g9k adr validate`.
+  const sub = args.filter((a) => !a.startsWith("-"))[1] || null;
   return {
     command,
+    sub,
     json,
     game,
     status: value("--status"),
     priority: value("--priority"),
     github: args.includes("--github"),
+    title: value("--title"),
+    anchor: value("--anchor"),
+    type: value("--type"),
+    decisionStatus: value("--decision-status"),
   };
 }
 
@@ -682,6 +691,135 @@ async function runTasks(opts) {
   });
 }
 
+/**
+ * ADR governance CLI. The registry is the single read model — this command
+ * never re-implements a rule, it only projects it for humans and CI.
+ */
+async function runAdr(opts) {
+  const registry = buildAdrRegistry({ rootDir: ROOT_DIR });
+  const sub = opts.sub || "list";
+
+  if (sub === "next") {
+    const suggestion = suggestAdr({
+      rootDir: ROOT_DIR,
+      title: opts.title,
+      type: opts.type || "network",
+      status: opts.decisionStatus || "proposed",
+    });
+    return emitResult({
+      json: opts.json,
+      ok: true,
+      command: "adr",
+      data: { action: "next", ...suggestion, template: "project/fde/adr/_template.md" },
+    });
+  }
+
+  if (sub === "validate") {
+    const ok = registry.summary.ok;
+    return emitResult({
+      json: opts.json,
+      ok,
+      command: "adr",
+      data: {
+        action: "validate",
+        adrDir: registry.adrDir,
+        configPath: registry.configPath,
+        summary: registry.summary,
+        findings: registry.findings,
+      },
+      warnings: registry.findings
+        .filter((finding) => finding.severity === "warn")
+        .map((finding) => `${finding.rule}: ${finding.message}`),
+      error: ok
+        ? null
+        : {
+            code: "adr_invalid",
+            message: `${registry.summary.errors} ADR error(s) — run \`npm run g9k -- adr validate\` for the list.`,
+          },
+    });
+  }
+
+  if (sub === "graph") {
+    return emitResult({
+      json: opts.json,
+      ok: true,
+      command: "adr",
+      data: {
+        action: "graph",
+        layout: registry.config.graph_layout || "lane",
+        ...registry.graph,
+      },
+    });
+  }
+
+  // list (default)
+  return emitResult({
+    json: opts.json,
+    ok: true,
+    command: "adr",
+    data: {
+      action: "list",
+      adrDir: registry.adrDir,
+      config: registry.config,
+      summary: registry.summary,
+      transitions: ADR_TRANSITIONS,
+      adrs: registry.adrs.map((adr) => ({
+        id: adr.id,
+        title: adr.title,
+        type: adr.type,
+        status: adr.status,
+        date: adr.date,
+        deciders: adr.deciders,
+        path: adr.path,
+        supersedes: adr.supersedes,
+        supersededBy: adr.supersededBy,
+        followUps: adr.followUps,
+      })),
+      findings: registry.findings,
+    },
+  });
+}
+
+/** Week view of `project/fde/schedule.json` — the portal Schedule card, in CLI form. */
+async function runSchedule(opts) {
+  const service = new TaskBoardService({ token: "", fetchImpl: null });
+  const week = service.getSchedule({ anchor: opts.anchor });
+  return emitResult({
+    json: opts.json,
+    ok: week.ok,
+    command: "schedule",
+    data: {
+      range: week.range,
+      timezone: week.timezone,
+      grid: week.grid,
+      anchor: week.anchor,
+      path: week.path,
+      days: week.days.map((day) => ({
+        date: day.date,
+        short: day.short,
+        label: day.label,
+        isToday: day.isToday,
+        meetings: day.meetings.map((meeting) => ({
+          id: meeting.id,
+          title: meeting.title,
+          start: meeting.start,
+          end: meeting.end,
+          kind: meeting.kind,
+          owner: meeting.owner,
+          attendees: meeting.attendeeRoles,
+          linkedTask: meeting.linkedTask,
+        })),
+        deadlines: day.deadlines,
+      })),
+      upcoming: week.upcoming,
+      stats: week.stats,
+      validation: week.validation,
+    },
+    warnings: week.error ? [`Schedule ${week.error}: ${week.message || "see project/fde/schedule.json"}`] : [],
+    error: week.ok ? null : { code: week.error, message: week.message || "Schedule is invalid." },
+  });
+}
+
 async function runDecide(opts) {
   const service = new ProjectDecisionsService();
   const report = await service.runFullProjectAudit({
@@ -803,6 +941,8 @@ else if (opts.command === "doctor") await runDoctor(opts);
 else if (opts.command === "decide") await runDecide(opts);
 else if (opts.command === "fde" || opts.command === "project") await runFde(opts);
 else if (opts.command === "tasks") await runTasks(opts);
+else if (opts.command === "adr") await runAdr(opts);
+else if (opts.command === "schedule") await runSchedule(opts);
 else if (opts.command === "codegen") runCodegen(opts);
 else if (opts.command === "deploy") await runDeploy(opts);
 else {
@@ -816,6 +956,8 @@ Usage:
   npm run g9k -- decide [--json]
   npm run g9k -- fde [--json]
   npm run g9k -- tasks [--status blocked] [--priority P0] [--github] [--json]
+  npm run g9k -- adr [list|next|validate|graph] [--title "..."] [--type network|use-case] [--json]
+  npm run g9k -- schedule [--anchor YYYY-MM-DD] [--json]
   npm run g9k -- codegen [--game dino-race] [--json]
   npm run g9k -- deploy [--game dino-race] [--json]`);
 }

@@ -7,7 +7,8 @@
 Một board task chỉ có giá trị nếu nó không lệch khỏi nguồn sự thật. Game9K đã có:
 
 - `project/fde/mission-brief.json` — mission, Delta, next action, risk, gate, metric.
-- `project/fde/adr/*.md` — quyết định kiến trúc + follow-up.
+- `project/fde/adr/*.md` — quyết định kiến trúc + follow-up (MADR v4 + hve-core, xem `docs/ADR-GOVERNANCE.md`).
+- `project/fde/schedule.json` — lịch họp thật của tuần (UAT, review, gate check, investor sync).
 - GitHub Issues/PRs — nơi kỹ thuật thực sự làm việc.
 
 Portal **gộp ba nguồn này** thành một board, thay vì tạo bảng thứ tư để rồi trôi khỏi thực tế. Vì vậy:
@@ -16,17 +17,19 @@ Portal **gộp ba nguồn này** thành một board, thay vì tạo bảng thứ
 | --- | --- | --- |
 | Đổi ưu tiên/owner của một next action | `project/fde/mission-brief.json` | Task `fde-00x` cập nhật ngay |
 | Gỡ/ thêm blocker | `risks[]` trong mission brief | Cột **Blocked** + Notes |
-| Chốt một quyết định | `project/fde/adr/ADR-00x.md` | **Decision Logs** + follow-up task |
+| Chốt một quyết định | `project/fde/adr/NNNN-kebab-case-title.md` | **Decision Logs** + follow-up task + ADR graph |
+| Đặt lịch họp / review / gate check | `project/fde/schedule.json` | Thẻ **Schedule** + màn hình Schedule |
 | Việc kỹ thuật đang mở | GitHub issue/PR | Task `GH-*` / `PR-*` |
 
 ## 2. Cấu trúc màn hình
 
 | Màn hình | Nội dung |
 | --- | --- |
-| **Overview** | Hero mission + KPI (task mở, in progress, blocked, P0/P1, % hoàn thành, ADR mở), "Ưu tiên xử lý ngay", tải theo owner, bảng task đang mở, timeline delivery gates, Notes rủi ro, Activity |
+| **Overview** | Hero mission + KPI (task mở, in progress, blocked, P0/P1, % hoàn thành, ADR mở), "Ưu tiên xử lý ngay", tải theo owner, bảng **My Projects** (task đang mở), timeline delivery gates, thẻ **Schedule** ngay dưới My Projects, Notes rủi ro, Activity |
 | **All Tasks** | Danh sách đầy đủ, lọc theo status / owner / priority / nguồn + tìm kiếm full-text |
 | **Kanban** | 4 cột Blocked → In Progress → Open → Done |
-| **Decision Logs** | Mọi ADR kèm status, deciders, follow-up task sinh ra từ quyết định |
+| **Schedule** | Week strip Mo→Su (hôm nay khoanh tròn màu brand), `‹ ›` sang tuần trước/sau, event row `00:00 PM to 00:00 PM` + avatar chồng nhau, deadline suy ra từ gate/ADR/task |
+| **Decision Logs** | Mọi ADR: type, lifecycle (`proposed → accepted → deprecated → superseded`), supersession lineage, ASR trigger, governance findings, ADR graph và follow-up task |
 | **Delivery Gates** | 5 cổng theo vòng đời FDE + exit criteria |
 | **Success Metrics** | Definition, target, owner, trạng thái bằng chứng |
 
@@ -38,6 +41,8 @@ Mỗi task hiển thị: `id`, priority (P0–P3), status, nguồn (FDE / Risk /
 | --- | --- |
 | `GET /api/tasks` | Board đầy đủ. Query: `status`, `owner`, `priority`, `source`, `q`, `github=0`, `refresh=1` |
 | `GET /api/tasks/adrs` | Danh sách ADR đã parse (status, deciders, follow-up) |
+| `GET /api/tasks/adrs/registry` | ADR registry đầy đủ: findings MADR v4, supersession graph, summary + `nextId` |
+| `GET /api/schedule?anchor=YYYY-MM-DD` | Một tuần lịch (Mon→Sun): meetings, deadlines suy ra, `upcoming`, `stats`, `validation` |
 | `POST /api/tasks` | Tạo task → GitHub Issue nếu có token, ngược lại trả lệnh `gh` + link tạo issue |
 
 Response chính:
@@ -47,11 +52,15 @@ Response chính:
   "ok": true,
   "projectId": "game9k-live-interaction",
   "kpis": { "total": 6, "active": 6, "open": 2, "inProgress": 2, "blocked": 2,
-            "done": 0, "completionPct": 0, "adrOpen": 0, "adrTotal": 1,
+            "done": 0, "completionPct": 0, "adrOpen": 0, "adrInForce": 3, "adrTotal": 3,
+            "adrAccepted": 3, "adrProposed": 0,
             "gatePassed": 3, "gateTotal": 5, "criticalOpen": 5 },
   "owners": [{ "name": "Product", "total": 2, "blocked": 2, "...": "..." }],
   "tasks": [{ "id": "fde-001", "priority": "P0", "status": "open", "source": "fde-action" }],
-  "adrs": [{ "id": "ADR-001", "status": "Accepted", "statusKey": "done", "followUps": [] }],
+  "adrs": [{ "id": "0001", "status": "Accepted", "statusKey": "done", "rawStatus": "accepted", "type": "network", "followUps": [] }],
+  "adrGraph": { "nodes": [{ "id": "0001" }, { "id": "0002" }], "edges": [{ "from": "0001", "to": "0002", "kind": "related" }] },
+  "adrFindings": [],
+  "adrSummary": { "total": 2, "errors": 0, "warnings": 0, "nextId": "0004" },
   "gates": [{ "id": "site-survey", "status": "done" }],
   "metrics": [{ "id": "creator_setup_minutes", "status": "open" }],
   "githubReady": false,
@@ -59,11 +68,23 @@ Response chính:
 }
 ```
 
+### Ý nghĩa các KPI ADR
+
+| KPI | Nghĩa |
+| --- | --- |
+| `adrTotal` | Tổng số ADR trong `project/fde/adr/` |
+| `adrOpen` | ADR **còn phải chốt** (`proposed` / `withdrawn`) — con số này mới là "việc còn mở" |
+| `adrInForce` | ADR còn hiệu lực (`proposed` / `accepted` / `deprecated`) |
+| `adrAccepted` / `adrProposed` | Đã chốt / đang chờ chốt, dùng cho KPI "ADR đã chốt" trên Overview |
+
+Trước đây `adrOpen` đếm cả ADR `accepted`, nên một dự án đã chốt hết vẫn hiện `open 3 / total 3` — dễ đọc thành "chưa quyết gì". Từ bản này `adrOpen` chỉ còn việc thật sự chờ chốt.
+
 ### Suy giảm an toàn
 
 - Không có mạng / GitHub API lỗi → board vẫn render FDE + ADR tasks, `githubReady: false`, thanh bên hiện **"GitHub offline — dùng FDE + ADR"**.
 - Vercel static (không có Express API) → UI rơi về **static mode** và báo rõ.
 - Thiếu `GITHUB_TOKEN` khi tạo task → trả `command` (`gh issue create …`) và `newIssueUrl`, không tạo dữ liệu ma.
+- `project/fde/schedule.json` thiếu/hỏng → thẻ Schedule báo lỗi cục bộ, board FDE + ADR **không** bị ảnh hưởng (schedule là endpoint riêng).
 
 ## 4. CLI
 
@@ -72,6 +93,11 @@ npm run tasks                       # board từ FDE + ADR (không gọi GitHub)
 node cli/g9k.js tasks --json        # envelope JSON cho CI
 node cli/g9k.js tasks --status blocked --json
 node cli/g9k.js tasks --priority P0 --github --json
+npm run adr                         # list ADR + lifecycle + findings
+npm run adr -- validate             # fail (exit 1) nếu ADR vi phạm MADR v4 / hve-core
+npm run adr -- next --title "Chọn nhà cung cấp gift overlay"
+npm run adr -- graph
+npm run schedule -- --anchor 2026-11-26   # tuần chứa ngày đó
 ```
 
 `--github` cần `G9K_GH_API_TOKEN` (tách khỏi token của Arena/git để tránh vô tình dùng credential ngoài ý muốn).
@@ -107,3 +133,10 @@ npm test
 ```
 
 Test cover: chuẩn hoá status/priority, parse ADR (kể cả file lỗi), dedupe follow-up theo id và title, xếp hạng KPI, lọc task, cache GitHub, suy giảm khi API lỗi/401, tạo task qua `gh` và qua GitHub API, cùng smoke test cho `/tasks.html`, CSS và JS (không hardcode localhost).
+
+Thêm cho lượt này:
+
+```bash
+node --test test/adr-registry.test.js     # frontmatter, validator, graph, CLI `g9k adr`
+node --test test/schedule-board.test.js   # week grid, overlap, deadline suy ra, /api/schedule
+```

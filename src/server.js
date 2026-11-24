@@ -438,6 +438,44 @@ export function createGame9KServer(options = {}) {
     res.json({ ok: true, adrs: taskBoardService.loadAdrs() });
   });
 
+  // Governance view: MADR v4 findings + supersession graph, straight from the
+  // ADR registry so the portal never re-implements the rules.
+  app.get("/api/tasks/adrs/registry", (_req, res) => {
+    const registry = taskBoardService.loadAdrRegistry();
+    res.json({
+      ok: registry.summary.ok,
+      config: registry.config,
+      configPath: registry.configPath,
+      adrDir: registry.adrDir,
+      adrs: registry.adrs.map((adr) => ({
+        id: adr.id,
+        title: adr.title,
+        type: adr.type,
+        status: adr.status,
+        statusLabel: adr.statusLabel,
+        date: adr.date,
+        deciders: adr.deciders,
+        path: adr.path,
+        supersedes: adr.supersedes,
+        supersededBy: adr.supersededBy,
+        asrTriggers: adr.asrTriggers,
+        followUps: adr.followUps,
+      })),
+      findings: registry.findings,
+      graph: registry.graph,
+      summary: registry.summary,
+    });
+  });
+
+  // Schedule card: one week at a time; pass ?anchor=YYYY-MM-DD to page weeks.
+  app.get("/api/schedule", (req, res) => {
+    const anchor = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.anchor || ""))
+      ? String(req.query.anchor)
+      : null;
+    const week = taskBoardService.getSchedule({ anchor });
+    res.json({ schema_version: 1, ...week });
+  });
+
   app.post("/api/tasks", async (req, res) => {
     const result = await taskBoardService.createTask(req.body || {});
     if (!result.ok) return res.status(400).json(result);
