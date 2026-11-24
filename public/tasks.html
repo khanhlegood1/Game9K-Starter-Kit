@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Game9K Tasks — Bảng điều hành dự án cho nhà đầu tư</title>
+  <meta name="description" content="Bảng task trực quan cho Game9K: task còn Open từ GitHub, next action FDE, open ADR, blocker và metric — tất cả đọc trực tiếp từ repository." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/tasks/tasks.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark">🦖</div>
+        <div>
+          <div class="brand-name">Game9K</div>
+          <div class="brand-sub">Tasks Workspace</div>
+        </div>
+      </div>
+
+      <nav class="side-nav">
+        <div class="side-label">Workspace</div>
+        <button class="side-item is-active" data-view="overview">📊 <span>Overview</span></button>
+        <button class="side-item" data-view="tasks">🗂️ <span>All Tasks</span><em id="navCount">0</em></button>
+        <button class="side-item" data-view="board">🧩 <span>Kanban</span></button>
+        <button class="side-item" data-view="adr">📜 <span>Decision Logs</span><em id="navAdr">0</em></button>
+        <button class="side-item" data-view="gates">🛡️ <span>Delivery Gates</span></button>
+        <button class="side-item" data-view="metrics">📏 <span>Success Metrics</span></button>
+
+        <div class="side-label">Tài nguyên</div>
+        <a class="side-item" href="/decisions.html">🧠 <span>Decisions Studio</span></a>
+        <a class="side-item" href="/index.html">🎮 <span>KOL Launcher Hub</span></a>
+        <a class="side-item" href="/portal.html">🛡️ <span>Sandbox Portal</span></a>
+        <a class="side-item" href="https://github.com/khanhlegood1/Game9K-Starter-Kit/issues" target="_blank" rel="noopener">🐙 <span>GitHub Issues</span></a>
+      </nav>
+
+      <div class="side-foot">
+        <div class="git-state" id="githubState">GitHub: đang kiểm tra…</div>
+        <div class="side-foot-note">Dữ liệu đọc trực tiếp từ <code>project/fde</code> + GitHub API</div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <header class="topbar">
+        <button class="icon-btn" id="menuToggle" aria-label="Mở menu">☰</button>
+        <div class="topbar-title">
+          <h1 id="viewTitle">Overview</h1>
+          <p id="viewSub">Bảng điều hành task còn Open cho nhà đầu tư</p>
+        </div>
+        <div class="topbar-actions">
+          <div class="search-wrap">
+            <span aria-hidden="true">🔎</span>
+            <input id="search" type="search" placeholder="Tìm task, ADR, owner…" autocomplete="off" />
+          </div>
+          <button class="btn btn-ghost" id="refreshBtn">↻ Refresh</button>
+          <button class="btn btn-primary" id="newTaskBtn">＋ Add Task</button>
+        </div>
+      </header>
+
+      <div class="scroll-area">
+        <div id="loading" class="loading">Đang tải dữ liệu từ repository…</div>
+
+        <!-- OVERVIEW -->
+        <section class="view" id="view-overview" hidden>
+          <div class="hero">
+            <div>
+              <p class="hero-eyebrow" id="heroEyebrow">FDE CONTROL PLANE</p>
+              <h2 class="hero-title" id="heroTitle">Đang tải…</h2>
+              <p class="hero-sub" id="heroSub"></p>
+            </div>
+            <div class="hero-badges" id="heroBadges"></div>
+          </div>
+
+          <div class="kpi-grid" id="kpiGrid"></div>
+
+          <div class="two-col">
+            <div class="card">
+              <div class="card-head">
+                <h3>⚡ Ưu tiên xử lý ngay</h3>
+                <span class="chip chip-warn" id="criticalChip">0 critical</span>
+              </div>
+              <div class="priority-list" id="priorityList"></div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h3>👥 Tải theo owner</h3>
+                <span class="chip">theo task còn mở</span>
+              </div>
+              <div class="owner-list" id="ownerList"></div>
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div class="card">
+              <div class="card-head">
+                <h3>🗂️ My Projects — task đang mở</h3>
+                <a class="link" data-view="tasks" href="#tasks">Xem tất cả →</a>
+              </div>
+              <div class="table-wrap">
+                <table class="task-table">
+                  <thead>
+                    <tr><th>Task</th><th>Owner</th><th>Priority</th><th>Status</th></tr>
+                  </thead>
+                  <tbody id="overviewTasks"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h3>📅 Tiến độ theo tuần</h3>
+                <span class="chip">delivery gates</span>
+              </div>
+              <div class="timeline" id="gateTimeline"></div>
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div class="card">
+              <div class="card-head"><h3>📝 Notes &amp; rủi ro cần nhà đầu tư biết</h3></div>
+              <div class="notes" id="notesList"></div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h3>🕒 Activity</h3>
+                <span class="chip" id="generatedChip">—</span>
+              </div>
+              <div class="activity" id="activityList"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ALL TASKS -->
+        <section class="view" id="view-tasks" hidden>
+          <div class="filter-bar">
+            <div class="filter-group" id="statusFilters" role="group" aria-label="Lọc theo trạng thái">
+              <button class="filter is-active" data-filter="status" data-value="all">Tất cả</button>
+              <button class="filter" data-filter="status" data-value="open">Open</button>
+              <button class="filter" data-filter="status" data-value="in_progress">In Progress</button>
+              <button class="filter" data-filter="status" data-value="blocked">Blocked</button>
+              <button class="filter" data-filter="status" data-value="done">Done</button>
+            </div>
+            <div class="filter-row">
+              <select class="select" id="ownerFilter" aria-label="Lọc theo owner"><option value="all">Mọi owner</option></select>
+              <select class="select" id="priorityFilter" aria-label="Lọc theo priority">
+                <option value="all">Mọi priority</option>
+                <option value="P0">P0</option><option value="P1">P1</option><option value="P2">P2</option><option value="P3">P3</option>
+              </select>
+              <select class="select" id="sourceFilter" aria-label="Lọc theo nguồn">
+                <option value="all">Mọi nguồn</option>
+                <option value="fde-action">FDE Next Action</option>
+                <option value="fde-risk">FDE Risk</option>
+                <option value="adr">ADR Follow-up</option>
+                <option value="github-issue">GitHub Issue</option>
+                <option value="github-pr">GitHub PR</option>
+              </select>
+            </div>
+          </div>
+          <div class="task-list" id="taskList"></div>
+        </section>
+
+        <!-- KANBAN -->
+        <section class="view" id="view-board" hidden>
+          <div class="kanban" id="kanban"></div>
+        </section>
+
+        <!-- ADR -->
+        <section class="view" id="view-adr" hidden>
+          <div class="card">
+            <div class="card-head">
+              <h3>📜 Architecture Decision Records</h3>
+              <span class="chip" id="adrChip">—</span>
+            </div>
+            <div class="adr-list" id="adrList"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>🔗 Follow-up task sinh ra từ ADR</h3></div>
+            <div class="task-list" id="adrFollowUps"></div>
+          </div>
+        </section>
+
+        <!-- GATES -->
+        <section class="view" id="view-gates" hidden>
+          <div class="card">
+            <div class="card-head"><h3>🛡️ Delivery Gates (FDE lifecycle)</h3><span class="chip" id="gateChip">—</span></div>
+            <div class="gate-list" id="gateList"></div>
+          </div>
+        </section>
+
+        <!-- METRICS -->
+        <section class="view" id="view-metrics" hidden>
+          <div class="card">
+            <div class="card-head"><h3>📏 Success Metrics — bằng chứng giá trị cho nhà đầu tư</h3></div>
+            <div class="metric-list" id="metricList"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- ADD TASK MODAL -->
+  <div class="modal-backdrop" id="modal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h3 id="modalTitle">Thêm task mới</h3>
+        <button class="icon-btn" id="modalClose" aria-label="Đóng">✕</button>
+      </div>
+      <p class="modal-note">
+        Task được tạo thành GitHub Issue để giữ một nguồn sự thật duy nhất — không tạo database song song.
+        Nếu server chưa có <code>GITHUB_TOKEN</code>, portal trả về lệnh <code>gh</code> và link tạo issue sẵn.
+      </p>
+      <form id="taskForm" class="modal-form">
+        <label>Tiêu đề *<input id="fTitle" required maxlength="160" placeholder="VD: Instrument p95 latency cho heat PK" /></label>
+        <label>Mô tả<textarea id="fDesc" rows="3" placeholder="Bối cảnh, phạm vi, Definition of Done…"></textarea></label>
+        <div class="form-grid">
+          <label>Priority
+            <select id="fPriority"><option>P0</option><option selected>P1</option><option>P2</option><option>P3</option></select>
+          </label>
+          <label>Owner<input id="fOwner" placeholder="Gateway Squad" /></label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="modalCancel">Huỷ</button>
+          <button type="submit" class="btn btn-primary" id="submitTask">Tạo task</button>
+        </div>
+        <div id="taskResult" class="task-result" hidden></div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/tasks/tasks.js"></script>
+</body>
+</html>

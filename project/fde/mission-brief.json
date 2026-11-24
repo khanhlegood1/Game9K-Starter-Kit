@@ -249,6 +249,22 @@
       "priority": "P2",
       "status": "blocked",
       "definition_of_done": "A confirmed slug and owner are added before dinosaur-specific scope is expanded."
+    },
+    {
+      "id": "fde-005",
+      "title": "Attach GITHUB_TOKEN to the Vercel project so the Tasks portal reads live issues and can create tasks",
+      "owner": "Studio Engineering",
+      "priority": "P1",
+      "status": "pending",
+      "definition_of_done": "Production deployment returns githubReady=true from /api/tasks and a portal-created task appears as a GitHub issue."
+    },
+    {
+      "id": "fde-006",
+      "title": "Cross-link task board, ADRs and delivery gates in the Weekly Executive Summary",
+      "owner": "Product",
+      "priority": "P2",
+      "status": "pending",
+      "definition_of_done": "Weekly summary shows task id ↔ ADR ↔ gate so investors can reconcile the board with the report."
     }
   ],
   "artifacts": [
@@ -257,6 +273,9 @@
     { "id": "scoping-prd", "kind": "scope_contract", "path": "project/fde/technical-scoping-prd.md" },
     { "id": "deployment-architecture", "kind": "architecture", "path": "project/fde/deployment-architecture.md" },
     { "id": "adr-001", "kind": "decision_record", "path": "project/fde/adr/ADR-001-mission-delta-and-live-contract.md" },
+    { "id": "adr-002", "kind": "decision_record", "path": "project/fde/adr/ADR-002-investor-task-board-source-of-truth.md" },
+    { "id": "tasks-portal-doc", "kind": "operating_policy", "path": "docs/TASKS-PORTAL.md" },
+    { "id": "tasks-portal-ui", "kind": "delivery_surface", "path": "public/tasks.html" },
     { "id": "weekly-summary", "kind": "executive_status", "path": "project/fde/weekly-executive-summary.md" },
     { "id": "marble-manifest", "kind": "game_contract", "path": "public/games/marble-race-live/game9k.manifest.json" },
     { "id": "normalizer", "kind": "data_contract", "path": "src/lib/streamEventNormalizer.js" },

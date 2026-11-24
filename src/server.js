@@ -23,6 +23,7 @@ import avatarProxy from "./services/AvatarProxyService.js";
 import ProjectDecisionsService, {
   GAME9K_DECISION_PRESETS,
 } from "./services/ProjectDecisionsService.js";
+import TaskBoardService from "./services/TaskBoardService.js";
 import XsollaCommerceService from "./services/XsollaCommerceService.js";
 import PosEconomyService from "./services/PosEconomyService.js";
 import SpliceSpecService from "./services/SpliceSpecService.js";
@@ -67,6 +68,7 @@ export function createGame9KServer(options = {}) {
     liveRoomHub,
     openRouter: openRouterService,
   });
+  const taskBoardService = options.taskBoard || new TaskBoardService();
   const xsollaService = new XsollaCommerceService({
     ...(options.xsolla || {}),
     posEconomy: posService,
@@ -409,6 +411,37 @@ export function createGame9KServer(options = {}) {
     const headerKey = req.headers["x-goog-api-key"] || req.body?.apiKey || "";
     const report = await decisionsService.runFdeProjectAudit({ apiKey: headerKey });
     res.json({ ok: report.validation.ok, ...report });
+  });
+
+  // ==========================================================================
+  // REST API: INVESTOR TASKS PORTAL (FDE + ADR + GITHUB OPEN WORK)
+  // ==========================================================================
+
+  const taskFilters = (query = {}) => ({
+    status: query.status || "all",
+    owner: query.owner || "all",
+    priority: query.priority || "all",
+    source: query.source || "all",
+    query: query.q || "",
+  });
+
+  app.get("/api/tasks", async (req, res) => {
+    const board = await taskBoardService.getBoard({
+      refresh: req.query.refresh === "1" || req.query.refresh === "true",
+      includeGithub: req.query.github !== "0",
+      filters: taskFilters(req.query),
+    });
+    res.json({ ok: true, ...board });
+  });
+
+  app.get("/api/tasks/adrs", (_req, res) => {
+    res.json({ ok: true, adrs: taskBoardService.loadAdrs() });
+  });
+
+  app.post("/api/tasks", async (req, res) => {
+    const result = await taskBoardService.createTask(req.body || {});
+    if (!result.ok) return res.status(400).json(result);
+    return res.json(result);
   });
 
   // ==========================================================================
@@ -1333,6 +1366,7 @@ export function createGame9KServer(options = {}) {
     io,
     liveRoomHub,
     decisionsService,
+    taskBoardService,
     xsollaService,
     posService,
     spliceService,

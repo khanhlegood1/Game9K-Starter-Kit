@@ -146,6 +146,7 @@
             </span>
           </div>
           <div class="g9k-pm-nav-right">
+            <a href="/tasks.html" class="g9k-nav-link">🗂️ Tasks Portal</a>
             <a href="/games/dino-race/index.html?mode=kol&autobot=1" class="g9k-nav-link">🦖 Dino Race Live</a>
             <a href="/portal.html" class="g9k-nav-link">🛡️ Cổng Sandbox</a>
             <a href="/debug.html" class="g9k-nav-link">📡 Stream Debug</a>
