@@ -27,6 +27,7 @@
         <button class="side-item is-active" data-view="overview">📊 <span>Overview</span></button>
         <button class="side-item" data-view="tasks">🗂️ <span>All Tasks</span><em id="navCount">0</em></button>
         <button class="side-item" data-view="board">🧩 <span>Kanban</span></button>
+        <button class="side-item" data-view="schedule">📅 <span>Schedule</span></button>
         <button class="side-item" data-view="adr">📜 <span>Decision Logs</span><em id="navAdr">0</em></button>
         <button class="side-item" data-view="gates">🛡️ <span>Delivery Gates</span></button>
         <button class="side-item" data-view="metrics">📏 <span>Success Metrics</span></button>
@@ -119,6 +120,22 @@
             </div>
           </div>
 
+          <!-- SCHEDULE — week strip + timed event rows (reference layout) -->
+          <div class="card schedule-card" id="scheduleCard">
+            <div class="card-head">
+              <h3>Schedule</h3>
+              <div class="schedule-tools">
+                <span class="chip" id="scheduleRange">—</span>
+                <button class="icon-btn sm" id="scheduleMenu" aria-label="Tùy chọn lịch" aria-expanded="false">⋯</button>
+                <button class="icon-btn sm" id="weekPrev" aria-label="Tuần trước">‹</button>
+                <button class="icon-btn sm" id="weekNext" aria-label="Tuần sau">›</button>
+              </div>
+            </div>
+            <div class="week-strip" id="weekStrip"></div>
+            <div class="schedule-list" id="scheduleList"></div>
+            <div class="schedule-foot" id="scheduleFoot"></div>
+          </div>
+
           <div class="two-col">
             <div class="card">
               <div class="card-head"><h3>📝 Notes &amp; rủi ro cần nhà đầu tư biết</h3></div>
@@ -169,6 +186,22 @@
         </section>
 
         <!-- ADR -->
+        <section class="view" id="view-schedule" hidden>
+          <div class="card">
+            <div class="card-head">
+              <h3>📅 Lịch họp &amp; deadline tuần này</h3>
+              <div class="schedule-tools">
+                <span class="chip" id="scheduleViewRange">—</span>
+                <button class="icon-btn sm" id="weekPrevFull" aria-label="Tuần trước">‹</button>
+                <button class="icon-btn sm" id="weekNextFull" aria-label="Tuần sau">›</button>
+              </div>
+            </div>
+            <div class="week-strip" id="weekStripFull"></div>
+            <div class="schedule-list" id="scheduleListFull"></div>
+            <div class="schedule-foot" id="scheduleFootFull"></div>
+          </div>
+        </section>
+
         <section class="view" id="view-adr" hidden>
           <div class="card">
             <div class="card-head">
@@ -176,6 +209,23 @@
               <span class="chip" id="adrChip">—</span>
             </div>
             <div class="adr-list" id="adrList"></div>
+            <div class="schedule-foot" id="adrConfigLine"></div>
+          </div>
+          <div class="two-col">
+            <div class="card">
+              <div class="card-head">
+                <h3>🕸️ ADR graph &amp; supersession lineage</h3>
+                <span class="chip" id="adrGraphChip">—</span>
+              </div>
+              <div class="adr-graph" id="adrGraph"></div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h3>✅ Governance findings (MADR v4 + hve-core)</h3>
+                <span class="chip">adr validate</span>
+              </div>
+              <div class="adr-findings" id="adrFindings"></div>
+            </div>
           </div>
           <div class="card">
             <div class="card-head"><h3>🔗 Follow-up task sinh ra từ ADR</h3></div>

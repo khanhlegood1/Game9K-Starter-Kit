@@ -10,8 +10,9 @@
  * API response that the caller passed in.
  */
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { buildAdrRegistry, parseAdrDocument } from "./adrRegistry.js";
 
 export const TASK_STATUSES = ["blocked", "in_progress", "open", "done"];
 export const PRIORITY_ORDER = ["P0", "P1", "P2", "P3"];
@@ -71,75 +72,55 @@ function nonEmpty(value) {
  * Parse a single ADR markdown file. Tolerant by design: a malformed ADR must
  * never break the investor board, it only loses the fields it could not parse.
  */
+/**
+ * Board projection of a single ADR document. Delegates to the governance
+ * registry so the portal, the CLI and the validator can never disagree about
+ * status, supersession or follow-ups.
+ */
 export function parseAdr({ path, content, id: idOverride }) {
-  const text = String(content || "");
-  const heading = text.split("\n").find((line) => /^#\s+/.test(line)) || "";
-  const headingBody = heading.replace(/^#\s+/, "").trim();
-  const [headId, ...titleParts] = headingBody.split(/\s+[—–-]\s+/);
-  const id = idOverride || (headId && /^ADR-\d+/i.test(headId) ? headId.toUpperCase() : null);
-  const title = titleParts.join(" — ").trim() || headingBody || path;
-
-  const field = (name) => {
-    const match = text.match(new RegExp(`\\*\\*${name}:\\*\\*\\s*(.+)`, "i"));
-    return match ? match[1].trim() : null;
-  };
-
-  const statusRaw = field("Status");
-  const status = statusRaw ? statusRaw.split(/[\s(]/)[0] : "Proposed";
-  const deciders = field("Deciders");
-
-  const followUps = [];
-  const followUpSection = text.split(/^##\s+Follow-ups\s*$/im)[1];
-  if (followUpSection) {
-    const body = followUpSection.split(/^##\s+/m)[0] || "";
-    for (const line of body.split("\n")) {
-      const bullet = line.match(/^\s*[-*]\s+(.+)$/);
-      if (!bullet) continue;
-      const entry = bullet[1].trim();
-      const withId = entry.match(/^`([^`]+)`\s*[:—-]?\s*(.+)$/);
-      followUps.push(
-        withId
-          ? { id: withId[1].trim(), title: withId[2].trim() }
-          : { id: null, title: entry.replace(/^`|`$/g, "") }
-      );
-    }
-  }
-
-  const normalizedStatus = normalizeStatus(status);
-  const isOpen = !["done", "blocked"].includes(normalizedStatus) || normalizedStatus === "blocked";
-
+  const adr = parseAdrDocument({ path, content, id: idOverride });
   return {
-    id,
-    title,
-    status,
-    statusKey: normalizedStatus,
-    date: field("Date"),
-    deciders: deciders ? deciders.split(",").map((d) => d.trim()).filter(Boolean) : [],
-    path,
-    isOpen,
-    followUps,
+    id: adr.id,
+    title: adr.title,
+    status: adr.statusLabel,
+    statusKey: adr.status === "accepted" ? "done" : adr.status === "proposed" ? "open" : adr.status,
+    date: adr.date,
+    deciders: adr.deciders,
+    consulted: adr.consulted,
+    path: adr.path,
+    isOpen: adr.isOpen,
+    followUps: adr.followUps,
+    supersedes: adr.supersedes,
+    supersededBy: adr.supersededBy,
+    asrTriggers: adr.asrTriggers,
   };
 }
 
-/** Read every ADR in `project/fde/adr` in a stable, filename-sorted order. */
+/**
+ * Read every ADR through the governance registry (MADR v4 + hve-core overlay),
+ * then project it onto the task-board shape. Invalid ADRs are still returned —
+ * the board must show them, and `buildAdrRegistry` reports the findings.
+ */
 export function loadAdrs(rootDir) {
-  const dir = join(rootDir, "project/fde/adr");
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir)
-    .filter((name) => name.toLowerCase().endsWith(".md"))
-    .sort()
-    .map((name) => {
-      const relative = `project/fde/adr/${name}`;
-      const parsed = parseAdr({
-        path: relative,
-        content: readFileSync(join(dir, name), "utf8"),
-        id: null,
-      });
-      return {
-        ...parsed,
-        id: parsed.id || name.replace(/\.md$/i, "").toUpperCase(),
-      };
-    });
+  const registry = buildAdrRegistry({ rootDir, adrDir: join(rootDir, "project/fde/adr") });
+  return registry.adrs.map((adr) => ({
+    id: adr.id,
+    title: adr.title,
+    status: adr.statusLabel,
+    statusKey: adr.status === "accepted" ? "done" : adr.status === "proposed" ? "open" : adr.status,
+    rawStatus: adr.status,
+    type: adr.type,
+    date: adr.date,
+    deciders: adr.deciders,
+    consulted: adr.consulted,
+    path: adr.path,
+    followUps: adr.followUps,
+    supersedes: adr.supersedes,
+    supersededBy: adr.supersededBy,
+    asrTriggers: adr.asrTriggers,
+    findings: registry.findings.filter((finding) => finding.adrId === adr.id),
+    isOpen: adr.isOpen,
+  }));
 }
 
 /**
@@ -370,8 +351,11 @@ function buildSnapshot({ brief, adrs, github, generatedAt, tasks }) {
       blocked: counts.blocked,
       done: counts.done,
       completionPct,
+      // `adrOpen` = ADRs still in force (proposed/accepted/deprecated).
       adrOpen: adrs.filter((adr) => adr.isOpen).length,
       adrTotal: adrs.length,
+      adrAccepted: adrs.filter((adr) => (adr.rawStatus || adr.statusKey) === "accepted" || adr.statusKey === "done").length,
+      adrProposed: adrs.filter((adr) => (adr.rawStatus || "") === "proposed").length,
       gatePassed: gates.filter((gate) => gate.status === "done").length,
       gateTotal: gates.length,
       criticalOpen: sorted.filter(
@@ -385,10 +369,17 @@ function buildSnapshot({ brief, adrs, github, generatedAt, tasks }) {
       title: adr.title,
       status: adr.status,
       statusKey: adr.statusKey,
+      rawStatus: adr.rawStatus || null,
+      type: adr.type || null,
       date: adr.date,
       deciders: adr.deciders,
+      consulted: adr.consulted || [],
       path: adr.path,
       followUps: adr.followUps,
+      supersedes: adr.supersedes || [],
+      supersededBy: adr.supersededBy || null,
+      asrTriggers: adr.asrTriggers || [],
+      findings: adr.findings || [],
     })),
     gates,
     metrics,

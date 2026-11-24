@@ -17,13 +17,33 @@ import { createGame9KServer } from "../src/server.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = join(__dirname, "..");
 
-const ADR_FIXTURE = `# ADR-007 — Test decision for the board
+const ADR_FIXTURE = `---
+id: "0007"
+title: "Test decision for the board"
+type: network
+status: accepted
+date: 2026-01-02
+deciders:
+  - Studio Engineering
+  - Live Ops
+tags: [test]
+---
 
-- **Status:** Accepted
-- **Date:** 2026-01-02
-- **Deciders:** Studio Engineering, Live Ops
+# 0007 — Test decision for the board
 
-## Context
+## Problem
+
+Body.
+
+## Decision
+
+Body.
+
+## Consequences
+
+Body.
+
+## Alternatives
 
 Body.
 
@@ -45,8 +65,8 @@ test("status/priority normalizers map FDE + GitHub vocabulary onto the board", (
 });
 
 test("parseAdr extracts id, status, deciders and follow-ups from markdown", () => {
-  const adr = parseAdr({ path: "project/fde/adr/ADR-007.md", content: ADR_FIXTURE });
-  assert.equal(adr.id, "ADR-007");
+  const adr = parseAdr({ path: "project/fde/adr/0007-test-decision.md", content: ADR_FIXTURE });
+  assert.equal(adr.id, "0007");
   assert.equal(adr.title, "Test decision for the board");
   assert.equal(adr.status, "Accepted");
   assert.equal(adr.statusKey, "done");
@@ -66,7 +86,11 @@ test("parseAdr survives a malformed file instead of breaking the investor board"
 test("loadAdrs reads the real ADR directory in stable order", () => {
   const adrs = loadAdrs(ROOT_DIR);
   assert.ok(adrs.length >= 2);
-  assert.deepEqual(adrs.map((adr) => adr.id), ["ADR-001", "ADR-002"]);
+  // Registry order is filename order, so it stays stable as ADRs are added.
+  const ids = adrs.map((adr) => adr.id);
+  assert.deepEqual(ids, [...ids].sort());
+  assert.ok(ids.includes("0001") && ids.includes("0002"));
+  assert.equal(ids[0], "0001");
   assert.equal(adrs[0].statusKey, "done");
   assert.ok(adrs[1].followUps.some((followUp) => followUp.id === "fde-005"));
 });
@@ -129,7 +153,7 @@ test("buildTaskBoard merges FDE actions, risks, ADRs and GitHub into ranked KPIs
     ],
     success_metrics: [{ id: "m1", definition: "Setup time", target: "<=10m", owner: "Creator Success", status: "pending" }],
   };
-  const adrs = [parseAdr({ path: "project/fde/adr/ADR-007.md", content: ADR_FIXTURE })];
+  const adrs = [parseAdr({ path: "project/fde/adr/0007-test-decision.md", content: ADR_FIXTURE })];
   const github = {
     repo: "o/r",
     fetchedAt: "2026-11-23T00:00:00Z",
@@ -160,7 +184,7 @@ test("buildTaskBoard merges FDE actions, risks, ADRs and GitHub into ranked KPIs
   // an ADR follow-up pointing at an existing task links instead of duplicating
   const linked = board.tasks.find((task) => task.id === "fde-001");
   assert.ok(linked.tags.includes("adr"));
-  assert.ok(linked.links.includes("project/fde/adr/ADR-007.md"));
+  assert.ok(linked.links.includes("project/fde/adr/0007-test-decision.md"));
   assert.equal(board.tasks.filter((task) => task.id === "fde-001").length, 1);
 
   // an id-less follow-up is matched by title, never duplicated
@@ -169,10 +193,10 @@ test("buildTaskBoard merges FDE actions, risks, ADRs and GitHub into ranked KPIs
   // ...but an unknown id-less follow-up still becomes its own task
   const extra = buildTaskBoard({
     brief: { next_actions: [] },
-    adrs: [parseAdr({ path: "project/fde/adr/ADR-008.md", content: ADR_FIXTURE.replace("ADR-007", "ADR-008").replace("`fde-001`: Existing action linked to an ADR.\n", "") })],
+    adrs: [parseAdr({ path: "project/fde/adr/0008-extra.md", content: ADR_FIXTURE.replace("0007", "0008").replace("ADR-007", "0008").replace("test-decision", "extra").replace("`fde-001`: Existing action linked to an ADR.\n", "") })],
     github: null,
   });
-  const synthetic = extra.tasks.find((task) => task.id === "ADR-008-FU1");
+  const synthetic = extra.tasks.find((task) => task.id === "0008-FU1");
   assert.ok(synthetic);
   assert.equal(synthetic.source, "adr");
 
@@ -340,9 +364,9 @@ test("Server exposes the Tasks portal API end-to-end", async () => {
 
     const adrRes = await (await fetch(`${baseUrl}/api/tasks/adrs`)).json();
     assert.equal(adrRes.ok, true);
-    assert.equal(adrRes.adrs[0].id, "ADR-001");
+    assert.equal(adrRes.adrs[0].id, "0001");
     assert.ok(Array.isArray(adrRes.adrs[0].followUps));
-    assert.ok(adrRes.adrs.some((adr) => adr.id === "ADR-002"));
+    assert.ok(adrRes.adrs.some((adr) => adr.id === "0002"));
 
     const badPost = await fetch(`${baseUrl}/api/tasks`, {
       method: "POST",

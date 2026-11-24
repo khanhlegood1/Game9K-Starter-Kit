@@ -1,0 +1,7 @@
+project_slug: game9k-live-interaction
+owner: Studio Engineering
+default_status: proposed
+decision_id_format: NNNN
+template_source: project/fde/adr/_template.md
+last_decision_id: "0003"
+graph_layout: lane

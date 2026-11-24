@@ -4,6 +4,7 @@
  * Investor-facing task board. Merges three deterministic sources:
  *   1. `project/fde/mission-brief.json`  → next actions + open risks
  *   2. `project/fde/adr/*.md`            → open ADRs + their follow-ups
+ *      `project/fde/schedule.json`       → meetings for the week view
  *   3. GitHub issues / pull requests     → open work outside the repo docs
  *
  * The GitHub call is optional and always degradable: no token, no network or a
@@ -13,6 +14,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildAdrRegistry } from "../lib/adrRegistry.js";
+import { buildWeek, loadSchedule } from "../lib/scheduleBoard.js";
 import { buildTaskBoard, filterTasks, loadAdrs } from "../lib/taskBoard.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -52,6 +55,33 @@ export default class TaskBoardService {
 
   loadAdrs() {
     return loadAdrs(this.rootDir);
+  }
+
+  /** Full ADR registry (graph + findings) for the Decision Logs panel. */
+  loadAdrRegistry() {
+    return buildAdrRegistry({ rootDir: this.rootDir });
+  }
+
+  /**
+   * Week view for the Schedule card. Deadlines are *derived* (pending gates,
+   * proposed ADRs, dated tasks) so the calendar can never drift from the board.
+   */
+  getSchedule({ anchor = null } = {}) {
+    const { schedule, path, validation, error, message } = loadSchedule(this.rootDir);
+    const brief = this.readBrief();
+    const adrs = this.loadAdrs();
+    const tasks = buildTaskBoard({ brief, adrs, github: null }).tasks;
+    const today = new Date().toISOString().slice(0, 10);
+    const week = buildWeek({ schedule, anchor: anchor || today, tasks, adrs, brief });
+    return {
+      ok: !error,
+      path,
+      error: error || null,
+      message: message || null,
+      validation: validation || { ok: true, errors: [], warnings: [] },
+      anchor: anchor || today,
+      ...week,
+    };
   }
 
   /** Fetch open issues + PRs. Never throws: failures become `github.error`. */
@@ -123,9 +153,13 @@ export default class TaskBoardService {
       ? { ...board, kpis: { ...board.kpis, filtered: filterTasks(board.tasks, filters).length } }
       : board;
 
+    const registry = this.loadAdrRegistry();
     return {
       ...filtered,
       tasks: filterTasks(board.tasks, filters),
+      adrGraph: registry.graph,
+      adrFindings: registry.findings,
+      adrSummary: registry.summary,
       githubReady: Boolean(github && !github.error),
       filters,
     };

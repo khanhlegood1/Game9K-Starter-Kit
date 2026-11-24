@@ -25,7 +25,7 @@ test("CLI `g9k tasks --json` reports the deterministic FDE + ADR board", () => {
   assert.equal(out.data.projectId, "game9k-live-interaction");
   assert.ok(out.data.kpis.total >= 6);
   assert.ok(out.data.tasks.some((task) => task.id === "fde-001"));
-  assert.ok(out.data.adrs.some((adr) => adr.id === "ADR-002"));
+  assert.ok(out.data.adrs.some((adr) => adr.id === "0002"));
   assert.equal(out.data.github, null);
   assert.ok(out.warnings.some((warning) => /GitHub lookup skipped/.test(warning)));
   assert.equal(out.error, null);

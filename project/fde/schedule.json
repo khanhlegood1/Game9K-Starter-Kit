@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "timezone": "Asia/Ho_Chi_Minh",
+  "grid": { "start_hour": 8, "end_hour": 20, "slot_minutes": 30 },
+  "meetings": [
+    {
+      "id": "mtg-uat-pk",
+      "title": "UAT PK hai creator (TikTok + YouTube)",
+      "date": "2026-11-25",
+      "start": "13:00",
+      "end": "14:30",
+      "kind": "uat",
+      "owner": "Creator Success",
+      "taskId": "fde-001",
+      "location": "Live Ops room + Browser Source",
+      "attendees": [
+        { "role": "Creator Success", "attendance": "required" },
+        { "role": "Live Ops", "attendance": "required" },
+        { "role": "Creator (pilot)", "attendance": "required" }
+      ],
+      "agenda": [
+        "Kết nối room A/B và xác nhận team attribution",
+        "Gift → boost/obstacle + toast, kiểm tra seed",
+        "Ngắt mạng, reconnect, xác nhận late event vào heat kế tiếp",
+        "Ghi evidence anonymized vào weekly summary"
+      ]
+    },
+    {
+      "id": "mtg-instrument-review",
+      "title": "Review instrumentation latency & join rate",
+      "date": "2026-11-26",
+      "start": "09:00",
+      "end": "10:00",
+      "kind": "review",
+      "owner": "Gateway Squad",
+      "taskId": "fde-002",
+      "location": "Meet",
+      "attendees": [
+        { "role": "Gateway Squad", "attendance": "required" },
+        { "role": "Live Ops", "attendance": "optional" }
+      ],
+      "agenda": [
+        "Chốt điểm đo p50/p95 event→visual",
+        "Định nghĩa join conversion theo heat",
+        "Xác nhận telemetry vẫn <= 20 Hz"
+      ]
+    },
+    {
+      "id": "mtg-day2-runbook",
+      "title": "Duyệt runbook Day-2 & escalation rota",
+      "date": "2026-11-26",
+      "start": "15:00",
+      "end": "16:00",
+      "kind": "gate",
+      "owner": "Live Ops",
+      "taskId": "fde-003",
+      "location": "Meet",
+      "attendees": [
+        { "role": "Live Ops", "attendance": "required" },
+        { "role": "Studio Engineering", "attendance": "optional" }
+      ],
+      "agenda": [
+        "5 failure mode: detection, owner, mitigation, recovery",
+        "Escalation rota tuần pilot",
+        "Rollback path và replay từ seed"
+      ]
+    },
+    {
+      "id": "mtg-adr-review",
+      "title": "ADR governance review (MADR v4 + graph)",
+      "date": "2026-11-27",
+      "start": "10:00",
+      "end": "11:00",
+      "kind": "decision",
+      "owner": "Studio Engineering",
+      "location": "Meet",
+      "attendees": [
+        { "role": "Studio Engineering", "attendance": "required" },
+        { "role": "Product", "attendance": "required" },
+        { "role": "Compliance", "attendance": "optional" }
+      ],
+      "agenda": [
+        "Chuyển ADR còn Proposed sang Accepted/Rejected",
+        "Rà supersession links và ADR graph",
+        "Kiểm tra asr_triggers và section bắt buộc"
+      ]
+    },
+    {
+      "id": "mtg-investor-sync",
+      "title": "Investor sync — board task & weekly summary",
+      "date": "2026-11-27",
+      "start": "16:00",
+      "end": "17:00",
+      "kind": "sync",
+      "owner": "Product",
+      "location": "Meet",
+      "attendees": [
+        { "role": "Product", "attendance": "required" },
+        { "role": "Studio Engineering", "attendance": "required" },
+        { "role": "Investor", "attendance": "optional" }
+      ],
+      "agenda": [
+        "Walkthrough /tasks.html: KPI, blocked, P0/P1",
+        "Weekly Executive Summary + ADR log",
+        "Chốt quyết định cần nhà đầu tư xác nhận"
+      ]
+    },
+    {
+      "id": "mtg-github-token",
+      "title": "Cấu hình GITHUB_TOKEN trên Vercel (production)",
+      "date": "2026-11-24",
+      "start": "14:00",
+      "end": "14:30",
+      "kind": "sync",
+      "owner": "Studio Engineering",
+      "taskId": "fde-005",
+      "location": "Vercel dashboard",
+      "attendees": [
+        { "role": "Studio Engineering", "attendance": "required" },
+        { "role": "Product", "attendance": "informed" }
+      ],
+      "agenda": [
+        "Tạo fine-grained token: Issues read/write cho repo",
+        "Thêm env cho Production + Preview, redeploy",
+        "Xác nhận /api/tasks trả githubReady=true"
+      ]
+    },
+    {
+      "id": "mtg-creator-onboarding",
+      "title": "Onboarding creator mới (setup <= 10 phút)",
+      "date": "2026-11-28",
+      "start": "10:00",
+      "end": "11:00",
+      "kind": "meeting",
+      "owner": "Creator Success",
+      "taskId": "fde-001",
+      "location": "Discord + OBS",
+      "attendees": [
+        { "role": "Creator Success", "attendance": "required" },
+        { "role": "Creator (pilot)", "attendance": "optional" }
+      ],
+      "agenda": [
+        "Đo time-to-first-heat với Browser Source URL",
+        "Kiểm tra avatar fallback và 9:16 layout",
+        "Ghi lại blocker nếu có"
+      ]
+    },
+    {
+      "id": "mtg-weekly-close",
+      "title": "Weekly close — cập nhật mission brief & task board",
+      "date": "2026-11-29",
+      "start": "15:00",
+      "end": "16:00",
+      "kind": "review",
+      "owner": "Product",
+      "taskId": "fde-006",
+      "location": "Meet",
+      "attendees": [
+        { "role": "Product", "attendance": "required" },
+        { "role": "Live Ops", "attendance": "required" },
+        { "role": "Creator Success", "attendance": "optional" }
+      ],
+      "agenda": [
+        "Đóng gate/action đã xong, cập nhật status thật",
+        "Cross-link task ↔ ADR ↔ gate trong weekly summary",
+        "Chuẩn bị số liệu cho investor sync tuần sau"
+      ]
+    }
+  ]
+}
