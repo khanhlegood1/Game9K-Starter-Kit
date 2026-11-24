@@ -10,6 +10,7 @@
  *   node cli/g9k.js verify [--json]
  *   node cli/g9k.js doctor [--json]
  *   node cli/g9k.js fde [--json]
+ *   node cli/g9k.js tasks [--status <status>] [--priority <Pn>] [--github] [--json]
  *
  * With `--json`, returns structured envelope:
  *   `{ schema_version: 1, ok, command, data, warnings, error }`
@@ -37,6 +38,7 @@ import ProjectDecisionsService from "../src/services/ProjectDecisionsService.js"
 import SpliceSpecService from "../src/services/SpliceSpecService.js";
 import CloudEdgeLaunchService from "../src/services/CloudEdgeLaunchService.js";
 import { validateFdeMissionBrief, summarizeFdeMission } from "../src/lib/fdeProject.js";
+import TaskBoardService from "../src/services/TaskBoardService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -55,7 +57,18 @@ function parseArgs(argv) {
   if (gameIdx >= 0 && args[gameIdx + 1]) {
     game = args[gameIdx + 1];
   }
-  return { command, json, game };
+  const value = (flag) => {
+    const idx = args.indexOf(flag);
+    return idx >= 0 && args[idx + 1] && !args[idx + 1].startsWith("-") ? args[idx + 1] : null;
+  };
+  return {
+    command,
+    json,
+    game,
+    status: value("--status"),
+    priority: value("--priority"),
+    github: args.includes("--github"),
+  };
 }
 
 function emitResult({ json, ok, command, data = null, warnings = [], error = null }) {
@@ -627,6 +640,48 @@ async function runFde(opts) {
   });
 }
 
+async function runTasks(opts) {
+  const service = new TaskBoardService({
+    token: process.env.G9K_GH_API_TOKEN || "",
+    fetchImpl: opts.github ? globalThis.fetch : null,
+  });
+  const board = await service.getBoard({
+    refresh: true,
+    includeGithub: Boolean(opts.github),
+    filters: {
+      status: opts.status || "all",
+      owner: "all",
+      priority: opts.priority || "all",
+      source: "all",
+    },
+  });
+
+  const warnings = [];
+  if (!opts.github) {
+    warnings.push(
+      "GitHub lookup skipped — pass `--github` and set G9K_GH_API_TOKEN to merge live issues/PRs into the board."
+    );
+  } else if (!board.githubReady) {
+    warnings.push(`GitHub unavailable (${board.github?.error || "unknown"}); board still shows FDE + ADR tasks.`);
+  }
+
+  emitResult({
+    json: opts.json,
+    ok: board.kpis.total > 0 || existsSync(FDE_BRIEF_PATH),
+    command: "tasks",
+    data: {
+      projectId: board.projectId,
+      kpis: board.kpis,
+      github: board.sources.github,
+      owners: board.owners,
+      adrs: board.adrs,
+      tasks: board.tasks,
+    },
+    warnings,
+    error: null,
+  });
+}
+
 async function runDecide(opts) {
   const service = new ProjectDecisionsService();
   const report = await service.runFullProjectAudit({
@@ -747,6 +802,7 @@ else if (opts.command === "verify") runVerify(opts);
 else if (opts.command === "doctor") await runDoctor(opts);
 else if (opts.command === "decide") await runDecide(opts);
 else if (opts.command === "fde" || opts.command === "project") await runFde(opts);
+else if (opts.command === "tasks") await runTasks(opts);
 else if (opts.command === "codegen") runCodegen(opts);
 else if (opts.command === "deploy") await runDeploy(opts);
 else {
@@ -759,6 +815,7 @@ Usage:
   npm run g9k -- doctor [--json]
   npm run g9k -- decide [--json]
   npm run g9k -- fde [--json]
+  npm run g9k -- tasks [--status blocked] [--priority P0] [--github] [--json]
   npm run g9k -- codegen [--game dino-race] [--json]
   npm run g9k -- deploy [--game dino-race] [--json]`);
 }

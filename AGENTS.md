@@ -31,6 +31,9 @@ npm run build
 npm run verify
 npm run decide
 npm run fde
+npm run tasks
 ```
+
+`npm run tasks` renders the investor task board (FDE next actions + open risks + ADRs + optional GitHub issues). Never add a second task database: tasks belong in `project/fde/mission-brief.json`, ADRs, or GitHub issues.
 
 `npm run fde` validates `project/fde/mission-brief.json` (mission, Delta, discovery, gates, risks, next actions). Technical `GO_FOR_LAUNCH` never substitutes for creator UAT or Day-2 handoff — see `docs/FDE-PROJECT-MANAGEMENT.md`.
