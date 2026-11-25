@@ -110,6 +110,61 @@ npm run schedule -- --anchor 2026-11-26   # tuần chứa ngày đó
 | `G9K_GH_API_TOKEN` | CLI `tasks --github` | Token riêng cho CLI |
 | `G9K_GITHUB_REPO` | Override repo (`owner/name`) | Mặc định `khanhlegood1/Game9K-Starter-Kit` |
 
+### 5.1 Lấy `GITHUB_TOKEN` ở đâu (fine-grained PAT)
+
+Portal chỉ cần **một** token phía server, quyền tối thiểu trên **đúng một repo**. Đừng dùng token của `gh auth login`, token CI hay token Arena — đó là credential khác quyền và dễ bị thu hồi ngoài ý muốn.
+
+**Tạo token**
+
+1. Mở https://github.com/settings/personal-access-tokens/new (Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token).
+2. **Token name**: `game9k-tasks-portal`. **Expiration**: 90 ngày (fine-grained bắt buộc có hạn, tối đa 366 ngày) → ghi ngày hết hạn vào lịch để rotate.
+3. **Resource owner**: `khanhlegood1`. **Repository access**: *Only select repositories* → `Game9K-Starter-Kit`. Không chọn "All repositories".
+4. **Repository permissions** — chỉ 2 mục:
+
+   | Permission | Mức | Vì sao |
+   | --- | --- | --- |
+   | **Issues** | Read and write | `GET /repos/:repo/issues` để đọc issue/PR đang mở; `POST …/issues` để tạo task từ portal |
+   | **Metadata** | Read (tự động) | Bắt buộc đi kèm mọi permission khác |
+
+   Không cấp `Contents`, `Pull requests` write, `Administration`, `Secrets`, `Workflows` — portal không ghi code, không merge, không đổi settings.
+5. **Generate token** → copy chuỗi `github_pat_…` (chỉ hiện **một lần**; nếu mất thì phải tạo token mới).
+
+**Kiểm tra token trước khi gắn vào Vercel** (đừng dán token vào chat/commit):
+
+```bash
+export GITHUB_TOKEN='github_pat_…'          # chỉ trong shell hiện tại
+curl -s -o /dev/null -w "%{http_code}\n" \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  https://api.github.com/repos/khanhlegood1/Game9K-Starter-Kit/issues?state=open&per_page=1
+# 200 = đọc được. 401 = token sai/hết hạn. 404 = thiếu quyền Issues hoặc sai repo.
+```
+
+**Gắn vào Vercel** (Project `game9k-starter-kit`):
+
+```bash
+# Production + Preview, không lộ giá trị ra log shell history
+printf '%s' 'github_pat_…' | vercel env add GITHUB_TOKEN production
+printf '%s' 'github_pat_…' | vercel env add GITHUB_TOKEN preview
+vercel --prod        # env mới chỉ có hiệu lực sau khi redeploy
+```
+
+Hoặc qua UI: **Settings → Environment Variables → Add** → Key `GITHUB_TOKEN`, Value dán token, Environments chọn *Production* + *Preview* → **Save** → **Redeploy** (Deployments → ⋯ → Redeploy).
+
+**Xác nhận đã chạy**
+
+```bash
+curl -s https://game9k-starter-kit.vercel.app/api/tasks \
+  | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const j=JSON.parse(d);console.log("githubReady:", j.githubReady, "| issues:", j.sources.github?.count, "| error:", j.sources.github?.error)})'
+```
+
+- `githubReady: true` và `error: null` → xong; issue/PR thật xuất hiện trên board dạng task `GH-*` / `PR-*`.
+- `githubReady: false` + `github_http_401` → token hết hạn/sai. `github_http_404` → thiếu quyền **Issues** hoặc token không trỏ đúng repo.
+
+**Local dev**: thêm `GITHUB_TOKEN=github_pat_…` vào `.env` (đã có trong `.gitignore`, mẫu ở `.env.example`). `/api/tasks` local cũng đọc biến này.
+
+**Rotate / thu hồi**: token hết hạn thì portal **không sập** — board vẫn dựng từ FDE + ADR, chỉ mất phần GitHub và `githubReady` thành `false`. Khi đó tạo token mới, cập nhật env, redeploy, rồi **Revoke** token cũ ở trang Fine-grained tokens.
+
 ## 6. Deploy lên Vercel
 
 Repo đã cấu hình `vercel.json`:
@@ -120,7 +175,7 @@ Repo đã cấu hình `vercel.json`:
 
 Thiết lập trên Vercel project `game9k-starter-kit`:
 
-1. **Settings → Environment Variables** → thêm `GITHUB_TOKEN` (scope: Production, Preview) nếu muốn hiện issue/PR thật và tạo task.
+1. Thêm `GITHUB_TOKEN` (scope: Production, Preview) — cách tạo token và quyền cần cấp xem **§5.1**.
 2. Deploy lại; kiểm tra `https://game9k-starter-kit.vercel.app/tasks.html` và `/api/tasks`.
 
 Nếu chỉ deploy static, portal vẫn mở được nhưng sẽ ở static mode (không có KPI thật); khi đó dùng `npm run tasks` để xuất board.
