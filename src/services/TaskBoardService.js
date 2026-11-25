@@ -15,6 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildAdrRegistry } from "../lib/adrRegistry.js";
+import { buildPortfolio } from "../lib/projectPortfolio.js";
 import { buildWeek, loadSchedule } from "../lib/scheduleBoard.js";
 import { buildTaskBoard, filterTasks, loadAdrs } from "../lib/taskBoard.js";
 
@@ -55,6 +56,17 @@ export default class TaskBoardService {
 
   loadAdrs() {
     return loadAdrs(this.rootDir);
+  }
+
+  /** Verified release manifest written by `npm run build`; null when absent. */
+  readReleaseManifest() {
+    const path = join(this.rootDir, "dist/release-manifest.json");
+    if (!existsSync(path)) return null;
+    try {
+      return JSON.parse(readFileSync(path, "utf8"));
+    } catch {
+      return null;
+    }
   }
 
   /** Full ADR registry (graph + findings) for the Decision Logs panel. */
@@ -170,6 +182,42 @@ export default class TaskBoardService {
    * GitHub issue; without one we hand back a ready-to-run `gh` command so the
    * task still lands in the same source of truth instead of a shadow database.
    */
+  /**
+   * Portfolio overlay (Projects / Notifications / Releases) for the portal.
+   * Reuses one board + one week so numbers agree with every other panel.
+   */
+  async getPortfolio({ anchor = null } = {}) {
+    const board = await this.getBoard();
+    const brief = this.readBrief();
+    const adrs = this.loadAdrs();
+    const { schedule } = loadSchedule(this.rootDir);
+    const week = buildWeek({
+      schedule,
+      anchor: anchor || new Date().toISOString().slice(0, 10),
+      tasks: board.tasks,
+      adrs,
+      brief,
+    });
+    const portfolio = buildPortfolio({
+      brief,
+      tasks: board.tasks,
+      adrs,
+      releaseManifest: this.readReleaseManifest(),
+      week,
+      github: board.sources?.github || null,
+    });
+    return {
+      ok: true,
+      source: {
+        releaseManifest: this.readReleaseManifest() ? "dist/release-manifest.json" : null,
+        missionBrief: "project/fde/mission-brief.json",
+        adrDirectory: "project/fde/adr",
+        schedule: "project/fde/schedule.json",
+      },
+      ...portfolio,
+    };
+  }
+
   async createTask({ title, description = "", priority = "P1", owner = "", labels = [] } = {}) {
     const cleanTitle = String(title || "").trim().slice(0, 160);
     if (!cleanTitle) return { ok: false, error: "title_required" };

@@ -30,10 +30,14 @@ const EVENT_KIND_LABEL = {
 const state = {
   board: null,
   registry: null,
+  portfolio: null,
   schedule: null,
   weekAnchor: null, // ISO date of the day selected in the week strip
   view: "overview",
   filters: { status: "all", owner: "all", priority: "all", source: "all", query: "" },
+  projectFilter: "all",
+  alertFilter: "all",
+  selectedProject: null,
   error: null,
 };
 
@@ -118,8 +122,23 @@ async function loadBoard({ refresh = false } = {}) {
   } finally {
     el("loading").hidden = Boolean(state.board);
   }
-  await loadSchedule();
+  await Promise.all([loadSchedule(), loadPortfolio()]);
   render();
+}
+
+/**
+ * Portfolio overlay (projects / alerts / releases). Derived from the release
+ * manifest + brief + ADRs + schedule, so it must fail independently.
+ */
+async function loadPortfolio() {
+  try {
+    const response = await fetch("/api/tasks/portfolio", { headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    state.portfolio = await response.json();
+  } catch (error) {
+    state.portfolio = { ok: false, error: error.message || "network_error", projects: [], alerts: [], totals: {} };
+  }
+  renderPortfolio();
 }
 
 /** Schedule is its own endpoint: a broken calendar must never blank the board. */
@@ -198,6 +217,7 @@ function render() {
   renderKanban(board);
   renderAdrs(board);
   renderAdrRegistry();
+  renderPortfolio();
   renderSchedule();
   renderGates(board);
   renderMetrics(board);
@@ -638,6 +658,285 @@ async function shiftWeek(days) {
   await loadSchedule({ anchor: next });
 }
 
+/* ------------------------------------------- portfolio (Jira-clone parity) */
+const PROJECT_STATUS_LABEL = {
+  active: "Active",
+  planning: "Planning",
+  shipped: "Shipped",
+};
+const HEALTH_LABEL = {
+  "at-risk": "Có blocker",
+  "on-track": "Đúng nhịp",
+  starting: "Khởi động",
+};
+const ALERT_ICON = {
+  issue: "🐞",
+  gate: "🛡️",
+  decision: "📜",
+  schedule: "📅",
+  project: "📁",
+  system: "⚙️",
+};
+
+function renderPortfolio() {
+  const portfolio = state.portfolio;
+  if (!portfolio) return;
+
+  el("navProjects").textContent = portfolio.totals?.projects ?? 0;
+  el("navAlerts").textContent = portfolio.totals?.alerts ?? 0;
+  el("navReleases").textContent = portfolio.totals?.games ?? 0;
+
+  renderSprintCard(portfolio);
+  renderStatusDonut(portfolio);
+  renderAlertPreview(portfolio);
+  renderProjects(portfolio);
+  renderAlerts(portfolio);
+  renderReleases(portfolio);
+}
+
+/** Sidebar card: real week + real gate progress (Jira "Sprint 24"). */
+function renderSprintCard(portfolio) {
+  const sprint = portfolio.sprint || {};
+  if (!el("sprintCard")) return;
+  el("sprintDays").textContent = sprint.daysRemaining === null || sprint.daysRemaining === undefined
+    ? "—"
+    : `${sprint.daysRemaining} ngày còn lại`;
+  const progress = sprint.gateProgress ?? 0;
+  el("sprintBar").style.width = `${progress}%`;
+  const next = sprint.nextMeeting;
+  el("sprintMeta").innerHTML =
+    `${sprint.gatesPassed ?? 0}/${sprint.gatesTotal ?? 0} gate đã qua · ${sprint.meetings ?? 0} cuộc họp` +
+    (next
+      ? `<br /><b>${escapeHtml(next.date.slice(5))} ${escapeHtml(clockLabel(next.start))}</b> · ${escapeHtml(next.title)}`
+      : "");
+}
+
+/** Donut built from the same status counts the KPI cards use. */
+function renderStatusDonut(portfolio) {
+  const donut = el("statusDonut");
+  if (!donut) return;
+  const breakdown = portfolio.statusBreakdown || { total: 0, slices: [] };
+  const total = breakdown.total || 0;
+  el("donutChip").textContent = `${total} task`;
+
+  if (!total) {
+    donut.innerHTML = "";
+    el("statusLegend").innerHTML = '<div class="empty">Chưa có task để vẽ</div>';
+    return;
+  }
+
+  const size = 156;
+  const stroke = 20;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  let offset = 0;
+  const slices = breakdown.slices
+    .filter((slice) => slice.value > 0)
+    .map((slice) => {
+      const length = (slice.value / total) * circumference;
+      const circle = `<circle cx="${size / 2}" cy="${size / 2}" r="${radius}" fill="transparent"
+        stroke="${slice.color}" stroke-width="${stroke}"
+        stroke-dasharray="${length} ${circumference - length}"
+        stroke-dashoffset="${-offset}" />`;
+      offset += length;
+      return circle;
+    })
+    .join("");
+
+  donut.innerHTML = `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" class="donut-svg">
+      <circle cx="${size / 2}" cy="${size / 2}" r="${radius}" fill="transparent" stroke="#eef1f7" stroke-width="${stroke}" />
+      <g transform="rotate(-90 ${size / 2} ${size / 2})">${slices}</g>
+      <text x="50%" y="47%" text-anchor="middle" class="donut-total">${total}</text>
+      <text x="50%" y="61%" text-anchor="middle" class="donut-sub">task</text>
+    </svg>`;
+
+  el("statusLegend").innerHTML = breakdown.slices
+    .map(
+      (slice) => `
+      <div class="legend-row">
+        <span class="legend-dot" style="background:${slice.color}"></span>
+        <span class="legend-label">${escapeHtml(STATUS_LABEL[slice.status] || slice.label)}</span>
+        <span class="legend-value">${slice.value} · ${slice.pct}%</span>
+      </div>`
+    )
+    .join("");
+}
+
+function alertRow(alert, { compact = false } = {}) {
+  const link = alert.link || {};
+  const targetView = link.kind === "adr" ? "adr" : link.kind === "meeting" ? "schedule" : link.kind === "gate" ? "gates" : link.kind === "project" ? "projects" : "tasks";
+  return `
+    <div class="alert-row level-${escapeHtml(alert.level)}">
+      <span class="alert-icon">${ALERT_ICON[alert.category] || "•"}</span>
+      <div class="alert-body">
+        <div class="alert-title">
+          <span class="alert-level">${escapeHtml(alert.level)}</span>
+          ${escapeHtml(alert.title)}
+        </div>
+        ${compact ? "" : `<div class="alert-desc">${escapeHtml(alert.description || "")}</div>`}
+        <div class="alert-meta">
+          <span class="chip">${escapeHtml(alert.category)}</span>
+          ${link.id ? `<a class="link" href="#${targetView}" data-view="${targetView}">${escapeHtml(link.kind)} · ${escapeHtml(link.id)} →</a>` : ""}
+          ${alert.at ? `<span>${escapeHtml(alert.at)}</span>` : ""}
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderAlertPreview(portfolio) {
+  const list = el("alertPreview");
+  if (!list) return;
+  const alerts = (portfolio.alerts || []).slice(0, 4);
+  list.innerHTML = alerts.length
+    ? alerts.map((alert) => alertRow(alert, { compact: true })).join("")
+    : '<div class="empty">Không có cảnh báo nào 🎉</div>';
+}
+
+function renderAlerts(portfolio) {
+  const list = el("alertList");
+  if (!list) return;
+  const all = portfolio.alerts || [];
+  const filter = state.alertFilter;
+  const filtered = all.filter((alert) =>
+    filter === "all" ? true : filter === "critical" ? alert.level === "critical" : alert.category === filter
+  );
+  el("alertChip").textContent = `${filtered.length}/${all.length} cảnh báo`;
+  list.innerHTML = filtered.length
+    ? filtered.map((alert) => alertRow(alert)).join("")
+    : '<div class="empty">Không có cảnh báo khớp bộ lọc.</div>';
+}
+
+function projectMatchesFilter(project, filter) {
+  if (filter === "all") return true;
+  if (filter === "at-risk") return project.health === "at-risk";
+  return project.kind === filter;
+}
+
+function renderProjects(portfolio) {
+  const grid = el("projectGrid");
+  if (!grid) return;
+  const projects = (portfolio.projects || []).filter((project) => projectMatchesFilter(project, state.projectFilter));
+  const all = portfolio.projects || [];
+  const pointsTotal = all.reduce((sum, project) => sum + (project.points?.total || 0), 0);
+  const pointsDone = all.reduce((sum, project) => sum + (project.points?.done || 0), 0);
+  el("projectChip").textContent = `${projects.length}/${all.length} project`;
+  el("projectPointsChip").textContent = `${pointsDone}/${pointsTotal} điểm`;
+
+  grid.innerHTML = projects.length
+    ? projects
+        .map(
+          (project) => `
+      <article class="project-card" style="--project-color:${project.color}">
+        <div class="project-stripe"></div>
+        <header class="project-head">
+          <div>
+            <h4>${escapeHtml(project.name)}</h4>
+            <div class="project-sub">
+              ${escapeHtml(project.kind === "game" ? "Game package" : "FDE program")}
+              ${project.release?.version ? ` · v${escapeHtml(project.release.version)}` : ""}
+              ${project.release?.legal ? ` · ${escapeHtml(project.release.legal)}` : ""}
+            </div>
+          </div>
+          <span class="badge ${project.status === "shipped" ? "done" : project.status === "active" ? "in_progress" : "open"}">${escapeHtml(PROJECT_STATUS_LABEL[project.status] || project.status)}</span>
+        </header>
+
+        <div class="project-kpis">
+          <div><b>${project.issues?.total ?? 0}</b><span>task</span></div>
+          <div><b>${project.issues?.blocked ?? 0}</b><span>blocker</span></div>
+          <div><b>${project.completionPct ?? 0}%</b><span>effort</span></div>
+        </div>
+
+        <div class="owner-bar"><span style="width:${project.completionPct ?? 0}%;background:${project.color}"></span></div>
+        <div class="project-meta">
+          <span class="chip">${escapeHtml(HEALTH_LABEL[project.health] || project.health)}</span>
+          <span>👤 ${escapeHtml(project.owner || "—")}</span>
+          ${project.release?.budgetKb ? `<span>📦 ${project.release.gzipKb}/${project.release.budgetKb} KB</span>` : ""}
+        </div>
+
+        ${
+          project.topIssues?.length
+            ? `<ul class="project-issues">${project.topIssues
+                .map((issue) => `<li><b>${escapeHtml(issue.id)}</b> ${priorityBadge(issue.priority)} ${escapeHtml(issue.title)}</li>`)
+                .join("")}</ul>`
+            : '<div class="project-empty">Không còn task mở trên project này</div>'
+        }
+      </article>`
+        )
+        .join("")
+    : '<div class="empty">Không có project khớp bộ lọc.</div>';
+
+  const max = Math.max(...all.map((project) => project.points?.total || 0), 1);
+  el("projectEffort").innerHTML = all
+    .map(
+      (project) => `
+      <div class="effort-row">
+        <span class="effort-name">${escapeHtml(project.name)}</span>
+        <div class="effort-bar">
+          <span style="width:${Math.round(((project.points?.done || 0) / max) * 100)}%;background:${project.color}"></span>
+          <i style="width:${Math.round(((project.points?.remaining || 0) / max) * 100)}%"></i>
+        </div>
+        <span class="effort-value">${project.points?.done ?? 0}/${project.points?.total ?? 0}</span>
+      </div>`
+    )
+    .join("");
+}
+
+function renderReleases(portfolio) {
+  const body = el("releaseRows");
+  if (!body) return;
+  const games = (portfolio.projects || []).filter((project) => project.kind === "game");
+  const release = portfolio.release;
+  el("releaseChip").textContent = release?.bundleSha256
+    ? `bundle ${release.bundleSha256.slice(0, 10)}…`
+    : "chưa có dist/";
+
+  body.innerHTML = games.length
+    ? games
+        .map((project) => {
+          const rel = project.release || {};
+          const state_ = rel.ready ? "done" : rel.budgetPct > 100 ? "blocked" : "in_progress";
+          return `
+        <tr>
+          <td class="task-cell">
+            <strong>${escapeHtml(project.name)}</strong>
+            <small>${escapeHtml(project.id)} · ${rel.fileCount ?? 0} file</small>
+          </td>
+          <td>v${escapeHtml(rel.version || "—")}</td>
+          <td>${rel.legal ? `<span class="badge source">${escapeHtml(rel.legal)}</span>` : "—"}</td>
+          <td>
+            <div class="budget-cell">
+              <span>${rel.gzipKb ?? "—"} / ${rel.budgetKb ?? "—"} KB</span>
+              <div class="owner-bar"><span style="width:${Math.min(100, rel.budgetPct ?? 0)}%;background:${rel.ready ? "var(--green)" : "var(--amber)"}"></span></div>
+            </div>
+          </td>
+          <td><code class="sha">${escapeHtml(String(rel.sha256 || "").slice(0, 12))}…</code></td>
+          <td>${statusBadge(state_)}</td>
+          <td><a class="link" href="/games/${escapeHtml(project.id)}/index.html" target="_blank" rel="noopener">Mở game ↗</a></td>
+        </tr>`;
+        })
+        .join("")
+    : '<tr><td colspan="7" class="empty">Chưa có release manifest — chạy <code>npm run build</code>.</td></tr>';
+
+  el("releaseFoot").innerHTML = release
+    ? `<span>bundle sha256 ${escapeHtml(release.bundleSha256 || "—")}</span>
+       <span>${release.artifactCount ?? 0} artifact · ${(release.standaloneBundles || []).length} standalone · build ${escapeHtml(String(release.generatedAt || "").slice(0, 10))}</span>`
+    : "<span>dist/release-manifest.json chưa có trong bản deploy này</span>";
+
+  const standalone = release?.standaloneBundles || [];
+  el("releaseFiles").innerHTML = standalone.length
+    ? standalone
+        .map(
+          (bundle) => `
+      <div class="release-file">
+        <span class="chip">standalone</span>
+        <span class="release-path">${escapeHtml(bundle.path)}</span>
+        <span class="release-size">${bundle.rawKb} KB · gzip ${bundle.gzipKb} KB</span>
+      </div>`
+        )
+        .join("")
+    : '<div class="empty">Không có standalone bundle trong manifest</div>';
+}
+
 /* --------------------------------------------------- ADR governance panel */
 /** Lifecycle + lineage + findings + graph, straight from `/api/tasks/adrs/registry`. */
 function renderAdrRegistry() {
@@ -834,6 +1133,9 @@ const VIEW_META = {
   overview: ["Overview", "Bảng điều hành task còn Open cho nhà đầu tư"],
   tasks: ["All Tasks", "Toàn bộ task từ FDE, ADR và GitHub — lọc theo owner, priority, nguồn"],
   board: ["Kanban", "Luồng công việc: Blocked → In Progress → Open → Done"],
+  projects: ["Projects", "Project thật từ release manifest: game package đã verify + chương trình FDE"],
+  notifications: ["Notifications", "Cảnh báo suy ra từ blocker, gate, ADR, lịch họp và bundle budget"],
+  releases: ["Releases", "Gói phát hành đã verify: version, legal class, budget, bundle sha256"],
   schedule: ["Schedule", "Lịch họp tuần + deadline sinh ra từ delivery gate, ADR và task"],
   adr: ["Decision Logs", "ADR theo MADR v4 + hve-core: lifecycle, supersession, ASR trigger, graph và follow-up"],
   gates: ["Delivery Gates", "Cổng giao hàng theo vòng đời Forward Deployed Engineering"],
@@ -937,6 +1239,22 @@ function bindEvents() {
     state.filters.status = btn.dataset.value;
     document.querySelectorAll("#statusFilters .filter").forEach((b) => b.classList.toggle("is-active", b === btn));
     renderTaskList();
+  });
+
+  el("projectFilters")?.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-project-filter]");
+    if (!btn) return;
+    state.projectFilter = btn.dataset.projectFilter;
+    document.querySelectorAll("#projectFilters .filter").forEach((b) => b.classList.toggle("is-active", b === btn));
+    renderProjects(state.portfolio || {});
+  });
+
+  el("alertFilters")?.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-alert-filter]");
+    if (!btn) return;
+    state.alertFilter = btn.dataset.alertFilter;
+    document.querySelectorAll("#alertFilters .filter").forEach((b) => b.classList.toggle("is-active", b === btn));
+    renderAlerts(state.portfolio || {});
   });
 
   el("ownerFilter").addEventListener("change", (event) => {
