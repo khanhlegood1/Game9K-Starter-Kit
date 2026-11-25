@@ -27,9 +27,12 @@
         <button class="side-item is-active" data-view="overview">📊 <span>Overview</span></button>
         <button class="side-item" data-view="tasks">🗂️ <span>All Tasks</span><em id="navCount">0</em></button>
         <button class="side-item" data-view="board">🧩 <span>Kanban</span></button>
+        <button class="side-item" data-view="projects">📁 <span>Projects</span><em id="navProjects">0</em></button>
+        <button class="side-item" data-view="notifications">🔔 <span>Notifications</span><em id="navAlerts">0</em></button>
         <button class="side-item" data-view="schedule">📅 <span>Schedule</span></button>
         <button class="side-item" data-view="adr">📜 <span>Decision Logs</span><em id="navAdr">0</em></button>
         <button class="side-item" data-view="gates">🛡️ <span>Delivery Gates</span></button>
+        <button class="side-item" data-view="releases">🚀 <span>Releases</span><em id="navReleases">0</em></button>
         <button class="side-item" data-view="metrics">📏 <span>Success Metrics</span></button>
 
         <div class="side-label">Tài nguyên</div>
@@ -40,6 +43,11 @@
       </nav>
 
       <div class="side-foot">
+        <div class="sprint-card" id="sprintCard">
+          <div class="sprint-top"><span>Sprint tuần này</span><span id="sprintDays">—</span></div>
+          <div class="owner-bar"><span id="sprintBar" style="width:0%"></span></div>
+          <div class="sprint-meta" id="sprintMeta">Đang tải…</div>
+        </div>
         <div class="git-state" id="githubState">GitHub: đang kiểm tra…</div>
         <div class="side-foot-note">Dữ liệu đọc trực tiếp từ <code>project/fde</code> + GitHub API</div>
       </div>
@@ -78,6 +86,26 @@
           </div>
 
           <div class="kpi-grid" id="kpiGrid"></div>
+
+          <div class="two-col">
+            <div class="card">
+              <div class="card-head">
+                <h3>🍩 Phân bổ theo trạng thái</h3>
+                <span class="chip" id="donutChip">—</span>
+              </div>
+              <div class="donut-wrap">
+                <div class="donut" id="statusDonut" role="img" aria-label="Phân bổ task theo trạng thái"></div>
+                <div class="donut-legend" id="statusLegend"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h3>🔔 Cần nhà đầu tư biết</h3>
+                <a class="link" data-view="notifications" href="#notifications">Tất cả →</a>
+              </div>
+              <div class="alert-list" id="alertPreview"></div>
+            </div>
+          </div>
 
           <div class="two-col">
             <div class="card">
@@ -230,6 +258,77 @@
           <div class="card">
             <div class="card-head"><h3>🔗 Follow-up task sinh ra từ ADR</h3></div>
             <div class="task-list" id="adrFollowUps"></div>
+          </div>
+        </section>
+
+        <!-- PROJECTS (Jira-clone projects board, fed by the release manifest) -->
+        <section class="view" id="view-projects" hidden>
+          <div class="filter-bar">
+            <div class="filter-group" id="projectFilters" role="group" aria-label="Lọc project">
+              <button class="filter is-active" data-project-filter="all">Tất cả</button>
+              <button class="filter" data-project-filter="game">Game package</button>
+              <button class="filter" data-project-filter="program">Chương trình FDE</button>
+              <button class="filter" data-project-filter="at-risk">Có blocker</button>
+            </div>
+            <div class="filter-row">
+              <span class="chip" id="projectChip">—</span>
+              <span class="chip" id="projectPointsChip">—</span>
+            </div>
+          </div>
+          <div class="project-grid" id="projectGrid"></div>
+          <div class="card">
+            <div class="card-head">
+              <h3>📊 Effort theo project</h3>
+              <span class="chip">priority → points (P0 13 · P1 8 · P2 5 · P3 2)</span>
+            </div>
+            <div class="project-effort" id="projectEffort"></div>
+          </div>
+        </section>
+
+        <!-- NOTIFICATIONS (alerts derived from repo state) -->
+        <section class="view" id="view-notifications" hidden>
+          <div class="filter-bar">
+            <div class="filter-group" id="alertFilters" role="group" aria-label="Lọc thông báo">
+              <button class="filter is-active" data-alert-filter="all">Tất cả</button>
+              <button class="filter" data-alert-filter="critical">Critical</button>
+              <button class="filter" data-alert-filter="issue">Issue / blocker</button>
+              <button class="filter" data-alert-filter="gate">Delivery gate</button>
+              <button class="filter" data-alert-filter="decision">Quyết định</button>
+              <button class="filter" data-alert-filter="schedule">Lịch họp</button>
+            </div>
+            <div class="filter-row">
+              <span class="chip" id="alertChip">—</span>
+            </div>
+          </div>
+          <div class="alert-list" id="alertList"></div>
+        </section>
+
+        <!-- RELEASES (verified build artifacts) -->
+        <section class="view" id="view-releases" hidden>
+          <div class="card">
+            <div class="card-head">
+              <h3>🚀 Release manifest — gói đã verify</h3>
+              <span class="chip" id="releaseChip">—</span>
+            </div>
+            <div class="table-wrap">
+              <table class="task-table">
+                <thead>
+                  <tr>
+                    <th>Project</th><th>Version</th><th>Legal</th><th>Budget</th>
+                    <th>Bundle</th><th>Trạng thái</th><th>Changelog</th>
+                  </tr>
+                </thead>
+                <tbody id="releaseRows"></tbody>
+              </table>
+            </div>
+            <div class="schedule-foot" id="releaseFoot"></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h3>📦 Artifact digest</h3>
+              <span class="chip">sha256 trong dist/release-manifest.json</span>
+            </div>
+            <div class="release-files" id="releaseFiles"></div>
           </div>
         </section>
 

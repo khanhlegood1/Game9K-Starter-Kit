@@ -476,6 +476,18 @@ export function createGame9KServer(options = {}) {
     res.json({ schema_version: 1, ...week });
   });
 
+  // Portfolio overlay: projects (from the release manifest), alerts and releases.
+  app.get("/api/tasks/portfolio", async (req, res) => {
+    const anchor = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.anchor || ""))
+      ? String(req.query.anchor)
+      : null;
+    try {
+      res.json(await taskBoardService.getPortfolio({ anchor }));
+    } catch (error) {
+      res.status(500).json({ ok: false, error: error?.message || "portfolio_failed" });
+    }
+  });
+
   app.post("/api/tasks", async (req, res) => {
     const result = await taskBoardService.createTask(req.body || {});
     if (!result.ok) return res.status(400).json(result);

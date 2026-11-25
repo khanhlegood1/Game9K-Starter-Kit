@@ -9,6 +9,7 @@ Một board task chỉ có giá trị nếu nó không lệch khỏi nguồn s�
 - `project/fde/mission-brief.json` — mission, Delta, next action, risk, gate, metric.
 - `project/fde/adr/*.md` — quyết định kiến trúc + follow-up (MADR v4 + hve-core, xem `docs/ADR-GOVERNANCE.md`).
 - `project/fde/schedule.json` — lịch họp thật của tuần (UAT, review, gate check, investor sync).
+- `dist/release-manifest.json` — gói phát hành đã verify (version, legal class, gzip budget, `release_sha256`) → nguồn duy nhất cho danh sách **Projects** và **Releases**.
 - GitHub Issues/PRs — nơi kỹ thuật thực sự làm việc.
 
 Portal **gộp ba nguồn này** thành một board, thay vì tạo bảng thứ tư để rồi trôi khỏi thực tế. Vì vậy:
@@ -20,14 +21,20 @@ Portal **gộp ba nguồn này** thành một board, thay vì tạo bảng thứ
 | Chốt một quyết định | `project/fde/adr/NNNN-kebab-case-title.md` | **Decision Logs** + follow-up task + ADR graph |
 | Đặt lịch họp / review / gate check | `project/fde/schedule.json` | Thẻ **Schedule** + màn hình Schedule |
 | Việc kỹ thuật đang mở | GitHub issue/PR | Task `GH-*` / `PR-*` |
+| Thêm/bớt một project, đổi version hoặc bundle budget | `dist/release-manifest.json` (do `npm run build` sinh ra) | **Projects** + **Releases** + KPI effort đổi theo ngay |
 
 ## 2. Cấu trúc màn hình
 
 | Màn hình | Nội dung |
 | --- | --- |
-| **Overview** | Hero mission + KPI (task mở, in progress, blocked, P0/P1, % hoàn thành, ADR mở), "Ưu tiên xử lý ngay", tải theo owner, bảng **My Projects** (task đang mở), timeline delivery gates, thẻ **Schedule** ngay dưới My Projects, Notes rủi ro, Activity |
+| **Overview** | Hero mission + KPI (task mở, in progress, blocked, P0/P1, % hoàn thành, ADR đã chốt), **donut phân bổ trạng thái**, **feed cảnh báo cần nhà đầu tư biết**, "Ưu tiên xử lý ngay", tải theo owner, bảng **My Projects** (task đang mở), timeline delivery gates, thẻ **Schedule** ngay dưới My Projects, Notes rủi ro, Activity. Sidebar có **sprint card** (tuần thật + gate progress) |
 | **All Tasks** | Danh sách đầy đủ, lọc theo status / owner / priority / nguồn + tìm kiếm full-text |
 | **Kanban** | 4 cột Blocked → In Progress → Open → Done |
+| **Projects** | Project card sinh từ `dist/release-manifest.json` (4 game package) + chương trình **FDE Live Interaction**: status (active/planning/shipped), health (at-risk), số task/blocker, % effort theo story-point, owner, budget gzip, top 3 issue; bảng **Effort theo project** (P0 13 · P1 8 · P2 5 · P3 2) |
+| **Notifications** | Cảnh báo suy ra từ repo: blocker, gate chưa qua, ADR `proposed`, governance finding, họp trong 24h, package ≥ 90% bundle budget. Lọc theo critical / issue / gate / decision / schedule, mỗi cảnh báo link thẳng tới panel nguồn |
+| **Releases** | Bảng release thật: version, legal class (G2/G4), budget gzip + thanh tiêu thụ, `release_sha256`, trạng thái verify, link mở game; kèm digest `bundle_sha256` và standalone bundle |
+
+> **Nguồn cảm hứng:** nhóm màn hình Projects → Issues → Notifications → Releases theo mô hình Jira-clone (`lexuankhanh1612/v0-jira-clone`), nhưng toàn bộ số liệu ở đây **suy ra** từ file thật trong repo. Jira-clone giữ issue/project trong `lib/*.ts` mock và story point nhập tay; Game9K không có bảng project thứ hai — project tồn tại vì release manifest hoặc mission brief nói nó tồn tại, và story point = trọng số priority (P0 13 · P1 8 · P2 5 · P3 2), xem `src/lib/projectPortfolio.js`.
 | **Schedule** | Week strip Mo→Su (hôm nay khoanh tròn màu brand), `‹ ›` sang tuần trước/sau, event row `00:00 PM to 00:00 PM` + avatar chồng nhau, deadline suy ra từ gate/ADR/task |
 | **Decision Logs** | Mọi ADR: type, lifecycle (`proposed → accepted → deprecated → superseded`), supersession lineage, ASR trigger, governance findings, ADR graph và follow-up task |
 | **Delivery Gates** | 5 cổng theo vòng đời FDE + exit criteria |
@@ -42,6 +49,7 @@ Mỗi task hiển thị: `id`, priority (P0–P3), status, nguồn (FDE / Risk /
 | `GET /api/tasks` | Board đầy đủ. Query: `status`, `owner`, `priority`, `source`, `q`, `github=0`, `refresh=1` |
 | `GET /api/tasks/adrs` | Danh sách ADR đã parse (status, deciders, follow-up) |
 | `GET /api/tasks/adrs/registry` | ADR registry đầy đủ: findings MADR v4, supersession graph, summary + `nextId` |
+| `GET /api/tasks/portfolio?anchor=YYYY-MM-DD` | Portfolio overlay: `projects[]` (từ release manifest + FDE program), `alerts[]`, `releases`, `statusBreakdown`, `sprint`, `totals` |
 | `GET /api/schedule?anchor=YYYY-MM-DD` | Một tuần lịch (Mon→Sun): meetings, deadlines suy ra, `upcoming`, `stats`, `validation` |
 | `POST /api/tasks` | Tạo task → GitHub Issue nếu có token, ngược lại trả lệnh `gh` + link tạo issue |
 
@@ -85,6 +93,7 @@ Trước đây `adrOpen` đếm cả ADR `accepted`, nên một dự án đã ch
 - Vercel static (không có Express API) → UI rơi về **static mode** và báo rõ.
 - Thiếu `GITHUB_TOKEN` khi tạo task → trả `command` (`gh issue create …`) và `newIssueUrl`, không tạo dữ liệu ma.
 - `project/fde/schedule.json` thiếu/hỏng → thẻ Schedule báo lỗi cục bộ, board FDE + ADR **không** bị ảnh hưởng (schedule là endpoint riêng).
+- `dist/release-manifest.json` thiếu (deploy static không build) → **Projects** chỉ còn chương trình FDE, **Releases** báo "chưa có release manifest — chạy `npm run build`"; API vẫn trả `ok: true`, không 500.
 
 ## 4. CLI
 
